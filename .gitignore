@@ -1,11 +1,13 @@
 # Binary
-ovpn-monitor
-ovpn-monitor.exe
+ovpnmonitor.exe
+ovpnmonitor
 
 # Database
 *.sqlite
 *.sqlite3
 *.db
+*.sqlite-shm
+*.sqlite-wal
 
 # Environment & secrets
 .env

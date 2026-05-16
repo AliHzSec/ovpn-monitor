@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"html/template"
 	"io"
@@ -55,69 +56,77 @@ type options struct {
 	sessionTTL   time.Duration
 }
 
-func loadEnv(path string) map[string]string {
-	env := make(map[string]string)
-	f, err := os.Open(path)
-	if err != nil {
-		return env
-	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		key := strings.TrimSpace(parts[0])
-		val := strings.TrimSpace(parts[1])
-		// strip surrounding quotes
-		if len(val) >= 2 && ((val[0] == '"' && val[len(val)-1] == '"') || (val[0] == '\'' && val[len(val)-1] == '\'')) {
-			val = val[1 : len(val)-1]
-		}
-		env[key] = val
-	}
-	return env
-}
-
-func getEnv(env map[string]string, key, def string) string {
-	if v, ok := env[key]; ok && v != "" {
-		return v
-	}
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
-}
 
 func run(ctx context.Context, logger *slog.Logger) error {
-	// Determine .env path relative to executable
 	exe, err := os.Executable()
 	if err != nil {
 		exe = "."
 	}
-	envPath := filepath.Join(filepath.Dir(exe), ".env")
-	env := loadEnv(envPath)
+	exeDir := filepath.Dir(exe)
 
-	sessionTTLStr := getEnv(env, "SESSION_TTL", "24h")
+	// Flag definitions — defaults are empty so we can detect "not set".
+	flagDB := flag.String("db", "", "path to SQLite database")
+	flagLog := flag.String("log", "", "path to OpenVPN status log")
+	flagAddr := flag.String("addr", "", "listen address (host:port)")
+	flagCertsDir := flag.String("certs-dir", "", "path to OpenVPN issued certs directory")
+	flagTemplatesDir := flag.String("templates-dir", "", "path to HTML templates directory")
+	flagAdminUser := flag.String("admin-user", "", "admin username")
+	flagAdminPass := flag.String("admin-pass", "", "admin password")
+	flagSessionTTL := flag.String("session-ttl", "", "session TTL (e.g. 24h)")
+	flag.Parse()
+
+	// resolve applies the priority: CLI flag > env var > built-in default.
+	resolve := func(flagVal, envKey, def string) string {
+		if flagVal != "" {
+			return flagVal
+		}
+		if v := os.Getenv(envKey); v != "" {
+			return v
+		}
+		return def
+	}
+
+	dbPath := resolve(*flagDB, "DB_PATH", filepath.Join(exeDir, "db.sqlite"))
+	logFile := resolve(*flagLog, "OPENVPN_STATUS_LOG", "")
+	addr := resolve(*flagAddr, "ADDR", "0.0.0.0:8080")
+	certsDir := resolve(*flagCertsDir, "OPENVPN_CERT_DIR", "")
+	templatesDir := resolve(*flagTemplatesDir, "TEMPLATES_DIR", filepath.Join(exeDir, "templates"))
+	adminUser := resolve(*flagAdminUser, "ADMIN_USER", "admin")
+	adminPass := resolve(*flagAdminPass, "ADMIN_PASS", "changeme")
+	sessionTTLStr := resolve(*flagSessionTTL, "SESSION_TTL", "24h")
+
+	if certsDir == "" {
+		logger.Warn("no certs directory configured; set --certs-dir or OPENVPN_CERT_DIR")
+	}
+	if logFile == "" {
+		logger.Warn("no status log configured; set --log or OPENVPN_STATUS_LOG")
+	}
+
 	sessionTTL, err := time.ParseDuration(sessionTTLStr)
 	if err != nil {
 		sessionTTL = 24 * time.Hour
 	}
 
 	opts := options{
-		db:           getEnv(env, "DB", filepath.Join(filepath.Dir(exe), "db.sqlite")),
-		log:          getEnv(env, "LOG", "/var/log/openvpn/status.log"),
-		addr:         getEnv(env, "ADDR", "0.0.0.0:8080"),
-		certsDir:     getEnv(env, "CERTS_DIR", "/etc/openvpn/easy-rsa/pki/issued"),
-		templatesDir: getEnv(env, "TEMPLATES_DIR", filepath.Join(filepath.Dir(exe), "templates")),
-		adminUser:    getEnv(env, "ADMIN_USER", "admin"),
-		adminPass:    getEnv(env, "ADMIN_PASS", "changeme"),
+		db:           dbPath,
+		log:          logFile,
+		addr:         addr,
+		certsDir:     certsDir,
+		templatesDir: templatesDir,
+		adminUser:    adminUser,
+		adminPass:    adminPass,
 		sessionTTL:   sessionTTL,
 	}
+
+	logger.Info("startup config",
+		"db", opts.db,
+		"log", opts.log,
+		"addr", opts.addr,
+		"certs_dir", opts.certsDir,
+		"templates_dir", opts.templatesDir,
+		"admin_user", opts.adminUser,
+		"session_ttl", opts.sessionTTL,
+	)
 
 	// Load HTML templates from disk
 	tmpl, err := loadTemplates(opts.templatesDir)
