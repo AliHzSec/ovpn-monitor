@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Portal</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #070b0f;
+            --surface: #0e1520;
+            --surface2: #131d2b;
+            --surface3: #192434;
+            --border: #1c2a3a;
+            --border2: #243348;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --accent-dim: rgba(59, 130, 246, 0.06);
+            --green: #22c55e;
+            --green-dim: rgba(34, 197, 94, 0.1);
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --text-muted: #64748b;
+            --danger: #ef4444;
+            --recv-color: #38bdf8;
+            --sent-color: #fb923c;
+        }
+
+        html { height: 100%; }
+
+        body {
+            font-family: sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: radial-gradient(ellipse 100% 40% at 50% 0%, rgba(59, 130, 246, 0.06) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: 60px;
+            background: rgba(14, 21, 32, 0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .logo-text {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+
+        .logo-text span { color: var(--accent); }
+
+        .topbar-center {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            min-width: 80px;
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 4px 12px;
+            white-space: nowrap;
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: livepulse 2s ease-in-out infinite;
+        }
+
+        @keyframes livepulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ── MAIN ── */
+        .main {
+            position: relative;
+            z-index: 1;
+            padding: 28px 24px;
+            flex: 1;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* ── HERO ── */
+        .hero {
+            text-align: center;
+            padding: 32px 0 36px;
+        }
+
+        .hero-name {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: var(--text);
+            line-height: 1.1;
+        }
+
+        .hero-ip {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .hero-badge-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+
+        .badge.online {
+            background: var(--green-dim);
+            color: var(--green);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .badge.offline {
+            background: rgba(100, 116, 139, 0.1);
+            color: var(--text-muted);
+            border: 1px solid rgba(100, 116, 139, 0.2);
+        }
+
+        .hero-time {
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .hero-time.connected { color: var(--green); }
+        .hero-time.last-seen { color: var(--text-muted); }
+
+        /* ── STATS GRID ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            border-radius: 12px 12px 0 0;
+            background: var(--accent);
+        }
+
+        .stat-card.c-alltime::before { background: var(--green); }
+
+        .stat-card:hover { border-color: var(--border2); }
+
+        .stat-card-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .stat-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .stat-row-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-row-label .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .stat-row-value {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .stat-row-value.total { color: var(--accent); font-size: 22px; }
+        .stat-row-value.traffic-total { color: var(--text); font-size: 22px; }
+        .stat-row-value.recv { color: var(--recv-color); }
+        .stat-row-value.sent { color: var(--sent-color); }
+
+        /* ── FILTER TABS ── */
+        .filter-group {
+            display: flex;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 4px;
+            gap: 2px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 6px 16px;
+            font-family: sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.18s;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            color: var(--text);
+            background: var(--surface3);
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        /* ── INFO BOX ── */
+        .info-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        /* ── FOOTER ── */
+        .footer {
+            position: relative;
+            z-index: 1;
+            padding: 14px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+            .topbar-center { display: none; }
+        }
+
+        @media (max-width: 600px) {
+            .topbar { padding: 0 16px; }
+            .main { padding: 20px 16px; }
+            .stats-grid { grid-template-columns: 1fr; gap: 10px; }
+            .hero-name { font-size: 26px; }
+            .filter-btn { padding: 6px 10px; }
+            .footer { justify-content: center; }
+        }
+
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+    </style>
+</head>
+
+<body>
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <div class="logo-text">Server<span>Monitor</span></div>
+        <div class="topbar-center">
+            <div class="live-badge">
+                <div class="live-dot"></div>
+                <span id="last-update">Loading...</span>
+            </div>
+        </div>
+        <div class="topbar-right"></div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <!-- Hero -->
+        <div class="hero">
+            <div class="hero-name">{{.CommonName}}</div>
+            <div class="hero-ip">{{.VPNAddress}}</div>
+            <div class="hero-badge-row">
+                {{if .Online}}
+                <span class="badge online">● Online</span>
+                {{else}}
+                <span class="badge offline">○ Offline</span>
+                {{end}}
+            </div>
+            {{if .Online}}
+            <div class="hero-time connected">Connected since: {{.ConnectedSince}}</div>
+            {{else if .LastSeen}}
+            <div class="hero-time last-seen">Last seen: {{.LastSeen}}</div>
+            {{end}}
+        </div>
+
+        <!-- Stats row: Usage (filtered) + All Time -->
+        <div class="stats-grid">
+            <!-- Usage card — updates with filter -->
+            <div class="stat-card">
+                <div class="stat-card-title" id="usage-title">Usage — Today</div>
+                <div class="stat-rows">
+                    <div class="stat-row">
+                        <div class="stat-row-label">
+                            <span class="dot" style="background:var(--accent)"></span>
+                            Total
+                        </div>
+                        <div class="stat-row-value total" id="u-total">—</div>
+                    </div>
+                    <div class="stat-row">
+                        <div class="stat-row-label">
+                            <span class="dot" style="background:var(--recv-color)"></span>
+                            Download
+                        </div>
+                        <div class="stat-row-value recv" id="u-recv">—</div>
+                    </div>
+                    <div class="stat-row">
+                        <div class="stat-row-label">
+                            <span class="dot" style="background:var(--sent-color)"></span>
+                            Upload
+                        </div>
+                        <div class="stat-row-value sent" id="u-sent">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- All Time card — fixed -->
+            <div class="stat-card c-alltime">
+                <div class="stat-card-title">All Time</div>
+                <div class="stat-rows">
+                    <div class="stat-row">
+                        <div class="stat-row-label">
+                            <span class="dot" style="background:var(--text-dim)"></span>
+                            Total
+                        </div>
+                        <div class="stat-row-value traffic-total" id="a-total">—</div>
+                    </div>
+                    <div class="stat-row">
+                        <div class="stat-row-label">
+                            <span class="dot" style="background:var(--recv-color)"></span>
+                            Download
+                        </div>
+                        <div class="stat-row-value recv" id="a-recv">—</div>
+                    </div>
+                    <div class="stat-row">
+                        <div class="stat-row-label">
+                            <span class="dot" style="background:var(--sent-color)"></span>
+                            Upload
+                        </div>
+                        <div class="stat-row-value sent" id="a-sent">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="filter-group">
+            <button class="filter-btn active" data-filter="today" data-label="Today">Today</button>
+            <button class="filter-btn" data-filter="week" data-label="7 Days">7 Days</button>
+            <button class="filter-btn" data-filter="month" data-label="30 Days">30 Days</button>
+            <button class="filter-btn" data-filter="all" data-label="All Time">All Time</button>
+        </div>
+
+        <!-- Info box -->
+        <div class="info-box">
+            Traffic data shown reflects your cumulative usage. All-time totals are always displayed on the right.
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <span>OpenVPN Client Monitor</span>
+        <span>Your IP: {{.VPNAddress}}</span>
+    </footer>
+
+    <script>
+        (function () {
+            'use strict';
+
+            let currentFilter = 'today';
+
+            function fmtBytes(n) {
+                if (n >= 1e12) return (n / 1e12).toFixed(2) + ' TB';
+                if (n >= 1e9)  return (n / 1e9).toFixed(2)  + ' GB';
+                if (n >= 1e6)  return (n / 1e6).toFixed(2)  + ' MB';
+                if (n >= 1e3)  return (n / 1e3).toFixed(2)  + ' KB';
+                return n + ' B';
+            }
+
+            function setUsageCard(data) {
+                if (!data) {
+                    document.getElementById('u-total').textContent = '—';
+                    document.getElementById('u-recv').textContent  = '—';
+                    document.getElementById('u-sent').textContent  = '—';
+                    return;
+                }
+                document.getElementById('u-total').textContent = data.total_traffic_readable  || fmtBytes(data.total_traffic  || 0);
+                document.getElementById('u-recv').textContent  = data.bytes_received_readable || fmtBytes(data.bytes_received || 0);
+                document.getElementById('u-sent').textContent  = data.bytes_sent_readable     || fmtBytes(data.bytes_sent     || 0);
+            }
+
+            function setAllTimeCard(data) {
+                if (!data) {
+                    document.getElementById('a-total').textContent = '—';
+                    document.getElementById('a-recv').textContent  = '—';
+                    document.getElementById('a-sent').textContent  = '—';
+                    return;
+                }
+                document.getElementById('a-total').textContent = data.total_traffic_readable  || fmtBytes(data.total_traffic  || 0);
+                document.getElementById('a-recv').textContent  = data.bytes_received_readable || fmtBytes(data.bytes_received || 0);
+                document.getElementById('a-sent').textContent  = data.bytes_sent_readable     || fmtBytes(data.bytes_sent     || 0);
+            }
+
+            async function fetchUsage(filter) {
+                try {
+                    const res = await fetch('/api/client-stats?filter=' + filter);
+                    if (!res.ok) {
+                        setUsageCard(null);
+                        return;
+                    }
+                    setUsageCard(await res.json());
+                } catch (e) {
+                    setUsageCard(null);
+                }
+            }
+
+            async function fetchAllTime() {
+                try {
+                    const res = await fetch('/api/client-stats?filter=all');
+                    if (!res.ok) { setAllTimeCard(null); return; }
+                    setAllTimeCard(await res.json());
+                } catch (e) {
+                    setAllTimeCard(null);
+                }
+            }
+
+            function updateTimestamp() {
+                const now = new Date();
+                document.getElementById('last-update').textContent =
+                    'Updated ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }
+
+            async function refresh() {
+                await fetchUsage(currentFilter);
+                updateTimestamp();
+            }
+
+            // Filter button clicks update left card only.
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.dataset.filter;
+                    const label = btn.dataset.label || btn.textContent;
+                    document.getElementById('usage-title').textContent = 'Usage — ' + label;
+                    fetchUsage(currentFilter);
+                });
+            });
+
+            // Initial load.
+            refresh();
+            fetchAllTime();
+
+            // Auto-refresh every 30s.
+            setInterval(refresh, 30000);
+
+        })();
+    </script>
+
+</body>
+
+</html>

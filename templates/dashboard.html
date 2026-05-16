@@ -746,7 +746,7 @@
 
     <!-- TOPBAR -->
     <header class="topbar">
-        <a href="/" class="logo">
+        <a href="/panel" class="logo">
             <div class="logo-text">Server<span>Monitor</span></div>
         </a>
 
@@ -761,7 +761,7 @@
             <div class="live-badge" id="mobile-live" style="display:none">
                 <div class="live-dot"></div>
             </div>
-            <a href="/logout" class="btn-logout">
+            <a href="/panel/logout" class="btn-logout">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                     <polyline points="16 17 21 12 16 7" />
@@ -955,7 +955,7 @@
                     const apiFilter = currentFilter === 'online' ? 'all' : currentFilter;
                     const res = await fetch('/api/clients?filter=' + apiFilter);
                     if (!res.ok) {
-                        if (res.status === 401) { location.href = '/login'; return; }
+                        if (res.status === 401) { location.href = '/panel/login'; return; }
                         throw new Error('HTTP ' + res.status);
                     }
                     allClients = (await res.json()) || [];

@@ -14,6 +14,7 @@ import (
 	"html/template"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -51,11 +52,12 @@ type options struct {
 	addr         string
 	certsDir     string
 	templatesDir string
+	ippFile      string
+	clientSubnet string
 	adminUser    string
 	adminPass    string
 	sessionTTL   time.Duration
 }
-
 
 func run(ctx context.Context, logger *slog.Logger) error {
 	exe, err := os.Executable()
@@ -64,18 +66,18 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	}
 	exeDir := filepath.Dir(exe)
 
-	// Flag definitions — defaults are empty so we can detect "not set".
 	flagDB := flag.String("db", "", "path to SQLite database")
 	flagLog := flag.String("log", "", "path to OpenVPN status log")
 	flagAddr := flag.String("addr", "", "listen address (host:port)")
 	flagCertsDir := flag.String("certs-dir", "", "path to OpenVPN issued certs directory")
 	flagTemplatesDir := flag.String("templates-dir", "", "path to HTML templates directory")
+	flagIPPFile := flag.String("ipp-file", "", "path to OpenVPN ipp.txt file")
+	flagClientSubnet := flag.String("client-subnet", "", "VPN client subnet override (CIDR)")
 	flagAdminUser := flag.String("admin-user", "", "admin username")
 	flagAdminPass := flag.String("admin-pass", "", "admin password")
 	flagSessionTTL := flag.String("session-ttl", "", "session TTL (e.g. 24h)")
 	flag.Parse()
 
-	// resolve applies the priority: CLI flag > env var > built-in default.
 	resolve := func(flagVal, envKey, def string) string {
 		if flagVal != "" {
 			return flagVal
@@ -91,6 +93,8 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	addr := resolve(*flagAddr, "ADDR", "0.0.0.0:8080")
 	certsDir := resolve(*flagCertsDir, "OPENVPN_CERT_DIR", "")
 	templatesDir := resolve(*flagTemplatesDir, "TEMPLATES_DIR", filepath.Join(exeDir, "templates"))
+	ippFile := resolve(*flagIPPFile, "OPENVPN_IPP_FILE", "")
+	clientSubnet := resolve(*flagClientSubnet, "OPENVPN_CLIENT_SUBNET", "")
 	adminUser := resolve(*flagAdminUser, "ADMIN_USER", "admin")
 	adminPass := resolve(*flagAdminPass, "ADMIN_PASS", "changeme")
 	sessionTTLStr := resolve(*flagSessionTTL, "SESSION_TTL", "24h")
@@ -113,9 +117,49 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		addr:         addr,
 		certsDir:     certsDir,
 		templatesDir: templatesDir,
+		ippFile:      ippFile,
+		clientSubnet: clientSubnet,
 		adminUser:    adminUser,
 		adminPass:    adminPass,
 		sessionTTL:   sessionTTL,
+	}
+
+	// Determine VPN subnet for client portal access control.
+	var vpnNet *net.IPNet
+	if clientSubnet != "" {
+		_, vpnNet, err = net.ParseCIDR(clientSubnet)
+		if err != nil {
+			logger.Warn("invalid OPENVPN_CLIENT_SUBNET, client portal disabled", "err", err)
+			vpnNet = nil
+		}
+	} else if ippFile != "" {
+		vpnToName, _, loadErr := loadIPPFile(ippFile)
+		if loadErr != nil {
+			logger.Warn("could not load ipp.txt for subnet detection, client portal disabled", "err", loadErr)
+		} else {
+			for ip := range vpnToName {
+				parsed := net.ParseIP(ip)
+				if parsed == nil {
+					continue
+				}
+				_, ipNet, parseErr := net.ParseCIDR(parsed.String() + "/24")
+				if parseErr != nil {
+					continue
+				}
+				vpnNet = ipNet
+				break
+			}
+			if vpnNet == nil {
+				logger.Warn("no IPs found in ipp.txt, client portal disabled")
+			}
+		}
+	} else {
+		logger.Warn("no ipp file configured; client portal disabled")
+	}
+
+	detectedSubnet := "<disabled>"
+	if vpnNet != nil {
+		detectedSubnet = vpnNet.String()
 	}
 
 	logger.Info("startup config",
@@ -124,11 +168,12 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		"addr", opts.addr,
 		"certs_dir", opts.certsDir,
 		"templates_dir", opts.templatesDir,
+		"ipp_file", opts.ippFile,
+		"vpn_subnet", detectedSubnet,
 		"admin_user", opts.adminUser,
 		"session_ttl", opts.sessionTTL,
 	)
 
-	// Load HTML templates from disk
 	tmpl, err := loadTemplates(opts.templatesDir)
 	if err != nil {
 		return err
@@ -160,6 +205,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	online := &onlineTracker{}
+	ipp := &ippStore{}
 
 	sessions := &sessionStore{
 		sessions: make(map[string]time.Time),
@@ -167,10 +213,11 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	go certList.refreshLoop(ctx, opts.certsDir, logger)
+	go ipp.refreshLoop(ctx, opts.ippFile, database, logger)
 
 	mux := http.NewServeMux()
 
-	// JSON API
+	// ── Admin API ────────────────────────────────────────────────────────────
 	mux.Handle("/api/clients", authMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		filter := r.URL.Query().Get("filter")
 		clients, err := database.queryClients(r.Context(), filter)
@@ -187,8 +234,48 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		json.NewEncoder(w).Encode(clients)
 	})))
 
-	// Login
+	// ── Client stats API (VPN IP only, no auth) ──────────────────────────────
+	mux.HandleFunc("/api/client-stats", func(w http.ResponseWriter, r *http.Request) {
+		clientIP, ok := vpnClientIP(r, vpnNet)
+		if !ok {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		vpnToName, _ := ipp.get()
+		commonName, found := vpnToName[clientIP.String()]
+		if !found {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}
+		filter := r.URL.Query().Get("filter")
+		c, err := database.clientStatsByName(r.Context(), commonName, cutoffFor(filter))
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "Not Found", http.StatusNotFound)
+				return
+			}
+			logger.Error("client stats: " + err.Error())
+			http.Error(w, "Internal Error", http.StatusInternalServerError)
+			return
+		}
+		onlineSet := online.get()
+		c.Online = onlineSet[c.CommonName]
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(c)
+	})
+
+	// ── /login → redirect to /panel/login ────────────────────────────────────
 	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/panel/login", http.StatusMovedPermanently)
+	})
+
+	// ── /logout → redirect to /panel/logout ──────────────────────────────────
+	mux.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/panel/logout", http.StatusMovedPermanently)
+	})
+
+	// ── Admin login (GET + POST) ──────────────────────────────────────────────
+	mux.HandleFunc("/panel/login", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			user := r.FormValue("username")
 			pass := r.FormValue("password")
@@ -202,7 +289,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 					HttpOnly: true,
 					MaxAge:   int(opts.sessionTTL.Seconds()),
 				})
-				http.Redirect(w, r, "/", http.StatusSeeOther)
+				http.Redirect(w, r, "/panel", http.StatusSeeOther)
 				return
 			}
 			renderTemplate(w, tmpl, "login.html", map[string]interface{}{
@@ -213,19 +300,57 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		renderTemplate(w, tmpl, "login.html", nil)
 	})
 
-	// Logout
-	mux.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
+	// ── Admin logout ──────────────────────────────────────────────────────────
+	mux.HandleFunc("/panel/logout", func(w http.ResponseWriter, r *http.Request) {
 		if c, err := r.Cookie("session"); err == nil {
 			sessions.delete(c.Value)
 		}
 		http.SetCookie(w, &http.Cookie{Name: "session", Value: "", Path: "/", MaxAge: -1})
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, "/panel/login", http.StatusSeeOther)
 	})
 
-	// Dashboard
-	mux.Handle("/", authMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// ── Admin dashboard ───────────────────────────────────────────────────────
+	mux.Handle("/panel", authMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		renderTemplate(w, tmpl, "dashboard.html", nil)
 	})))
+
+	// ── Client portal (root) ──────────────────────────────────────────────────
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		clientIP, ok := vpnClientIP(r, vpnNet)
+		if !ok {
+			http.Redirect(w, r, "/panel/login", http.StatusSeeOther)
+			return
+		}
+		vpnToName, _ := ipp.get()
+		commonName, found := vpnToName[clientIP.String()]
+		if !found {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, `<!DOCTYPE html><html><body style="font-family:sans-serif;background:#070b0f;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center"><p>Your VPN session was not found. Please reconnect.</p></body></html>`)
+			return
+		}
+		data := clientPortalData{
+			CommonName: commonName,
+			VPNAddress: clientIP.String(),
+		}
+		c, err := database.clientByVPNAddress(r.Context(), clientIP.String())
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			logger.Error("client portal db: " + err.Error())
+			http.Error(w, "Internal Error", http.StatusInternalServerError)
+			return
+		}
+		if c != nil {
+			onlineSet := online.get()
+			data.Online = onlineSet[c.CommonName]
+			data.ConnectedSince = c.ConnectedSince
+			data.LastSeen = c.LastSeen
+		}
+		renderTemplate(w, tmpl, "client.html", data)
+	})
 
 	srv := &http.Server{Addr: opts.addr, Handler: mux}
 	srvErr := make(chan error, 1)
@@ -259,6 +384,126 @@ func renderTemplate(w http.ResponseWriter, tmpl *template.Template, name string,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	buf.WriteTo(w)
+}
+
+// ── IPP Store ────────────────────────────────────────────────────────────────
+
+type ippStore struct {
+	mu        sync.RWMutex
+	vpnToName map[string]string // vpn_ip → common_name
+	nameToVPN map[string]string // common_name → vpn_ip
+}
+
+func (is *ippStore) get() (map[string]string, map[string]string) {
+	is.mu.RLock()
+	defer is.mu.RUnlock()
+	vpnToName := make(map[string]string, len(is.vpnToName))
+	for k, v := range is.vpnToName {
+		vpnToName[k] = v
+	}
+	nameToVPN := make(map[string]string, len(is.nameToVPN))
+	for k, v := range is.nameToVPN {
+		nameToVPN[k] = v
+	}
+	return vpnToName, nameToVPN
+}
+
+func (is *ippStore) refreshLoop(ctx context.Context, ippFile string, database *db, logger *slog.Logger) {
+	if ippFile == "" {
+		return
+	}
+	load := func() {
+		vpnToName, nameToVPN, err := loadIPPFile(ippFile)
+		if err != nil {
+			logger.Warn("ipp refresh failed", "err", err)
+			return
+		}
+		is.mu.Lock()
+		is.vpnToName = vpnToName
+		is.nameToVPN = nameToVPN
+		is.mu.Unlock()
+
+		// Sync vpn_address into DB for each known client.
+		ctx2, cancel := context.WithTimeout(ctx, 15*time.Second)
+		defer cancel()
+		for name, ip := range nameToVPN {
+			if _, err := database.db.ExecContext(ctx2,
+				`UPDATE clients SET vpn_address = ? WHERE common_name = ?`, ip, name); err != nil {
+				logger.Warn("ipp db update failed", "name", name, "err", err)
+			}
+		}
+
+		subnet := "<unknown>"
+		for ip := range vpnToName {
+			parsed := net.ParseIP(ip)
+			if parsed == nil {
+				continue
+			}
+			_, ipNet, err := net.ParseCIDR(parsed.String() + "/24")
+			if err != nil {
+				continue
+			}
+			subnet = ipNet.String()
+			break
+		}
+		logger.Info("ipp file loaded", "clients", len(vpnToName), "subnet", subnet)
+	}
+	load()
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			load()
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func loadIPPFile(path string) (map[string]string, map[string]string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer f.Close()
+	vpnToName := make(map[string]string)
+	nameToVPN := make(map[string]string)
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		fields := strings.Split(line, ",")
+		if len(fields) < 2 {
+			continue
+		}
+		name := strings.TrimSpace(fields[0])
+		ip := strings.TrimSpace(fields[1])
+		if name == "" || ip == "" {
+			continue
+		}
+		vpnToName[ip] = name
+		nameToVPN[name] = ip
+	}
+	return vpnToName, nameToVPN, scanner.Err()
+}
+
+// vpnClientIP parses the remote address and checks whether it falls inside vpnNet.
+func vpnClientIP(r *http.Request, vpnNet *net.IPNet) (net.IP, bool) {
+	if vpnNet == nil {
+		return nil, false
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return nil, false
+	}
+	return ip, vpnNet.Contains(ip)
 }
 
 // ── Cert Whitelist ──────────────────────────────────────────────────────────
@@ -392,7 +637,7 @@ func authMiddleware(sessions *sessionStore, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("session")
 		if err != nil || !sessions.valid(c.Value) {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			http.Redirect(w, r, "/panel/login", http.StatusSeeOther)
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -406,6 +651,7 @@ type db struct{ db *sql.DB }
 type client struct {
 	CommonName            string `json:"common_name"`
 	RealAddress           string `json:"real_address"`
+	VPNAddress            string `json:"vpn_address"`
 	BytesReceived         int64  `json:"bytes_received"`
 	BytesSent             int64  `json:"bytes_sent"`
 	TotalTraffic          int64  `json:"total_traffic"`
@@ -417,8 +663,16 @@ type client struct {
 	Online                bool   `json:"online"`
 }
 
+type clientPortalData struct {
+	CommonName     string
+	VPNAddress     string
+	Online         bool
+	ConnectedSince string
+	LastSeen       string
+}
+
 func (d *db) migrate(ctx context.Context) error {
-	const s = `
+	const create = `
 	CREATE TABLE IF NOT EXISTS clients (
 		id                   INTEGER PRIMARY KEY,
 		common_name          TEXT NOT NULL UNIQUE,
@@ -430,8 +684,40 @@ func (d *db) migrate(ctx context.Context) error {
 		connected_since      TEXT NOT NULL DEFAULT '',
 		last_seen            TEXT NOT NULL DEFAULT ''
 	);`
-	_, err := d.db.ExecContext(ctx, s)
-	return err
+	if _, err := d.db.ExecContext(ctx, create); err != nil {
+		return err
+	}
+	// Add vpn_address column if it doesn't exist yet.
+	rows, err := d.db.QueryContext(ctx, `PRAGMA table_info(clients)`)
+	if err != nil {
+		return err
+	}
+	hasVPNAddr := false
+	for rows.Next() {
+		var cid int
+		var name, colType string
+		var notNull int
+		var dflt sql.NullString
+		var pk int
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &dflt, &pk); err != nil {
+			rows.Close()
+			return err
+		}
+		if name == "vpn_address" {
+			hasVPNAddr = true
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if !hasVPNAddr {
+		_, err = d.db.ExecContext(ctx, `ALTER TABLE clients ADD COLUMN vpn_address TEXT NOT NULL DEFAULT ''`)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (d *db) upsertKnownClient(ctx context.Context, name string) error {
@@ -454,12 +740,12 @@ func (d *db) updateClients(ctx context.Context, clients []client) error {
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				const ins = `INSERT INTO clients
-					(common_name, real_address, bytes_received, bytes_sent,
+					(common_name, real_address, vpn_address, bytes_received, bytes_sent,
 					 last_bytes_received, last_bytes_sent, connected_since, last_seen)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 				now := time.Now().Format("2006-01-02 15:04:05")
 				_, err = tx.ExecContext(ctx, ins,
-					c.CommonName, c.RealAddress,
+					c.CommonName, c.RealAddress, c.VPNAddress,
 					c.BytesReceived, c.BytesSent,
 					c.BytesReceived, c.BytesSent,
 					c.ConnectedSince, now,
@@ -478,6 +764,7 @@ func (d *db) updateClients(ctx context.Context, clients []client) error {
 
 		const upd = `UPDATE clients SET
 			real_address          = ?,
+			vpn_address           = ?,
 			bytes_received        = bytes_received + ?,
 			bytes_sent            = bytes_sent + ?,
 			last_bytes_received   = ?,
@@ -486,7 +773,7 @@ func (d *db) updateClients(ctx context.Context, clients []client) error {
 			last_seen             = ?
 			WHERE common_name = ?`
 		_, err = tx.ExecContext(ctx, upd,
-			c.RealAddress,
+			c.RealAddress, c.VPNAddress,
 			recvDiff, sentDiff,
 			c.BytesReceived, c.BytesSent,
 			c.ConnectedSince,
@@ -520,6 +807,7 @@ func (d *db) queryClients(ctx context.Context, filter string) ([]client, error) 
 	const base = `SELECT
 		common_name,
 		real_address,
+		vpn_address,
 		bytes_received,
 		bytes_sent,
 		(bytes_received + bytes_sent) AS total_traffic,
@@ -545,7 +833,7 @@ func (d *db) queryClients(ctx context.Context, filter string) ([]client, error) 
 	for rows.Next() {
 		var c client
 		if err := rows.Scan(
-			&c.CommonName, &c.RealAddress,
+			&c.CommonName, &c.RealAddress, &c.VPNAddress,
 			&c.BytesReceived, &c.BytesSent,
 			&c.TotalTraffic, &c.ConnectedSince, &c.LastSeen,
 		); err != nil {
@@ -560,6 +848,49 @@ func (d *db) queryClients(ctx context.Context, filter string) ([]client, error) 
 		return nil, err
 	}
 	return clients, nil
+}
+
+func (d *db) clientByVPNAddress(ctx context.Context, vpnAddr string) (*client, error) {
+	const q = `SELECT common_name, vpn_address, bytes_received, bytes_sent,
+		(bytes_received + bytes_sent) AS total_traffic, connected_since, last_seen
+		FROM clients WHERE vpn_address = ?`
+	var c client
+	err := d.db.QueryRowContext(ctx, q, vpnAddr).Scan(
+		&c.CommonName, &c.VPNAddress,
+		&c.BytesReceived, &c.BytesSent,
+		&c.TotalTraffic, &c.ConnectedSince, &c.LastSeen,
+	)
+	if err != nil {
+		return nil, err
+	}
+	c.BytesReceivedReadable = formatBytes(c.BytesReceived)
+	c.BytesSentReadable = formatBytes(c.BytesSent)
+	c.TotalTrafficReadable = formatBytes(c.TotalTraffic)
+	return &c, nil
+}
+
+func (d *db) clientStatsByName(ctx context.Context, commonName, cutoff string) (*client, error) {
+	const base = `SELECT common_name, vpn_address, bytes_received, bytes_sent,
+		(bytes_received + bytes_sent) AS total_traffic, connected_since, last_seen
+		FROM clients WHERE common_name = ?`
+	var row *sql.Row
+	if cutoff != "" {
+		row = d.db.QueryRowContext(ctx, base+" AND last_seen >= ?", commonName, cutoff)
+	} else {
+		row = d.db.QueryRowContext(ctx, base, commonName)
+	}
+	var c client
+	if err := row.Scan(
+		&c.CommonName, &c.VPNAddress,
+		&c.BytesReceived, &c.BytesSent,
+		&c.TotalTraffic, &c.ConnectedSince, &c.LastSeen,
+	); err != nil {
+		return nil, err
+	}
+	c.BytesReceivedReadable = formatBytes(c.BytesReceived)
+	c.BytesSentReadable = formatBytes(c.BytesSent)
+	c.TotalTrafficReadable = formatBytes(c.TotalTraffic)
+	return &c, nil
 }
 
 func diff(current, previous int64) int64 {
@@ -712,6 +1043,7 @@ func parseOpenVPNLog(f io.Reader, certs *certWhitelist, logger *slog.Logger) ([]
 		clients = append(clients, client{
 			CommonName:     name,
 			RealAddress:    record[2],
+			VPNAddress:     record[3], // VirtualAddr from status log
 			BytesReceived:  bytesReceived,
 			BytesSent:      bytesSent,
 			ConnectedSince: connectedSince,
