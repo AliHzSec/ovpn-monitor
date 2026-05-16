@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring - Dashboard</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #070b0f;
+            --surface: #0e1520;
+            --surface2: #131d2b;
+            --surface3: #192434;
+            --border: #1c2a3a;
+            --border2: #243348;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --accent-dim: rgba(59, 130, 246, 0.06);
+            --green: #22c55e;
+            --green-dim: rgba(34, 197, 94, 0.1);
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --text-muted: #64748b;
+            --danger: #ef4444;
+            --recv-color: #38bdf8;
+            --sent-color: #fb923c;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        body {
+            font-family: sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: radial-gradient(ellipse 100% 40% at 50% 0%, rgba(59, 130, 246, 0.06) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: 60px;
+            background: rgba(14, 21, 32, 0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: inherit;
+            flex-shrink: 0;
+        }
+
+        .logo-text {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-text span {
+            color: var(--accent);
+        }
+
+        .topbar-center {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 4px 12px;
+            white-space: nowrap;
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: livepulse 2s ease-in-out infinite;
+        }
+
+        @keyframes livepulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        .btn-logout {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
+            border: 1px solid var(--border2);
+            color: var(--text-muted);
+            padding: 6px 14px;
+            font-family: sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 7px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-logout:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: rgba(239, 68, 68, 0.06);
+        }
+
+        /* ── MAIN ── */
+        .main {
+            position: relative;
+            z-index: 1;
+            padding: 28px 24px;
+            flex: 1;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* ── STATS ROW — 2 cards ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .stat-card.c-clients::before {
+            background: var(--accent);
+        }
+
+        .stat-card.c-traffic::before {
+            background: var(--green);
+        }
+
+        .stat-card:hover {
+            border-color: var(--border2);
+        }
+
+        .stat-card-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .stat-row-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-row-label .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .stat-row-value {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+        }
+
+        .stat-row-value .pct {
+            font-size: 11px;
+            font-weight: 500;
+            opacity: 0.7;
+        }
+
+        .stat-row-value.total {
+            color: var(--accent);
+            font-size: 22px;
+        }
+
+        .stat-row-value.online {
+            color: var(--green);
+        }
+
+        .stat-row-value.offline {
+            color: var(--text-muted);
+        }
+
+        .stat-row-value.traffic-total {
+            color: var(--text);
+            font-size: 22px;
+        }
+
+        .stat-row-value.recv {
+            color: var(--recv-color);
+        }
+
+        .stat-row-value.sent {
+            color: var(--sent-color);
+        }
+
+        /* ratio bar */
+        .ratio-bar {
+            height: 4px;
+            background: var(--surface3);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 14px;
+        }
+
+        .ratio-bar-fill {
+            height: 100%;
+            background: var(--green);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .ratio-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ── CONTROLS ── */
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .filter-group {
+            display: flex;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 4px;
+            gap: 2px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 6px 16px;
+            font-family: sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.18s;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            color: var(--text);
+            background: var(--surface3);
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        /* online filter active = green */
+        .filter-btn[data-filter="online"].active {
+            background: var(--green);
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+        }
+
+        .controls-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            color: var(--text-muted);
+            pointer-events: none;
+            display: flex;
+        }
+
+        .search-input {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px 8px 36px;
+            font-family: sans-serif;
+            font-size: 13px;
+            border-radius: 8px;
+            width: 200px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            background: var(--surface2);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+            width: 240px;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* ── TABLE ── */
+        .table-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 680px;
+        }
+
+        thead th {
+            padding: 13px 18px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.15);
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.15s;
+        }
+
+        thead th:hover {
+            color: var(--text-dim);
+        }
+
+        thead th.sorted {
+            color: var(--accent);
+        }
+
+        thead th .sort-arrow {
+            display: inline-block;
+            margin-left: 4px;
+            opacity: 0.4;
+            font-size: 10px;
+            transition: opacity 0.15s;
+        }
+
+        thead th.sorted .sort-arrow {
+            opacity: 1;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background 0.12s;
+            border-left: 2px solid transparent;
+        }
+
+        tbody tr.row-online {
+            border-left: 2px solid var(--green);
+        }
+
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        td {
+            padding: 14px 18px;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .cell-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-dot.online {
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: livepulse 2s infinite;
+        }
+
+        .status-dot.offline {
+            background: var(--text-muted);
+        }
+
+        .name-text {
+            font-weight: 600;
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+
+        .badge.online {
+            background: var(--green-dim);
+            color: var(--green);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .badge.offline {
+            background: rgba(100, 116, 139, 0.1);
+            color: var(--text-muted);
+            border: 1px solid rgba(100, 116, 139, 0.2);
+        }
+
+        .ip-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .recv-text {
+            color: var(--recv-color);
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .sent-text {
+            color: var(--sent-color);
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .total-text {
+            color: var(--accent);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .time-online {
+            font-size: 12px;
+            color: var(--green);
+            font-weight: 500;
+        }
+
+        .time-offline {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .time-label {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-right: 2px;
+        }
+
+        .empty-state {
+            padding: 64px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--border2);
+            margin-bottom: 6px;
+        }
+
+        .empty-state p {
+            font-size: 13px;
+        }
+
+        .skeleton {
+            height: 14px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            from {
+                background-position: 200% 0;
+            }
+
+            to {
+                background-position: -200% 0;
+            }
+        }
+
+        tbody tr {
+            animation: rowIn 0.25s ease backwards;
+        }
+
+        @keyframes rowIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        /* ── FOOTER ── */
+        .footer {
+            position: relative;
+            z-index: 1;
+            padding: 14px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+            .topbar-center {
+                display: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .topbar {
+                padding: 0 16px;
+            }
+
+            .logo-text {
+                display: none;
+            }
+
+            .main {
+                padding: 20px 16px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .controls-right {
+                justify-content: space-between;
+            }
+
+            .search-input {
+                width: 100%;
+            }
+
+            .search-input:focus {
+                width: 100%;
+            }
+
+            .search-wrap {
+                flex: 1;
+            }
+
+            .filter-btn {
+                padding: 6px 10px;
+            }
+
+            .footer {
+                justify-content: center;
+            }
+
+            .btn-logout span {
+                display: none;
+            }
+
+            /* hide IP on mobile */
+            td:nth-child(3),
+            th:nth-child(3) {
+                display: none;
+            }
+        }
+
+        @media (max-width: 380px) {
+
+            .stat-row-value.total,
+            .stat-row-value.traffic-total {
+                font-size: 18px;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <a href="/" class="logo">
+            <div class="logo-text">Server<span>Monitor</span></div>
+        </a>
+
+        <div class="topbar-center">
+            <div class="live-badge">
+                <div class="live-dot"></div>
+                <span id="last-update">Connecting...</span>
+            </div>
+        </div>
+
+        <div class="topbar-right">
+            <div class="live-badge" id="mobile-live" style="display:none">
+                <div class="live-dot"></div>
+            </div>
+            <a href="/logout" class="btn-logout">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>Logout</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <!-- Stats: 2 cards -->
+        <div class="stats-grid">
+            <!-- Clients card -->
+            <div class="stat-card c-clients">
+                <div class="stat-card-title">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    Clients
+                </div>
+                <div class="stat-rows">
+                    <div class="stat-row">
+                        <div class="stat-row-label">
+                            <span class="dot" style="background:var(--accent)"></span>
+                            Total
+                        </div>
+                        <div class="stat-row-value total" id="stat-total">—</div>
+                    </div>
+                    <div class="stat-row">
+                        <div class="stat-row-label">
+                            <span class="dot" style="background:var(--green)"></span>
+                            Online
+                        </div>
+                        <div class="stat-row-value online">
+                            <span id="stat-online">—</span>
+                            <span class="pct" id="stat-online-pct"></span>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <div class="stat-row-label">
+                            <span class="dot" style="background:var(--text-muted)"></span>
+                            Offline
+                        </div>
+                        <div class="stat-row-value offline">
+                            <span id="stat-offline">—</span>
+                            <span class="pct" id="stat-offline-pct"></span>
+                        </div>
+                    </div>
+                </div>
+                <!-- ratio bar -->
+                <div class="ratio-bar">
+                    <div class="ratio-bar-fill" id="ratio-bar-fill" style="width:0%"></div>
+                </div>
+                <div class="ratio-bar-label">
+                    <span id="ratio-label-online">Online 0%</span>
+                    <span id="ratio-label-offline">Offline 100%</span>
+                </div>
+            </div>
+
+            <!-- Traffic card -->
+            <div class="stat-card c-traffic">
+                <div class="stat-card-title">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="8 17 12 21 16 17" />
+                        <polyline points="16 7 12 3 8 7" />
+                        <line x1="12" y1="3" x2="12" y2="21" />
+                    </svg>
+                    Traffic
+                </div>
+                <div class="stat-rows">
+                    <div class="stat-row">
+                        <div class="stat-row-label">
+                            <span class="dot" style="background:var(--text-dim)"></span>
+                            Total
+                        </div>
+                        <div class="stat-row-value traffic-total" id="stat-total-traffic">—</div>
+                    </div>
+                    <div class="stat-row">
+                        <div class="stat-row-label">
+                            <span class="dot" style="background:var(--recv-color)"></span>
+                            Download
+                        </div>
+                        <div class="stat-row-value recv" id="stat-recv">—</div>
+                    </div>
+                    <div class="stat-row">
+                        <div class="stat-row-label">
+                            <span class="dot" style="background:var(--sent-color)"></span>
+                            Upload
+                        </div>
+                        <div class="stat-row-value sent" id="stat-sent">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="online" id="btn-online">Online</button>
+                <button class="filter-btn" data-filter="today">Today</button>
+                <button class="filter-btn" data-filter="week">7 Days</button>
+                <button class="filter-btn" data-filter="month">30 Days</button>
+                <button class="filter-btn" data-filter="all">All Time</button>
+            </div>
+
+            <div class="controls-right">
+                <div class="search-wrap">
+                    <span class="search-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                    </span>
+                    <input class="search-input" type="text" id="search" placeholder="Search client...">
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th data-col="name">Client <span class="sort-arrow">↕</span></th>
+                        <th data-col="status">Status <span class="sort-arrow">↕</span></th>
+                        <th data-col="ip">IP Address</th>
+                        <th data-col="recv">Download <span class="sort-arrow">↕</span></th>
+                        <th data-col="sent">Upload <span class="sort-arrow">↕</span></th>
+                        <th data-col="total">Total <span class="sort-arrow">↕</span></th>
+                        <th data-col="time">Last Connected</th>
+                    </tr>
+                </thead>
+                <tbody id="client-tbody">
+                    <tr>
+                        <td colspan="7">
+                            <div style="padding:32px 0; display:flex; flex-direction:column; gap:12px;">
+                                <div class="skeleton" style="width:60%; height:14px;"></div>
+                                <div class="skeleton" style="width:80%; height:14px;"></div>
+                                <div class="skeleton" style="width:50%; height:14px;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <span>OpenVPN Client Monitor</span>
+        <span id="client-count">Loading...</span>
+    </footer>
+
+    <script>
+        (function () {
+            'use strict';
+
+            let allClients = [];
+            let currentFilter = 'online';
+            let sortCol = 'total';
+            let sortDir = -1;
+            let userHasSorted = false;
+            let searchQuery = '';
+
+            function fmtBytes(n) {
+                if (n >= 1e12) return (n / 1e12).toFixed(2) + ' TB';
+                if (n >= 1e9) return (n / 1e9).toFixed(2) + ' GB';
+                if (n >= 1e6) return (n / 1e6).toFixed(2) + ' MB';
+                if (n >= 1e3) return (n / 1e3).toFixed(2) + ' KB';
+                return n + ' B';
+            }
+
+            function esc(s) {
+                return String(s)
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            // ─ Fetch ─
+            async function fetchClients() {
+                try {
+                    // "online" filter is client-side only; always fetch "all" from API for it
+                    const apiFilter = currentFilter === 'online' ? 'all' : currentFilter;
+                    const res = await fetch('/api/clients?filter=' + apiFilter);
+                    if (!res.ok) {
+                        if (res.status === 401) { location.href = '/login'; return; }
+                        throw new Error('HTTP ' + res.status);
+                    }
+                    allClients = (await res.json()) || [];
+                    renderTable();
+                    updateStats();
+
+                    const now = new Date();
+                    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    document.getElementById('last-update').textContent = 'Updated ' + time;
+                } catch (e) {
+                    console.error('Fetch error:', e);
+                    document.getElementById('last-update').textContent = 'Error fetching data';
+                }
+            }
+
+            // ─ Stats (always based on full allClients) ─
+            function updateStats() {
+                const online = allClients.filter(c => c.online).length;
+                const offline = allClients.length - online;
+                const total = allClients.length;
+                const pctOn = total ? Math.round(online / total * 100) : 0;
+                const pctOff = total ? Math.round(offline / total * 100) : 0;
+
+                const totalRecv = allClients.reduce((s, c) => s + (c.bytes_received || 0), 0);
+                const totalSent = allClients.reduce((s, c) => s + (c.bytes_sent || 0), 0);
+                const totalTraff = totalRecv + totalSent;
+
+                document.getElementById('stat-total').textContent = total;
+                document.getElementById('stat-online').textContent = online;
+                document.getElementById('stat-offline').textContent = offline;
+                document.getElementById('stat-online-pct').textContent = '(' + pctOn + '%)';
+                document.getElementById('stat-offline-pct').textContent = '(' + pctOff + '%)';
+                document.getElementById('stat-recv').textContent = fmtBytes(totalRecv);
+                document.getElementById('stat-sent').textContent = fmtBytes(totalSent);
+                document.getElementById('stat-total-traffic').textContent = fmtBytes(totalTraff);
+
+                // ratio bar
+                document.getElementById('ratio-bar-fill').style.width = pctOn + '%';
+                document.getElementById('ratio-label-online').textContent = 'Online ' + pctOn + '%';
+                document.getElementById('ratio-label-offline').textContent = 'Offline ' + pctOff + '%';
+
+                // Update "Online (N)" button label
+                const btnOnline = document.getElementById('btn-online');
+                btnOnline.textContent = online > 0 ? 'Online (' + online + ')' : 'Online';
+            }
+
+            // ─ Table ─
+            function renderTable() {
+                let data = [...allClients];
+
+                // Client-side filter for "online"
+                if (currentFilter === 'online') {
+                    data = data.filter(c => c.online);
+                }
+
+                // Search
+                if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    data = data.filter(c => c.common_name.toLowerCase().includes(q));
+                }
+
+                // Always put online first unless user explicitly sorted
+                if (!userHasSorted) {
+                    data.sort((a, b) => (b.online ? 1 : 0) - (a.online ? 1 : 0));
+                } else {
+                    const keyOf = {
+                        name: c => c.common_name.toLowerCase(),
+                        recv: c => c.bytes_received,
+                        sent: c => c.bytes_sent,
+                        total: c => c.total_traffic,
+                        status: c => c.online ? 1 : 0,
+                    };
+                    if (keyOf[sortCol]) {
+                        const key = keyOf[sortCol];
+                        data.sort((a, b) => {
+                            const av = key(a), bv = key(b);
+                            if (av < bv) return sortDir;
+                            if (av > bv) return -sortDir;
+                            return 0;
+                        });
+                    }
+                }
+
+                const tbody = document.getElementById('client-tbody');
+
+                // Footer count + visible traffic
+                const visRecv = data.reduce((s, c) => s + (c.bytes_received || 0), 0);
+                const visSent = data.reduce((s, c) => s + (c.bytes_sent || 0), 0);
+                const visTotal = visRecv + visSent;
+                document.getElementById('client-count').textContent =
+                    data.length + ' client' + (data.length !== 1 ? 's' : '') +
+                    (data.length ? ' · ' + fmtBytes(visTotal) + ' total' : '');
+
+                if (!data.length) {
+                    tbody.innerHTML =
+                        '<tr><td colspan="7"><div class="empty-state">' +
+                        '<h3>No clients found</h3>' +
+                        '<p>Try adjusting the filter or search term</p>' +
+                        '</div></td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.map((c, i) => {
+                    const online = c.online;
+                    const sc = online ? 'online' : 'offline';
+                    const ipStr = online ? esc(c.real_address || '—') : '—';
+
+                    let timeHtml;
+                    if (online) {
+                        const since = esc(c.connected_since || '—');
+                        timeHtml = '<span class="time-online"><span class="time-label">Since</span>' + since + '</span>';
+                    } else {
+                        const last = esc(c.last_seen || c.connected_since || 'Never');
+                        timeHtml = '<span class="time-offline"><span class="time-label">Last</span>' + last + '</span>';
+                    }
+
+                    return '<tr class="' + (online ? 'row-online' : '') + '" style="animation-delay:' + (i * 0.025) + 's">' +
+                        '<td><div class="cell-name">' +
+                        '<span class="status-dot ' + sc + '"></span>' +
+                        '<span class="name-text">' + esc(c.common_name) + '</span>' +
+                        '</div></td>' +
+                        '<td><span class="badge ' + sc + '">' + (online ? '● Online' : '○ Offline') + '</span></td>' +
+                        '<td class="ip-text">' + ipStr + '</td>' +
+                        '<td class="recv-text">' + esc(c.bytes_received_readable || fmtBytes(c.bytes_received)) + '</td>' +
+                        '<td class="sent-text">' + esc(c.bytes_sent_readable || fmtBytes(c.bytes_sent)) + '</td>' +
+                        '<td class="total-text">' + esc(c.total_traffic_readable || fmtBytes(c.total_traffic)) + '</td>' +
+                        '<td>' + timeHtml + '</td>' +
+                        '</tr>';
+                }).join('');
+            }
+
+            // ─ Filter buttons ─
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.dataset.filter;
+                    userHasSorted = false; // reset sort on filter change
+                    document.querySelectorAll('thead th').forEach(t => t.classList.remove('sorted'));
+                    fetchClients();
+                });
+            });
+
+            // ─ Sortable columns ─
+            document.querySelectorAll('thead th[data-col]').forEach(th => {
+                th.addEventListener('click', () => {
+                    const col = th.dataset.col;
+                    if (sortCol === col) { sortDir *= -1; }
+                    else { sortCol = col; sortDir = -1; }
+                    userHasSorted = true;
+                    document.querySelectorAll('thead th').forEach(t => t.classList.remove('sorted'));
+                    th.classList.add('sorted');
+                    renderTable();
+                });
+            });
+
+            // ─ Search ─
+            document.getElementById('search').addEventListener('input', e => {
+                searchQuery = e.target.value.trim();
+                renderTable();
+            });
+
+            // ─ Responsive ─
+            function checkMobile() {
+                const isMobile = window.innerWidth < 900;
+                const mobileLive = document.getElementById('mobile-live');
+                if (mobileLive) mobileLive.style.display = isMobile ? 'flex' : 'none';
+            }
+            checkMobile();
+            window.addEventListener('resize', checkMobile);
+
+            // ─ Init + auto-refresh ─
+            fetchClients();
+            setInterval(fetchClients, 10000);
+
+        })();
+    </script>
+</body>
+
+</html>
