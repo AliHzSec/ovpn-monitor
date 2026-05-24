@@ -1033,7 +1033,7 @@ func parseOpenVPNLog(f io.Reader, certs *certWhitelist, logger *slog.Logger) ([]
 		var connectedSince string
 		if len(record) > 8 {
 			if epoch, err := strconv.ParseInt(record[8], 10, 64); err == nil {
-				connectedSince = time.Unix(epoch, 0).UTC().Format("2006-01-02 15:04:05")
+				connectedSince = time.Unix(epoch, 0).Local().Format("2006-01-02 15:04:05")
 			}
 		}
 		if connectedSince == "" {
