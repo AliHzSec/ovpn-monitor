@@ -663,6 +663,17 @@ type client struct {
 	Online                bool   `json:"online"`
 }
 
+type logEntry struct {
+	CommonName     string
+	RealAddress    string
+	VPNAddress     string
+	BytesReceived  int64
+	BytesSent      int64
+	ConnectedSince string // formatted local time
+	ConnectedEpoch int64  // raw Unix timestamp from log field 8
+	Cipher         string
+}
+
 type clientPortalData struct {
 	CommonName     string
 	VPNAddress     string
@@ -672,48 +683,34 @@ type clientPortalData struct {
 }
 
 func (d *db) migrate(ctx context.Context) error {
-	const create = `
-	CREATE TABLE IF NOT EXISTS clients (
-		id                   INTEGER PRIMARY KEY,
-		common_name          TEXT NOT NULL UNIQUE,
-		real_address         TEXT NOT NULL DEFAULT '',
-		bytes_received       INTEGER NOT NULL DEFAULT 0 CHECK (bytes_received >= 0),
-		bytes_sent           INTEGER NOT NULL DEFAULT 0 CHECK (bytes_sent >= 0),
-		last_bytes_received  INTEGER NOT NULL DEFAULT 0 CHECK (last_bytes_received >= 0),
-		last_bytes_sent      INTEGER NOT NULL DEFAULT 0 CHECK (last_bytes_sent >= 0),
-		connected_since      TEXT NOT NULL DEFAULT '',
-		last_seen            TEXT NOT NULL DEFAULT ''
-	);`
-	if _, err := d.db.ExecContext(ctx, create); err != nil {
+	if _, err := d.db.ExecContext(ctx, `PRAGMA foreign_keys = ON`); err != nil {
 		return err
 	}
-	// Add vpn_address column if it doesn't exist yet.
-	rows, err := d.db.QueryContext(ctx, `PRAGMA table_info(clients)`)
-	if err != nil {
-		return err
+	stmts := []string{
+		`CREATE TABLE IF NOT EXISTS clients (
+			id           INTEGER PRIMARY KEY,
+			common_name  TEXT NOT NULL UNIQUE,
+			vpn_address  TEXT NOT NULL DEFAULT '',
+			real_address TEXT NOT NULL DEFAULT '',
+			last_seen    TEXT NOT NULL DEFAULT ''
+		)`,
+		`CREATE TABLE IF NOT EXISTS sessions (
+			id              INTEGER PRIMARY KEY,
+			client_id       INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+			connected_since TEXT NOT NULL,
+			disconnected_at TEXT,
+			bytes_received  INTEGER NOT NULL DEFAULT 0 CHECK (bytes_received >= 0),
+			bytes_sent      INTEGER NOT NULL DEFAULT 0 CHECK (bytes_sent >= 0),
+			real_address    TEXT NOT NULL DEFAULT '',
+			vpn_address     TEXT NOT NULL DEFAULT '',
+			cipher          TEXT NOT NULL DEFAULT ''
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_sessions_client_id ON sessions(client_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_sessions_connected_since ON sessions(connected_since)`,
+		`CREATE INDEX IF NOT EXISTS idx_sessions_disconnected_at ON sessions(disconnected_at)`,
 	}
-	hasVPNAddr := false
-	for rows.Next() {
-		var cid int
-		var name, colType string
-		var notNull int
-		var dflt sql.NullString
-		var pk int
-		if err := rows.Scan(&cid, &name, &colType, &notNull, &dflt, &pk); err != nil {
-			rows.Close()
-			return err
-		}
-		if name == "vpn_address" {
-			hasVPNAddr = true
-		}
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return err
-	}
-	if !hasVPNAddr {
-		_, err = d.db.ExecContext(ctx, `ALTER TABLE clients ADD COLUMN vpn_address TEXT NOT NULL DEFAULT ''`)
-		if err != nil {
+	for _, s := range stmts {
+		if _, err := d.db.ExecContext(ctx, s); err != nil {
 			return err
 		}
 	}
@@ -726,64 +723,126 @@ func (d *db) upsertKnownClient(ctx context.Context, name string) error {
 	return err
 }
 
-func (d *db) updateClients(ctx context.Context, clients []client) error {
+func (d *db) processLogEntries(ctx context.Context, entries []logEntry) error {
 	tx, err := d.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	for _, c := range clients {
-		var lastReceived, lastSent int64
-		const q = `SELECT last_bytes_received, last_bytes_sent FROM clients WHERE common_name = ?`
-		err := tx.QueryRowContext(ctx, q, c.CommonName).Scan(&lastReceived, &lastSent)
+	now := time.Now().Format("2006-01-02 15:04:05")
+	seenClientIDs := make(map[int64]bool, len(entries))
+
+	for _, entry := range entries {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT OR IGNORE INTO clients (common_name) VALUES (?)`, entry.CommonName); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx,
+			`UPDATE clients SET real_address=?, vpn_address=?, last_seen=? WHERE common_name=?`,
+			entry.RealAddress, entry.VPNAddress, now, entry.CommonName); err != nil {
+			return err
+		}
+
+		var clientID int64
+		if err := tx.QueryRowContext(ctx,
+			`SELECT id FROM clients WHERE common_name=?`, entry.CommonName).Scan(&clientID); err != nil {
+			return err
+		}
+		seenClientIDs[clientID] = true
+
+		var sessionID int64
+		var sessionConnectedSince string
+		var sessionBytesReceived, sessionBytesSent int64
+		err := tx.QueryRowContext(ctx,
+			`SELECT id, connected_since, bytes_received, bytes_sent
+			 FROM sessions WHERE client_id=? AND disconnected_at IS NULL`,
+			clientID).Scan(&sessionID, &sessionConnectedSince, &sessionBytesReceived, &sessionBytesSent)
+
+		if errors.Is(err, sql.ErrNoRows) {
+			// Case A: no open session → insert new.
+			if _, err := tx.ExecContext(ctx,
+				`INSERT INTO sessions (client_id, connected_since, bytes_received, bytes_sent, real_address, vpn_address, cipher)
+				 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+				clientID, entry.ConnectedSince, entry.BytesReceived, entry.BytesSent,
+				entry.RealAddress, entry.VPNAddress, entry.Cipher); err != nil {
+				return err
+			}
+			continue
+		}
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				const ins = `INSERT INTO clients
-					(common_name, real_address, vpn_address, bytes_received, bytes_sent,
-					 last_bytes_received, last_bytes_sent, connected_since, last_seen)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-				now := time.Now().Format("2006-01-02 15:04:05")
-				_, err = tx.ExecContext(ctx, ins,
-					c.CommonName, c.RealAddress, c.VPNAddress,
-					c.BytesReceived, c.BytesSent,
-					c.BytesReceived, c.BytesSent,
-					c.ConnectedSince, now,
-				)
-				if err != nil {
+			return err
+		}
+
+		// Case B: open session exists.
+		if sessionConnectedSince == entry.ConnectedSince {
+			if entry.BytesReceived >= sessionBytesReceived && entry.BytesSent >= sessionBytesSent {
+				// Normal accumulation → update bytes.
+				if _, err := tx.ExecContext(ctx,
+					`UPDATE sessions SET bytes_received=?, bytes_sent=? WHERE id=?`,
+					entry.BytesReceived, entry.BytesSent, sessionID); err != nil {
 					return err
 				}
-				continue
+			} else {
+				// Bytes decreased: silent reconnect with same epoch → close old, open new.
+				if _, err := tx.ExecContext(ctx,
+					`UPDATE sessions SET disconnected_at=? WHERE id=?`, now, sessionID); err != nil {
+					return err
+				}
+				if _, err := tx.ExecContext(ctx,
+					`INSERT INTO sessions (client_id, connected_since, bytes_received, bytes_sent, real_address, vpn_address, cipher)
+					 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+					clientID, entry.ConnectedSince, entry.BytesReceived, entry.BytesSent,
+					entry.RealAddress, entry.VPNAddress, entry.Cipher); err != nil {
+					return err
+				}
 			}
-			return err
-		}
-
-		recvDiff := diff(c.BytesReceived, lastReceived)
-		sentDiff := diff(c.BytesSent, lastSent)
-		now := time.Now().Format("2006-01-02 15:04:05")
-
-		const upd = `UPDATE clients SET
-			real_address          = ?,
-			vpn_address           = ?,
-			bytes_received        = bytes_received + ?,
-			bytes_sent            = bytes_sent + ?,
-			last_bytes_received   = ?,
-			last_bytes_sent       = ?,
-			connected_since       = ?,
-			last_seen             = ?
-			WHERE common_name = ?`
-		_, err = tx.ExecContext(ctx, upd,
-			c.RealAddress, c.VPNAddress,
-			recvDiff, sentDiff,
-			c.BytesReceived, c.BytesSent,
-			c.ConnectedSince,
-			now,
-			c.CommonName,
-		)
-		if err != nil {
-			return err
+		} else {
+			// Different connected_since → client reconnected, close old session open new.
+			if _, err := tx.ExecContext(ctx,
+				`UPDATE sessions SET disconnected_at=? WHERE id=?`, now, sessionID); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx,
+				`INSERT INTO sessions (client_id, connected_since, bytes_received, bytes_sent, real_address, vpn_address, cipher)
+				 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+				clientID, entry.ConnectedSince, entry.BytesReceived, entry.BytesSent,
+				entry.RealAddress, entry.VPNAddress, entry.Cipher); err != nil {
+				return err
+			}
 		}
 	}
+
+	// Close open sessions for clients no longer in the log.
+	openRows, err := tx.QueryContext(ctx,
+		`SELECT DISTINCT client_id FROM sessions WHERE disconnected_at IS NULL`)
+	if err != nil {
+		return err
+	}
+	var openClientIDs []int64
+	for openRows.Next() {
+		var id int64
+		if err := openRows.Scan(&id); err != nil {
+			openRows.Close()
+			return err
+		}
+		openClientIDs = append(openClientIDs, id)
+	}
+	openRows.Close()
+	if err := openRows.Err(); err != nil {
+		return err
+	}
+
+	for _, id := range openClientIDs {
+		if !seenClientIDs[id] {
+			if _, err := tx.ExecContext(ctx,
+				`UPDATE sessions SET disconnected_at=? WHERE client_id=? AND disconnected_at IS NULL`,
+				now, id); err != nil {
+				return err
+			}
+		}
+	}
+
 	return tx.Commit()
 }
 
@@ -804,25 +863,44 @@ func cutoffFor(filter string) string {
 func (d *db) queryClients(ctx context.Context, filter string) ([]client, error) {
 	cutoff := cutoffFor(filter)
 
-	const base = `SELECT
-		common_name,
-		real_address,
-		vpn_address,
-		bytes_received,
-		bytes_sent,
-		(bytes_received + bytes_sent) AS total_traffic,
-		connected_since,
-		last_seen
-		FROM clients`
+	const withCutoff = `
+		SELECT
+			c.common_name,
+			c.real_address,
+			c.vpn_address,
+			COALESCE(SUM(s.bytes_received), 0)                AS bytes_received,
+			COALESCE(SUM(s.bytes_sent), 0)                    AS bytes_sent,
+			COALESCE(SUM(s.bytes_received + s.bytes_sent), 0) AS total_traffic,
+			COALESCE(MAX(s.connected_since), '')              AS connected_since,
+			c.last_seen
+		FROM clients c
+		LEFT JOIN sessions s ON s.client_id = c.id AND s.connected_since >= ?
+		GROUP BY c.id
+		ORDER BY total_traffic DESC`
+
+	const noCutoff = `
+		SELECT
+			c.common_name,
+			c.real_address,
+			c.vpn_address,
+			COALESCE(SUM(s.bytes_received), 0)                AS bytes_received,
+			COALESCE(SUM(s.bytes_sent), 0)                    AS bytes_sent,
+			COALESCE(SUM(s.bytes_received + s.bytes_sent), 0) AS total_traffic,
+			COALESCE(MAX(s.connected_since), '')              AS connected_since,
+			c.last_seen
+		FROM clients c
+		LEFT JOIN sessions s ON s.client_id = c.id
+		GROUP BY c.id
+		ORDER BY total_traffic DESC`
 
 	var (
 		rows *sql.Rows
 		err  error
 	)
-	if cutoff == "" {
-		rows, err = d.db.QueryContext(ctx, base+` ORDER BY (bytes_received + bytes_sent) DESC`)
+	if cutoff != "" {
+		rows, err = d.db.QueryContext(ctx, withCutoff, cutoff)
 	} else {
-		rows, err = d.db.QueryContext(ctx, base+` WHERE last_seen >= ? ORDER BY (bytes_received + bytes_sent) DESC`, cutoff)
+		rows, err = d.db.QueryContext(ctx, noCutoff)
 	}
 	if err != nil {
 		return nil, err
@@ -851,9 +929,19 @@ func (d *db) queryClients(ctx context.Context, filter string) ([]client, error) 
 }
 
 func (d *db) clientByVPNAddress(ctx context.Context, vpnAddr string) (*client, error) {
-	const q = `SELECT common_name, vpn_address, bytes_received, bytes_sent,
-		(bytes_received + bytes_sent) AS total_traffic, connected_since, last_seen
-		FROM clients WHERE vpn_address = ?`
+	const q = `
+		SELECT
+			c.common_name,
+			c.vpn_address,
+			COALESCE(SUM(s.bytes_received), 0),
+			COALESCE(SUM(s.bytes_sent), 0),
+			COALESCE(SUM(s.bytes_received + s.bytes_sent), 0),
+			COALESCE(MAX(s.connected_since), ''),
+			c.last_seen
+		FROM clients c
+		LEFT JOIN sessions s ON s.client_id = c.id
+		WHERE c.vpn_address = ?
+		GROUP BY c.id`
 	var c client
 	err := d.db.QueryRowContext(ctx, q, vpnAddr).Scan(
 		&c.CommonName, &c.VPNAddress,
@@ -870,14 +958,37 @@ func (d *db) clientByVPNAddress(ctx context.Context, vpnAddr string) (*client, e
 }
 
 func (d *db) clientStatsByName(ctx context.Context, commonName, cutoff string) (*client, error) {
-	const base = `SELECT common_name, vpn_address, bytes_received, bytes_sent,
-		(bytes_received + bytes_sent) AS total_traffic, connected_since, last_seen
-		FROM clients WHERE common_name = ?`
+	const withCutoff = `
+		SELECT
+			c.common_name,
+			c.vpn_address,
+			COALESCE(SUM(s.bytes_received), 0),
+			COALESCE(SUM(s.bytes_sent), 0),
+			COALESCE(SUM(s.bytes_received + s.bytes_sent), 0),
+			COALESCE(MAX(s.connected_since), ''),
+			c.last_seen
+		FROM clients c
+		LEFT JOIN sessions s ON s.client_id = c.id AND s.connected_since >= ?
+		WHERE c.common_name = ?
+		GROUP BY c.id`
+	const noCutoff = `
+		SELECT
+			c.common_name,
+			c.vpn_address,
+			COALESCE(SUM(s.bytes_received), 0),
+			COALESCE(SUM(s.bytes_sent), 0),
+			COALESCE(SUM(s.bytes_received + s.bytes_sent), 0),
+			COALESCE(MAX(s.connected_since), ''),
+			c.last_seen
+		FROM clients c
+		LEFT JOIN sessions s ON s.client_id = c.id
+		WHERE c.common_name = ?
+		GROUP BY c.id`
 	var row *sql.Row
 	if cutoff != "" {
-		row = d.db.QueryRowContext(ctx, base+" AND last_seen >= ?", commonName, cutoff)
+		row = d.db.QueryRowContext(ctx, withCutoff, cutoff, commonName)
 	} else {
-		row = d.db.QueryRowContext(ctx, base, commonName)
+		row = d.db.QueryRowContext(ctx, noCutoff, commonName)
 	}
 	var c client
 	if err := row.Scan(
@@ -891,13 +1002,6 @@ func (d *db) clientStatsByName(ctx context.Context, commonName, cutoff string) (
 	c.BytesSentReadable = formatBytes(c.BytesSent)
 	c.TotalTrafficReadable = formatBytes(c.TotalTraffic)
 	return &c, nil
-}
-
-func diff(current, previous int64) int64 {
-	if current >= previous {
-		return current - previous
-	}
-	return current
 }
 
 // ── Watcher ─────────────────────────────────────────────────────────────────
@@ -954,22 +1058,22 @@ func (w watcher) processLog(ctx context.Context, name string) {
 	}
 	defer f.Close()
 
-	clients, err := parseOpenVPNLog(f, w.certs, w.logger)
+	entries, err := parseOpenVPNLog(f, w.certs, w.logger)
 	if err != nil {
 		w.logger.Error("Parse log: " + err.Error())
 		return
 	}
 
-	onlineSet := make(map[string]bool, len(clients))
-	for _, c := range clients {
-		onlineSet[c.CommonName] = true
+	onlineSet := make(map[string]bool, len(entries))
+	for _, e := range entries {
+		onlineSet[e.CommonName] = true
 	}
 	w.online.set(onlineSet)
 
-	if err := w.db.updateClients(ctx, clients); err != nil {
+	if err := w.db.processLogEntries(ctx, entries); err != nil {
 		w.logger.Error("Update DB: " + err.Error())
 	} else {
-		w.logger.Info("Database updated", "online_clients", len(clients))
+		w.logger.Info("Database updated", "online_clients", len(entries))
 	}
 }
 
@@ -996,10 +1100,10 @@ func formatBytes(bytes int64) string {
 	}
 }
 
-func parseOpenVPNLog(f io.Reader, certs *certWhitelist, logger *slog.Logger) ([]client, error) {
+func parseOpenVPNLog(f io.Reader, certs *certWhitelist, logger *slog.Logger) ([]logEntry, error) {
 	scanner := bufio.NewScanner(f)
 
-	var clients []client
+	var entries []logEntry
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -1008,8 +1112,8 @@ func parseOpenVPNLog(f io.Reader, certs *certWhitelist, logger *slog.Logger) ([]
 		}
 
 		record := strings.Split(line, ",")
-		// FORMAT: CLIENT_LIST,CommonName,RealAddress,VirtualAddr,VirtualIPv6,BytesReceived,BytesSent,ConnectedSince,ConnectedSinceT,...
-		if len(record) < 8 {
+		// FORMAT: CLIENT_LIST,CommonName,RealAddress,VirtualAddr,VirtualIPv6,BytesReceived,BytesSent,ConnectedSince,ConnectedSinceT,Username,ClientID,PeerID,DataChannelCipher
+		if len(record) < 9 {
 			continue
 		}
 
@@ -1030,25 +1134,30 @@ func parseOpenVPNLog(f io.Reader, certs *certWhitelist, logger *slog.Logger) ([]
 			logger.Warn("skipping malformed log line", "line", line, "error", err)
 			continue
 		}
-		var connectedSince string
-		if len(record) > 8 {
-			if epoch, err := strconv.ParseInt(record[8], 10, 64); err == nil {
-				connectedSince = time.Unix(epoch, 0).Local().Format("2006-01-02 15:04:05")
-			}
+
+		epoch, err := strconv.ParseInt(record[8], 10, 64)
+		if err != nil {
+			logger.Warn("skipping malformed log line", "line", line, "error", err)
+			continue
 		}
-		if connectedSince == "" {
-			connectedSince = record[7]
+		connectedSince := time.Unix(epoch, 0).Local().Format("2006-01-02 15:04:05")
+
+		cipher := ""
+		if len(record) > 12 {
+			cipher = strings.TrimSpace(record[12])
 		}
 
-		clients = append(clients, client{
+		entries = append(entries, logEntry{
 			CommonName:     name,
 			RealAddress:    record[2],
-			VPNAddress:     record[3], // VirtualAddr from status log
+			VPNAddress:     record[3],
 			BytesReceived:  bytesReceived,
 			BytesSent:      bytesSent,
 			ConnectedSince: connectedSince,
+			ConnectedEpoch: epoch,
+			Cipher:         cipher,
 		})
 	}
 
-	return clients, scanner.Err()
+	return entries, scanner.Err()
 }
