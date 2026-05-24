@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -17,6 +18,7 @@ import (
 	"ovpnmonitor/db"
 	"ovpnmonitor/ipp"
 	"ovpnmonitor/model"
+	"ovpnmonitor/sysinfo"
 	"ovpnmonitor/tracker"
 )
 
@@ -62,6 +64,34 @@ func Register(
 	logger *slog.Logger,
 ) {
 	// ── Admin API ────────────────────────────────────────────────────────────
+	mux.Handle("/api/server-stats", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+		defer cancel()
+
+		type result struct {
+			stats *sysinfo.SystemStats
+			err   error
+		}
+		ch := make(chan result, 1)
+		go func() {
+			stats, err := sysinfo.Collect()
+			ch <- result{stats, err}
+		}()
+
+		select {
+		case res := <-ch:
+			if res.err != nil {
+				logger.Error("server-stats: " + res.err.Error())
+				http.Error(w, "Internal Error", http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(res.stats)
+		case <-ctx.Done():
+			http.Error(w, "Gateway Timeout", http.StatusGatewayTimeout)
+		}
+	})))
+
 	mux.Handle("/api/clients", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		filter := r.URL.Query().Get("filter")
 		clients, err := database.QueryClients(r.Context(), filter)
