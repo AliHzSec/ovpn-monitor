@@ -25,6 +25,7 @@ type SystemStats struct {
 	NetSent      uint64   `json:"net_sent"`       // total bytes sent (all time)
 	NetRecv      uint64   `json:"net_recv"`       // total bytes received (all time)
 	IPs          []string `json:"ips"`
+	IPv6s        []string `json:"ipv6s"`
 	TCPCount     int      `json:"tcp_count"`
 	UDPCount     int      `json:"udp_count"`
 }
@@ -220,6 +221,35 @@ func getLocalIPs() ([]string, error) {
 	return ips, nil
 }
 
+func getLocalIPv6s() ([]string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil, err
+	}
+	ips := make([]string, 0)
+	for _, addr := range addrs {
+		var ip net.IP
+		switch v := addr.(type) {
+		case *net.IPNet:
+			ip = v.IP
+		case *net.IPAddr:
+			ip = v.IP
+		}
+		if ip == nil || ip.IsLoopback() {
+			continue
+		}
+		if ip.To4() != nil {
+			continue // skip IPv4
+		}
+		s := ip.String()
+		if strings.HasPrefix(s, "fe80") {
+			continue // skip link-local
+		}
+		ips = append(ips, s)
+	}
+	return ips, nil
+}
+
 // countProcNet counts entries in a /proc/net/{tcp,udp} file.
 // If filterState is non-empty, only lines whose 4th field matches it are counted.
 // The header line is always skipped.
@@ -313,6 +343,11 @@ func Collect() (*SystemStats, error) {
 		return nil, fmt.Errorf("local ips: %w", err)
 	}
 
+	ipv6s, err := getLocalIPv6s()
+	if err != nil {
+		return nil, fmt.Errorf("local ipv6s: %w", err)
+	}
+
 	// state 01 = ESTABLISHED
 	tcpCount, err := countProcNet("/proc/net/tcp", "01")
 	if err != nil {
@@ -337,6 +372,7 @@ func Collect() (*SystemStats, error) {
 		NetSent:      net0.sent, // totals from first read
 		NetRecv:      net0.recv,
 		IPs:          ips,
+		IPv6s:        ipv6s,
 		TCPCount:     tcpCount,
 		UDPCount:     udpCount,
 	}, nil

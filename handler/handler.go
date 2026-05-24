@@ -62,7 +62,12 @@ func Register(
 	adminUser, adminPass string,
 	sessionTTL time.Duration,
 	logger *slog.Logger,
+	templatesDir string,
 ) {
+	// ── Static files ─────────────────────────────────────────────────────────
+	mux.Handle("/static/", http.StripPrefix("/static/",
+		http.FileServer(http.Dir(filepath.Join(templatesDir, "static")))))
+
 	// ── Admin API ────────────────────────────────────────────────────────────
 	mux.Handle("/api/server-stats", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
@@ -185,6 +190,11 @@ func Register(
 
 	// ── Admin dashboard ───────────────────────────────────────────────────────
 	mux.Handle("/panel", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		renderTemplate(w, tmpl, "dashboard.html", nil)
+	})))
+
+	// ── Clients page ──────────────────────────────────────────────────────────
+	mux.Handle("/panel/clients", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		renderTemplate(w, tmpl, "dashboard.html", nil)
 	})))
 

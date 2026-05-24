@@ -188,7 +188,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	mux := http.NewServeMux()
 	handler.Register(mux, database, sessions, online, ippSt, tmpl, vpnNet,
-		opts.AdminUser, opts.AdminPass, opts.SessionTTL, logger)
+		opts.AdminUser, opts.AdminPass, opts.SessionTTL, logger, opts.TemplatesDir)
 
 	srv := &http.Server{Addr: opts.Addr, Handler: mux}
 	srvErr := make(chan error, 1)
