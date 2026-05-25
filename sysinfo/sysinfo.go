@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -14,9 +15,12 @@ import (
 // SystemStats holds a point-in-time snapshot of system metrics.
 type SystemStats struct {
 	CPUPercent   float64  `json:"cpu_percent"`
+	CPUCores     int      `json:"cpu_cores"`
 	MemTotal     uint64   `json:"mem_total"`
 	MemUsed      uint64   `json:"mem_used"`
 	MemFree      uint64   `json:"mem_free"`
+	SwapTotal    uint64   `json:"swap_total"`
+	SwapUsed     uint64   `json:"swap_used"`
 	DiskTotal    uint64   `json:"disk_total"`
 	DiskUsed     uint64   `json:"disk_used"`
 	DiskFree     uint64   `json:"disk_free"`
@@ -130,9 +134,11 @@ func readNetDev() (netSample, error) {
 }
 
 type memInfo struct {
-	total uint64
-	used  uint64
-	free  uint64
+	total     uint64
+	used      uint64
+	free      uint64
+	swapTotal uint64
+	swapUsed  uint64
 }
 
 func readMemInfo() (memInfo, error) {
@@ -142,7 +148,7 @@ func readMemInfo() (memInfo, error) {
 	}
 	defer f.Close()
 
-	vals := make(map[string]uint64, 6)
+	vals := make(map[string]uint64, 8)
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		fields := strings.Fields(sc.Text())
@@ -155,13 +161,6 @@ func readMemInfo() (memInfo, error) {
 			continue
 		}
 		vals[key] = v * 1024 // kB → bytes
-		if _, ok1 := vals["MemTotal"]; ok1 {
-			if _, ok2 := vals["MemFree"]; ok2 {
-				if _, ok3 := vals["MemAvailable"]; ok3 {
-					break
-				}
-			}
-		}
 	}
 	if err := sc.Err(); err != nil {
 		return memInfo{}, err
@@ -173,7 +172,13 @@ func readMemInfo() (memInfo, error) {
 	if total > available {
 		used = total - available
 	}
-	return memInfo{total: total, used: used, free: free}, nil
+	swapTotal := vals["SwapTotal"]
+	swapFree := vals["SwapFree"]
+	var swapUsed uint64
+	if swapTotal > swapFree {
+		swapUsed = swapTotal - swapFree
+	}
+	return memInfo{total: total, used: used, free: free, swapTotal: swapTotal, swapUsed: swapUsed}, nil
 }
 
 type diskInfo struct {
@@ -221,6 +226,12 @@ func getLocalIPs() ([]string, error) {
 	return ips, nil
 }
 
+// isPublicIPv6 returns true only for global unicast addresses (2000::/3).
+// This filters out loopback (::1), link-local (fe80::/10), and ULA (fc00::/7).
+func isPublicIPv6(s string) bool {
+	return len(s) > 0 && (s[0] == '2' || s[0] == '3')
+}
+
 func getLocalIPv6s() ([]string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -242,8 +253,8 @@ func getLocalIPv6s() ([]string, error) {
 			continue // skip IPv4
 		}
 		s := ip.String()
-		if strings.HasPrefix(s, "fe80") {
-			continue // skip link-local
+		if !isPublicIPv6(s) {
+			continue // only keep global unicast
 		}
 		ips = append(ips, s)
 	}
@@ -361,9 +372,12 @@ func Collect() (*SystemStats, error) {
 
 	return &SystemStats{
 		CPUPercent:   cpuPct,
+		CPUCores:     runtime.NumCPU(),
 		MemTotal:     mem.total,
 		MemUsed:      mem.used,
 		MemFree:      mem.free,
+		SwapTotal:    mem.swapTotal,
+		SwapUsed:     mem.swapUsed,
 		DiskTotal:    disk.total,
 		DiskUsed:     disk.used,
 		DiskFree:     disk.free,
