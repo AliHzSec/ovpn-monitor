@@ -346,7 +346,7 @@ func getServiceUptime(osUptimeSec uint64, serviceName string) (uint64, error) {
 }
 
 func getOVPNUptime(osUptimeSec uint64) uint64 {
-	candidates := []string{"openvpn", "openvpn@server", "openvpn-server@server"}
+	candidates := []string{"openvpn-server@server", "openvpn@server"}
 	for _, name := range candidates {
 		if uptime, err := getServiceUptime(osUptimeSec, name); err == nil {
 			return uptime
