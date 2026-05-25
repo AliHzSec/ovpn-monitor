@@ -376,6 +376,12 @@ func (d *DB) SumAllTraffic(ctx context.Context) (sent, recv uint64, err error) {
 	return
 }
 
+func (d *DB) CountClients(ctx context.Context) (int, error) {
+	var count int
+	err := d.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM clients`).Scan(&count)
+	return count, err
+}
+
 func formatBytes(bytes int64) string {
 	const (
 		KB = 1 << 10

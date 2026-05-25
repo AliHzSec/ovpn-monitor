@@ -35,8 +35,11 @@ type SystemStats struct {
 	IPv6s        []string `json:"ipv6s"`
 	TCPCount     int      `json:"tcp_count"`
 	UDPCount     int      `json:"udp_count"`
-	OSUptime     uint64   `json:"os_uptime"`   // seconds since system boot
-	OVPNUptime   uint64   `json:"ovpn_uptime"` // seconds since openvpn service started
+	OSUptime     uint64   `json:"os_uptime"`    // seconds since system boot
+	OVPNUptime   uint64   `json:"ovpn_uptime"`  // seconds since openvpn service started
+	OSName       string   `json:"os_name"`      // PRETTY_NAME from /etc/os-release
+	ClientOnline int      `json:"client_online"` // currently connected VPN clients
+	ClientTotal  int      `json:"client_total"`  // total registered VPN clients
 }
 
 type cpuSample struct {
@@ -357,6 +360,24 @@ func getOVPNUptime(osUptimeSec uint64) uint64 {
 	return 0
 }
 
+func readOSName() string {
+	f, err := os.Open("/etc/os-release")
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := sc.Text()
+		if !strings.HasPrefix(line, "PRETTY_NAME=") {
+			continue
+		}
+		val := strings.TrimPrefix(line, "PRETTY_NAME=")
+		return strings.Trim(val, `"`)
+	}
+	return ""
+}
+
 // Collect gathers all metrics and returns a SystemStats snapshot.
 // It blocks for ~1 second to sample CPU and network speed.
 func Collect() (*SystemStats, error) {
@@ -432,6 +453,7 @@ func Collect() (*SystemStats, error) {
 
 	osUptime, _ := readOSUptime()
 	ovpnUptime := getOVPNUptime(osUptime)
+	osName := readOSName()
 
 	return &SystemStats{
 		CPUPercent:   cpuPct,
@@ -454,5 +476,6 @@ func Collect() (*SystemStats, error) {
 		UDPCount:     udpCount,
 		OSUptime:     osUptime,
 		OVPNUptime:   ovpnUptime,
+		OSName:       osName,
 	}, nil
 }

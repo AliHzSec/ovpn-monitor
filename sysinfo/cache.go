@@ -45,19 +45,23 @@ func (h *broadcastHub) broadcast(data []byte) {
 // Returning (0, 0, nil) is valid when no sessions exist yet.
 type TrafficQuerier func(ctx context.Context) (sent, recv uint64, err error)
 
+// ClientCountQuerier fetches current online and total registered VPN client counts.
+type ClientCountQuerier func(ctx context.Context) (online, total int, err error)
+
 // StatsCache collects system stats on a background loop and distributes them to subscribers.
 type StatsCache struct {
-	mu           sync.RWMutex
-	stats        *SystemStats
-	data         []byte // pre-serialized JSON
-	hub          *broadcastHub
-	queryTraffic TrafficQuerier
+	mu               sync.RWMutex
+	stats            *SystemStats
+	data             []byte // pre-serialized JSON
+	hub              *broadcastHub
+	queryTraffic     TrafficQuerier
+	queryClientCount ClientCountQuerier
 }
 
-// NewStatsCache creates an empty cache. queryTraffic is called on every collection cycle
-// to merge all-time VPN traffic totals into the snapshot; pass nil to omit.
-func NewStatsCache(queryTraffic TrafficQuerier) *StatsCache {
-	return &StatsCache{hub: newBroadcastHub(), queryTraffic: queryTraffic}
+// NewStatsCache creates an empty cache. queryTraffic and queryClientCount are called on every
+// collection cycle to merge external data into the snapshot; either may be nil to omit.
+func NewStatsCache(queryTraffic TrafficQuerier, queryClientCount ClientCountQuerier) *StatsCache {
+	return &StatsCache{hub: newBroadcastHub(), queryTraffic: queryTraffic, queryClientCount: queryClientCount}
 }
 
 // Get returns the latest cached stats and their pre-serialized JSON (both nil until first collection).
@@ -88,6 +92,14 @@ func (c *StatsCache) Run(ctx context.Context) {
 				if sent, recv, qErr := c.queryTraffic(dbCtx); qErr == nil {
 					stats.VPNTotalSent = sent
 					stats.VPNTotalRecv = recv
+				}
+				cancel()
+			}
+			if c.queryClientCount != nil {
+				dbCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+				if online, total, qErr := c.queryClientCount(dbCtx); qErr == nil {
+					stats.ClientOnline = online
+					stats.ClientTotal = total
 				}
 				cancel()
 			}

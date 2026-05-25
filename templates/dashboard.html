@@ -802,21 +802,6 @@
                     <div class="gauge-sublabel" id="ram-sub">— / —</div>
                 </div>
 
-                <!-- Disk -->
-                <div class="gauge-item">
-                    <div class="gauge-item-label">Disk</div>
-                    <div class="gauge-ring-wrap">
-                        <svg viewBox="0 0 120 120">
-                            <circle class="ring-track" cx="60" cy="60" r="50" stroke-dasharray="235.62 78.54"/>
-                            <circle class="ring-fill" id="disk-ring" cx="60" cy="60" r="50"/>
-                        </svg>
-                        <div class="gauge-center">
-                            <span class="gauge-center-value" id="disk-val">—</span>
-                        </div>
-                    </div>
-                    <div class="gauge-sublabel" id="disk-sub">— / —</div>
-                </div>
-
                 <!-- Swap -->
                 <div class="gauge-item">
                     <div class="gauge-item-label">Swap</div>
@@ -830,6 +815,21 @@
                         </div>
                     </div>
                     <div class="gauge-sublabel" id="swap-sub">— / —</div>
+                </div>
+
+                <!-- Disk -->
+                <div class="gauge-item">
+                    <div class="gauge-item-label">Disk</div>
+                    <div class="gauge-ring-wrap">
+                        <svg viewBox="0 0 120 120">
+                            <circle class="ring-track" cx="60" cy="60" r="50" stroke-dasharray="235.62 78.54"/>
+                            <circle class="ring-fill" id="disk-ring" cx="60" cy="60" r="50"/>
+                        </svg>
+                        <div class="gauge-center">
+                            <span class="gauge-center-value" id="disk-val">—</span>
+                        </div>
+                    </div>
+                    <div class="gauge-sublabel" id="disk-sub">— / —</div>
                 </div>
 
             </div>
@@ -857,16 +857,16 @@
                     <div class="info-card-title">Total Data</div>
                     <div class="info-rows">
                         <div class="info-row">
-                            <span class="info-row-label">Total</span>
-                            <span class="info-row-value" id="net-total">—</span>
-                        </div>
-                        <div class="info-row">
                             <span class="info-row-label">Sent</span>
                             <span class="info-row-value val-up" id="net-sent">—</span>
                         </div>
                         <div class="info-row">
                             <span class="info-row-label">Received</span>
                             <span class="info-row-value val-down" id="net-recv">—</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-row-label">Total</span>
+                            <span class="info-row-value" id="net-total">—</span>
                         </div>
                     </div>
                 </div>
@@ -901,17 +901,36 @@
                     </div>
                 </div>
 
-                <!-- Uptime (spans full width) -->
-                <div class="info-card" style="grid-column: 1 / -1">
+                <!-- Uptime -->
+                <div class="info-card">
                     <div class="info-card-title">Uptime</div>
                     <div class="info-rows">
+                        <div class="info-row">
+                            <span class="info-row-label" id="uptime-os-label">OS</span>
+                            <span class="info-row-value" id="uptime-os">—</span>
+                        </div>
                         <div class="info-row">
                             <span class="info-row-label">OpenVPN Service</span>
                             <span class="info-row-value" id="uptime-vpn">—</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Client Status -->
+                <div class="info-card">
+                    <div class="info-card-title">Client Status</div>
+                    <div class="info-rows">
                         <div class="info-row">
-                            <span class="info-row-label">OS</span>
-                            <span class="info-row-value" id="uptime-os">—</span>
+                            <span class="info-row-label">Online</span>
+                            <span class="info-row-value" id="cs-online" style="color:var(--green)">—</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-row-label">Offline</span>
+                            <span class="info-row-value muted" id="cs-offline">—</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-row-label">Total</span>
+                            <span class="info-row-value" id="cs-total">—</span>
                         </div>
                     </div>
                 </div>
@@ -1229,6 +1248,9 @@
                     document.getElementById('conn-udp').textContent = stats.udp_count != null ? stats.udp_count : '—';
 
                     // Uptime
+                    if (stats.os_name) {
+                        document.getElementById('uptime-os-label').textContent = 'OS - ' + stats.os_name;
+                    }
                     document.getElementById('uptime-os').textContent = fmtUptime(stats.os_uptime || 0);
                     var vpnUptimeEl = document.getElementById('uptime-vpn');
                     if (stats.ovpn_uptime > 0) {
@@ -1238,6 +1260,13 @@
                         vpnUptimeEl.textContent = 'Not Running';
                         vpnUptimeEl.className = 'info-row-value muted';
                     }
+
+                    // Client Status
+                    var csOnline = stats.client_online != null ? stats.client_online : 0;
+                    var csTotal  = stats.client_total  != null ? stats.client_total  : 0;
+                    document.getElementById('cs-online').textContent  = csOnline;
+                    document.getElementById('cs-offline').textContent = csTotal - csOnline;
+                    document.getElementById('cs-total').textContent   = csTotal;
 
                     updateTimestamp();
                 }
