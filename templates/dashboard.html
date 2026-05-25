@@ -848,6 +848,10 @@
                     <div class="info-card-title">Total Data</div>
                     <div class="info-rows">
                         <div class="info-row">
+                            <span class="info-row-label">Total</span>
+                            <span class="info-row-value" id="net-total">—</span>
+                        </div>
+                        <div class="info-row">
                             <span class="info-row-label">Sent</span>
                             <span class="info-row-value val-up" id="net-sent">—</span>
                         </div>
@@ -1189,8 +1193,11 @@
                     document.getElementById('ov-down').textContent = fmtSpeed(stats.net_down_speed || 0);
 
                     // Total VPN client traffic (all-time, from DB)
-                    document.getElementById('net-sent').textContent = fmtBytes(stats.vpn_total_sent || 0);
-                    document.getElementById('net-recv').textContent = fmtBytes(stats.vpn_total_recv || 0);
+                    var vpnSent = stats.vpn_total_sent || 0;
+                    var vpnRecv = stats.vpn_total_recv || 0;
+                    document.getElementById('net-total').textContent = fmtBytes(vpnSent + vpnRecv);
+                    document.getElementById('net-sent').textContent = fmtBytes(vpnSent);
+                    document.getElementById('net-recv').textContent = fmtBytes(vpnRecv);
 
                     // IP Addresses
                     var ips = stats.ips || [];
