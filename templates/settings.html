@@ -8,7 +8,8 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Reddit+Mono:wght@200..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Reddit+Mono:wght@200..900&display=swap"
+        rel="stylesheet">
     <style>
         *,
         *::before,
@@ -20,28 +21,32 @@
 
         :root {
             --bg: #0d1117;
-            --surface: #161b27;
-            --surface2: #1c2333;
+            --surface: rgba(22, 27, 39, 0.7);
+            --surface2: rgba(28, 35, 51, 0.85);
             --surface3: #21293d;
-            --border: #2d3748;
-            --border2: #3a4a63;
+            --border: rgba(45, 55, 72, 0.6);
+            --border2: rgba(58, 74, 99, 0.9);
             --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.15);
+            --accent-glow: rgba(59, 130, 246, 0.18);
             --green: #22c55e;
             --green-dim: rgba(34, 197, 94, 0.1);
             --text: #e2e8f0;
             --text-dim: #a0aec0;
             --text-muted: #718096;
             --danger: #ef4444;
-            --danger-dim: rgba(239, 68, 68, 0.12);
+            --danger-dim: rgba(239, 68, 68, 0.1);
             --warn: #f59e0b;
             --warn-dim: rgba(245, 158, 11, 0.1);
-            --sidebar-bg: #0a0e1a;
+            --sidebar-bg: rgba(8, 12, 24, 0.95);
             --sidebar-width: 200px;
-            --topbar-h: 48px;
+            --topbar-h: 52px;
+            --glass-blur: blur(16px);
+            --card-radius: 14px;
         }
 
-        html { height: 100%; }
+        html {
+            height: 100%;
+        }
 
         body {
             font-family: "Reddit Mono", monospace;
@@ -52,19 +57,36 @@
             display: flex;
         }
 
+        /* ── AMBIENT BACKGROUND ── */
         body::before {
             content: '';
             position: fixed;
             inset: 0;
             z-index: 0;
-            background: radial-gradient(ellipse 100% 40% at 50% 0%, rgba(59, 130, 246, 0.05) 0%, transparent 60%);
+            background:
+                radial-gradient(ellipse 80% 50% at 20% 0%, rgba(59, 130, 246, 0.07) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(34, 197, 94, 0.04) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.025) 1px, transparent 1px);
+            background-size: 32px 32px;
             pointer-events: none;
         }
 
         /* ── SIDEBAR ── */
         .sidebar {
             position: fixed;
-            top: 0; left: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            bottom: 0;
             width: var(--sidebar-width);
             background: var(--sidebar-bg);
             border-right: 1px solid var(--border);
@@ -73,6 +95,7 @@
             z-index: 200;
             overflow-y: auto;
             overflow-x: hidden;
+            backdrop-filter: var(--glass-blur);
         }
 
         .sidebar-brand {
@@ -80,7 +103,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            padding: 16px 14px;
+            padding: 18px 14px;
             border-bottom: 1px solid var(--border);
             user-select: none;
             flex-shrink: 0;
@@ -88,17 +111,38 @@
 
         .sidebar-brand-text {
             font-family: "Aldrich", sans-serif;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 400;
-            letter-spacing: 0.01em;
+            letter-spacing: 0.06em;
             color: var(--text);
+            text-transform: uppercase;
         }
 
-        .sidebar-chevron { color: var(--text-muted); flex-shrink: 0; opacity: 0.6; }
+        .sidebar-brand-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+            animation: livepulse 2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes livepulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.35;
+            }
+        }
 
         .sidebar-nav {
             list-style: none;
-            padding: 8px 0;
+            padding: 10px 0;
             flex: 1;
         }
 
@@ -110,13 +154,16 @@
             color: var(--text-muted);
             text-decoration: none;
             font-family: "Reddit Mono", monospace;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
-            border-left: 3px solid transparent;
+            border-left: 2px solid transparent;
             transition: color 0.15s, background 0.15s, border-color 0.15s;
         }
 
-        .sidebar-nav a:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+        .sidebar-nav a:hover {
+            color: var(--text-dim);
+            background: rgba(255, 255, 255, 0.03);
+        }
 
         .sidebar-nav a.active {
             color: var(--green);
@@ -124,8 +171,19 @@
             background: rgba(34, 197, 94, 0.06);
         }
 
-        .sidebar-nav a svg { flex-shrink: 0; opacity: 0.7; }
-        .sidebar-nav a.active svg { opacity: 1; }
+        .sidebar-nav a svg {
+            flex-shrink: 0;
+            opacity: 0.65;
+            transition: opacity 0.15s;
+        }
+
+        .sidebar-nav a:hover svg {
+            opacity: 0.85;
+        }
+
+        .sidebar-nav a.active svg {
+            opacity: 1;
+        }
 
         .sidebar-bottom {
             border-top: 1px solid var(--border);
@@ -137,12 +195,16 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.55);
+            background: rgba(0, 0, 0, 0.6);
             z-index: 199;
+            backdrop-filter: blur(2px);
         }
-        .sidebar-overlay.visible { display: block; }
 
-        /* ── CONTENT SHELL ── */
+        .sidebar-overlay.visible {
+            display: block;
+        }
+
+        /* ── CONTENT ── */
         .content {
             margin-left: var(--sidebar-width);
             flex: 1;
@@ -160,12 +222,12 @@
             top: 0;
             z-index: 100;
             height: var(--topbar-h);
-            background: rgba(13,17,23,0.92);
-            backdrop-filter: blur(12px);
+            background: rgba(10, 14, 26, 0.85);
+            backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            padding: 0 16px;
+            padding: 0 20px;
             gap: 12px;
             flex-shrink: 0;
         }
@@ -176,26 +238,31 @@
             border: none;
             color: var(--text-muted);
             cursor: pointer;
-            padding: 5px;
-            border-radius: 6px;
+            padding: 6px;
+            border-radius: 8px;
             line-height: 0;
             transition: color 0.15s, background 0.15s;
         }
-        .hamburger:hover { color: var(--text); background: var(--surface2); }
+
+        .hamburger:hover {
+            color: var(--text);
+            background: var(--surface2);
+        }
 
         .topbar-title {
             font-family: "Aldrich", sans-serif;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 400;
             color: var(--text-muted);
-            letter-spacing: 0.04em;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
         }
 
         /* ── PAGE AREA ── */
         .page-area {
             flex: 1;
             padding: 28px 24px;
-            max-width: 680px;
+            max-width: 700px;
         }
 
         /* ── FLASH MESSAGES ── */
@@ -203,30 +270,89 @@
             display: flex;
             align-items: flex-start;
             gap: 10px;
-            padding: 12px 16px;
-            border-radius: 10px;
+            padding: 13px 16px;
+            border-radius: 11px;
             font-size: 13px;
-            margin-bottom: 24px;
-            line-height: 1.5;
+            margin-bottom: 26px;
+            line-height: 1.6;
+            backdrop-filter: blur(8px);
+            animation: flashIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        @keyframes flashIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
         }
 
         .flash.success {
-            background: var(--green-dim);
+            background: rgba(34, 197, 94, 0.08);
             border: 1px solid rgba(34, 197, 94, 0.2);
             border-left: 3px solid var(--green);
             color: #86efac;
         }
 
         .flash.warning {
-            background: var(--warn-dim);
+            background: rgba(245, 158, 11, 0.08);
             border: 1px solid rgba(245, 158, 11, 0.2);
             border-left: 3px solid var(--warn);
             color: #fcd34d;
         }
 
+        .flash svg {
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
         /* ── SETTINGS SECTIONS ── */
         .settings-section {
-            margin-bottom: 32px;
+            margin-bottom: 28px;
+            animation: sectionIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+        }
+
+        .settings-section:nth-child(1) {
+            animation-delay: 0.05s;
+        }
+
+        .settings-section:nth-child(2) {
+            animation-delay: 0.10s;
+        }
+
+        .settings-section:nth-child(3) {
+            animation-delay: 0.15s;
+        }
+
+        @keyframes sectionIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .settings-section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-icon {
+            color: var(--text-muted);
+            opacity: 0.7;
+            flex-shrink: 0;
         }
 
         .settings-section-title {
@@ -234,34 +360,60 @@
             font-size: 11px;
             font-weight: 400;
             text-transform: uppercase;
-            letter-spacing: 0.09em;
+            letter-spacing: 0.1em;
             color: var(--text-muted);
-            margin-bottom: 14px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border);
         }
 
+        /* ── SETTINGS CARD ── */
         .settings-card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: var(--card-radius);
             overflow: hidden;
-            transition: border-color 0.2s;
+            backdrop-filter: var(--glass-blur);
+            transition: border-color 0.25s, box-shadow 0.25s;
+            position: relative;
         }
 
-        /* ── FORM FIELDS ── */
+        .settings-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg,
+                    transparent 0%,
+                    rgba(59, 130, 246, 0.3) 40%,
+                    rgba(34, 197, 94, 0.2) 70%,
+                    transparent 100%);
+        }
+
+        .settings-card:hover {
+            border-color: var(--border2);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        /* ── FIELD ROWS ── */
         .field-row {
             display: flex;
             align-items: center;
-            gap: 16px;
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
+            gap: 20px;
+            padding: 15px 18px;
+            border-bottom: 1px solid rgba(45, 55, 72, 0.4);
+            transition: background 0.15s;
         }
 
-        .field-row:last-child { border-bottom: none; }
+        .field-row:last-child {
+            border-bottom: none;
+        }
+
+        .field-row:hover {
+            background: rgba(255, 255, 255, 0.015);
+        }
 
         .field-label-wrap {
-            flex: 0 0 200px;
+            flex: 0 0 196px;
         }
 
         .field-label {
@@ -269,12 +421,25 @@
             font-weight: 600;
             color: var(--text);
             display: block;
+            margin-bottom: 3px;
         }
 
         .field-note {
             font-size: 11px;
             color: var(--warn);
-            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .field-note::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--warn);
+            flex-shrink: 0;
         }
 
         .field-input-wrap {
@@ -289,22 +454,28 @@
             background: var(--surface2);
             border: 1px solid var(--border);
             color: var(--text);
-            padding: 9px 12px;
+            padding: 10px 14px;
             font-family: "Reddit Mono", monospace;
             font-size: 13px;
-            border-radius: 8px;
+            border-radius: 9px;
             outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            backdrop-filter: blur(8px);
         }
 
         .field-input:focus {
             border-color: var(--accent);
+            background: rgba(28, 35, 51, 0.95);
             box-shadow: 0 0 0 3px var(--accent-glow);
         }
 
-        .field-input::placeholder { color: var(--text-muted); }
+        .field-input::placeholder {
+            color: var(--text-muted);
+        }
 
-        .field-input.password-input { padding-right: 40px; }
+        .field-input.password-input {
+            padding-right: 42px;
+        }
 
         .eye-btn {
             position: absolute;
@@ -314,62 +485,136 @@
             color: var(--text-muted);
             cursor: pointer;
             display: flex;
-            padding: 4px;
-            border-radius: 4px;
-            transition: color 0.15s;
+            padding: 5px;
+            border-radius: 5px;
+            transition: color 0.15s, background 0.15s;
         }
-        .eye-btn:hover { color: var(--text); }
 
-        /* ── SUBMIT BUTTON ── */
+        .eye-btn:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* ── SAVE BUTTON ── */
         .btn-save {
+            position: relative;
+            overflow: hidden;
             background: var(--accent);
             border: none;
             color: #fff;
-            padding: 11px 28px;
+            padding: 12px 28px;
             font-family: "Reddit Mono", monospace;
             font-size: 14px;
             font-weight: 700;
-            border-radius: 9px;
+            border-radius: 10px;
             cursor: pointer;
-            letter-spacing: -0.01em;
-            transition: all 0.2s;
-            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+            letter-spacing: 0.01em;
+            transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+            box-shadow: 0 4px 18px rgba(59, 130, 246, 0.28);
             display: inline-flex;
             align-items: center;
             gap: 8px;
         }
+
+        /* shimmer on hover */
+        .btn-save::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            transition: left 0.4s ease;
+            pointer-events: none;
+        }
+
+        .btn-save:hover::after {
+            left: 160%;
+        }
+
         .btn-save:hover {
             background: #2563eb;
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+            box-shadow: 0 6px 24px rgba(59, 130, 246, 0.38);
             transform: translateY(-1px);
         }
-        .btn-save:active { transform: translateY(0); }
+
+        .btn-save:active {
+            transform: translateY(0);
+        }
 
         .form-footer {
             margin-top: 24px;
             display: flex;
             align-items: center;
             gap: 16px;
+            animation: sectionIn 0.4s 0.22s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+        }
+
+        .form-footer-note {
+            font-size: 12px;
+            color: var(--text-muted);
         }
 
         /* ── RESPONSIVE ── */
         @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
-            .sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.5); }
-            .content { margin-left: 0; }
-            .hamburger { display: flex; }
-            .field-row { flex-direction: column; align-items: flex-start; }
-            .field-label-wrap { flex: none; width: 100%; }
-            .field-input-wrap { width: 100%; }
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+                box-shadow: 8px 0 32px rgba(0, 0, 0, 0.6);
+            }
+
+            .content {
+                margin-left: 0;
+            }
+
+            .hamburger {
+                display: flex;
+            }
+
+            .field-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .field-label-wrap {
+                flex: none;
+                width: 100%;
+            }
+
+            .field-input-wrap {
+                width: 100%;
+            }
         }
 
         @media (max-width: 520px) {
-            .page-area { padding: 16px; }
+            .page-area {
+                padding: 16px 14px;
+            }
         }
 
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: var(--bg); }
-        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
     </style>
 </head>
 
@@ -380,19 +625,17 @@
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
             <span class="sidebar-brand-text">Server Monitor</span>
-            <svg class="sidebar-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"/>
-            </svg>
+            <span class="sidebar-brand-dot"></span>
         </div>
 
         <ul class="sidebar-nav">
             <li>
                 <a href="/panel">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7"/>
-                        <rect x="14" y="3" width="7" height="7"/>
-                        <rect x="14" y="14" width="7" height="7"/>
-                        <rect x="3" y="14" width="7" height="7"/>
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
                     </svg>
                     Overview
                 </a>
@@ -400,10 +643,10 @@
             <li>
                 <a href="/panel/clients">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                     Clients
                 </a>
@@ -411,8 +654,9 @@
             <li>
                 <a href="/settings" class="active">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
                     </svg>
                     Panel Settings
                 </a>
@@ -423,10 +667,11 @@
             <ul class="sidebar-nav">
                 <li>
                     <a href="/panel/logout">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                            <polyline points="16 17 21 12 16 7"/>
-                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
                         </svg>
                         Log Out
                     </a>
@@ -440,9 +685,9 @@
         <header class="topbar">
             <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="3" y1="12" x2="21" y2="12"/>
-                    <line x1="3" y1="6" x2="21" y2="6"/>
-                    <line x1="3" y1="18" x2="21" y2="18"/>
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
                 </svg>
             </button>
             <span class="topbar-title">Panel Settings</span>
@@ -452,19 +697,18 @@
 
             {{if .Restarting}}
             <div class="flash warning">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
-                <div>
-                    <strong>Settings saved.</strong> Listening address changed — the service is restarting. Reconnect in a few seconds at the new address.
-                </div>
+                <div><strong>Settings saved.</strong> Listening address changed — the service is restarting. Reconnect
+                    in a few seconds at the new address.</div>
             </div>
             {{else if .Saved}}
             <div class="flash success">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px">
-                    <polyline points="20 6 9 17 4 12"/>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12" />
                 </svg>
                 <div>Settings saved successfully.</div>
             </div>
@@ -474,7 +718,18 @@
 
                 <!-- Server -->
                 <div class="settings-section">
-                    <div class="settings-section-title">Server</div>
+                    <div class="settings-section-header">
+                        <span class="section-icon">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="2" y="2" width="20" height="8" rx="2" />
+                                <rect x="2" y="14" width="20" height="8" rx="2" />
+                                <line x1="6" y1="6" x2="6.01" y2="6" />
+                                <line x1="6" y1="18" x2="6.01" y2="18" />
+                            </svg>
+                        </span>
+                        <span class="settings-section-title">Server</span>
+                    </div>
                     <div class="settings-card">
                         <div class="field-row">
                             <div class="field-label-wrap">
@@ -482,8 +737,8 @@
                                 <div class="field-note">Changing this restarts the service</div>
                             </div>
                             <div class="field-input-wrap">
-                                <input class="field-input" type="text" id="addr" name="addr"
-                                    value="{{index .Settings "addr"}}" placeholder="0.0.0.0:80">
+                                <input class="field-input" type="text" id="addr" name="addr" value="{{index .Settings "
+                                    addr"}}" placeholder="0.0.0.0:80">
                             </div>
                         </div>
                     </div>
@@ -491,7 +746,16 @@
 
                 <!-- Admin Credentials -->
                 <div class="settings-section">
-                    <div class="settings-section-title">Admin Credentials</div>
+                    <div class="settings-section-header">
+                        <span class="section-icon">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                <circle cx="12" cy="7" r="4" />
+                            </svg>
+                        </span>
+                        <span class="settings-section-title">Admin Credentials</span>
+                    </div>
                     <div class="settings-card">
                         <div class="field-row">
                             <div class="field-label-wrap">
@@ -499,7 +763,7 @@
                             </div>
                             <div class="field-input-wrap">
                                 <input class="field-input" type="text" id="admin_user" name="admin_user"
-                                    value="{{index .Settings "admin_user"}}" placeholder="admin"
+                                    value="{{index .Settings " admin_user"}}" placeholder="admin"
                                     autocomplete="username">
                             </div>
                         </div>
@@ -508,18 +772,23 @@
                                 <label class="field-label" for="admin_pass">Password</label>
                             </div>
                             <div class="field-input-wrap">
-                                <input class="field-input password-input" type="password" id="admin_pass" name="admin_pass"
-                                    value="{{index .Settings "admin_pass"}}" placeholder="••••••••"
+                                <input class="field-input password-input" type="password" id="admin_pass"
+                                    name="admin_pass" value="{{index .Settings " admin_pass"}}" placeholder="••••••••"
                                     autocomplete="new-password">
-                                <button type="button" class="eye-btn" id="eye-btn" aria-label="Toggle password visibility">
-                                    <svg id="eye-open" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                        <circle cx="12" cy="12" r="3"/>
+                                <button type="button" class="eye-btn" id="eye-btn"
+                                    aria-label="Toggle password visibility">
+                                    <svg id="eye-open" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                        <circle cx="12" cy="12" r="3" />
                                     </svg>
-                                    <svg id="eye-closed" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
-                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                                        <line x1="1" y1="1" x2="23" y2="23"/>
+                                    <svg id="eye-closed" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" style="display:none">
+                                        <path
+                                            d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                                        <path
+                                            d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                                        <line x1="1" y1="1" x2="23" y2="23" />
                                     </svg>
                                 </button>
                             </div>
@@ -529,7 +798,16 @@
 
                 <!-- OpenVPN Paths -->
                 <div class="settings-section">
-                    <div class="settings-section-title">OpenVPN Paths</div>
+                    <div class="settings-section-header">
+                        <span class="section-icon">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.39 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                            </svg>
+                        </span>
+                        <span class="settings-section-title">OpenVPN Paths</span>
+                    </div>
                     <div class="settings-card">
                         <div class="field-row">
                             <div class="field-label-wrap">
@@ -537,7 +815,7 @@
                             </div>
                             <div class="field-input-wrap">
                                 <input class="field-input" type="text" id="openvpn_status_log" name="openvpn_status_log"
-                                    value="{{index .Settings "openvpn_status_log"}}"
+                                    value="{{index .Settings " openvpn_status_log"}}"
                                     placeholder="/var/log/openvpn/status.log">
                             </div>
                         </div>
@@ -547,7 +825,7 @@
                             </div>
                             <div class="field-input-wrap">
                                 <input class="field-input" type="text" id="openvpn_cert_dir" name="openvpn_cert_dir"
-                                    value="{{index .Settings "openvpn_cert_dir"}}"
+                                    value="{{index .Settings " openvpn_cert_dir"}}"
                                     placeholder="/etc/openvpn/server/easy-rsa/pki/issued">
                             </div>
                         </div>
@@ -557,7 +835,7 @@
                             </div>
                             <div class="field-input-wrap">
                                 <input class="field-input" type="text" id="openvpn_ipp_file" name="openvpn_ipp_file"
-                                    value="{{index .Settings "openvpn_ipp_file"}}"
+                                    value="{{index .Settings " openvpn_ipp_file"}}"
                                     placeholder="/etc/openvpn/server/ipp.txt">
                             </div>
                         </div>
@@ -566,8 +844,8 @@
                                 <label class="field-label" for="openvpn_server_config">Server Config File</label>
                             </div>
                             <div class="field-input-wrap">
-                                <input class="field-input" type="text" id="openvpn_server_config" name="openvpn_server_config"
-                                    value="{{index .Settings "openvpn_server_config"}}"
+                                <input class="field-input" type="text" id="openvpn_server_config"
+                                    name="openvpn_server_config" value="{{index .Settings " openvpn_server_config"}}"
                                     placeholder="/etc/openvpn/server/server.conf">
                             </div>
                         </div>
@@ -576,11 +854,13 @@
 
                 <div class="form-footer">
                     <button type="submit" class="btn-save">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <polyline points="20 6 9 17 4 12"/>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12" />
                         </svg>
                         Save Settings
                     </button>
+                    <span class="form-footer-note">Changes take effect immediately</span>
                 </div>
 
             </form>
@@ -590,10 +870,10 @@
 
     <script>
         (function () {
-            // Hamburger
             var sidebar = document.getElementById('sidebar');
             var overlay = document.getElementById('sidebar-overlay');
             var hamburger = document.getElementById('hamburger');
+
             hamburger.addEventListener('click', function () {
                 var open = sidebar.classList.toggle('open');
                 overlay.classList.toggle('visible', open);
@@ -603,7 +883,6 @@
                 overlay.classList.remove('visible');
             });
 
-            // Password show/hide
             var eyeBtn = document.getElementById('eye-btn');
             var passInput = document.getElementById('admin_pass');
             var eyeOpen = document.getElementById('eye-open');
@@ -616,8 +895,19 @@
                     eyeClosed.style.display = isPass ? '' : 'none';
                 });
             }
+
+            /* focus highlight for field-row */
+            document.querySelectorAll('.field-input').forEach(function (inp) {
+                inp.addEventListener('focus', function () {
+                    inp.closest('.field-row').style.background = 'rgba(59,130,246,0.025)';
+                });
+                inp.addEventListener('blur', function () {
+                    inp.closest('.field-row').style.background = '';
+                });
+            });
         })();
     </script>
 
 </body>
+
 </html>

@@ -8,7 +8,8 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Reddit+Mono:wght@200..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Reddit+Mono:wght@200..900&display=swap"
+        rel="stylesheet">
     <style>
         *,
         *::before,
@@ -20,30 +21,37 @@
 
         :root {
             --bg: #0d1117;
-            --surface: #161b27;
-            --surface2: #1c2333;
+            --surface: rgba(22, 27, 39, 0.7);
+            --surface-solid: #161b27;
+            --surface2: rgba(28, 35, 51, 0.8);
             --surface3: #21293d;
-            --border: #2d3748;
-            --border2: #3a4a63;
+            --border: rgba(45, 55, 72, 0.6);
+            --border2: rgba(58, 74, 99, 0.9);
             --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.15);
+            --accent-glow: rgba(59, 130, 246, 0.18);
             --accent-dim: rgba(59, 130, 246, 0.06);
             --green: #22c55e;
             --green-dim: rgba(34, 197, 94, 0.1);
+            --amber: #f59e0b;
+            --amber-dim: rgba(245, 158, 11, 0.1);
+            --danger: #ef4444;
+            --danger-dim: rgba(239, 68, 68, 0.1);
             --text: #e2e8f0;
             --text-dim: #a0aec0;
             --text-muted: #718096;
-            --danger: #ef4444;
             --recv-color: #38bdf8;
             --sent-color: #fb923c;
-            /* Layout & new vars */
-            --sidebar-bg: #0a0e1a;
+            --sidebar-bg: rgba(8, 12, 24, 0.95);
             --sidebar-width: 200px;
-            --ring-track: #2d3748;
-            --topbar-h: 48px;
+            --ring-track: rgba(45, 55, 72, 0.5);
+            --topbar-h: 52px;
+            --glass-blur: blur(16px);
+            --card-radius: 14px;
         }
 
-        html { height: 100%; }
+        html {
+            height: 100%;
+        }
 
         body {
             font-family: "Reddit Mono", monospace;
@@ -54,12 +62,29 @@
             display: flex;
         }
 
+        /* ── AMBIENT BACKGROUND ── */
         body::before {
             content: '';
             position: fixed;
             inset: 0;
             z-index: 0;
-            background: radial-gradient(ellipse 100% 40% at 50% 0%, rgba(59, 130, 246, 0.05) 0%, transparent 60%);
+            background:
+                radial-gradient(ellipse 80% 50% at 20% 0%, rgba(59, 130, 246, 0.07) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(34, 197, 94, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 30% at 50% 50%, rgba(59, 130, 246, 0.03) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* subtle grid texture */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.025) 1px, transparent 1px);
+            background-size: 32px 32px;
             pointer-events: none;
         }
 
@@ -77,6 +102,7 @@
             z-index: 200;
             overflow-y: auto;
             overflow-x: hidden;
+            backdrop-filter: var(--glass-blur);
         }
 
         .sidebar-brand {
@@ -84,7 +110,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            padding: 16px 14px;
+            padding: 18px 14px;
             border-bottom: 1px solid var(--border);
             user-select: none;
             flex-shrink: 0;
@@ -92,21 +118,26 @@
 
         .sidebar-brand-text {
             font-family: "Aldrich", sans-serif;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 400;
-            letter-spacing: 0.01em;
+            letter-spacing: 0.06em;
             color: var(--text);
+            text-transform: uppercase;
         }
 
-        .sidebar-chevron {
-            color: var(--text-muted);
+        .sidebar-brand-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+            animation: livepulse 2s ease-in-out infinite;
             flex-shrink: 0;
-            opacity: 0.6;
         }
 
         .sidebar-nav {
             list-style: none;
-            padding: 8px 0;
+            padding: 10px 0;
             flex: 1;
         }
 
@@ -118,14 +149,15 @@
             color: var(--text-muted);
             text-decoration: none;
             font-family: "Reddit Mono", monospace;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
-            border-left: 3px solid transparent;
+            border-left: 2px solid transparent;
             transition: color 0.15s, background 0.15s, border-color 0.15s;
+            position: relative;
         }
 
         .sidebar-nav a:hover {
-            color: var(--text);
+            color: var(--text-dim);
             background: rgba(255, 255, 255, 0.03);
         }
 
@@ -135,8 +167,19 @@
             background: rgba(34, 197, 94, 0.06);
         }
 
-        .sidebar-nav a svg { flex-shrink: 0; opacity: 0.7; }
-        .sidebar-nav a.active svg { opacity: 1; }
+        .sidebar-nav a svg {
+            flex-shrink: 0;
+            opacity: 0.65;
+            transition: opacity 0.15s;
+        }
+
+        .sidebar-nav a:hover svg {
+            opacity: 0.85;
+        }
+
+        .sidebar-nav a.active svg {
+            opacity: 1;
+        }
 
         .sidebar-bottom {
             border-top: 1px solid var(--border);
@@ -149,11 +192,14 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.55);
+            background: rgba(0, 0, 0, 0.6);
             z-index: 199;
+            backdrop-filter: blur(2px);
         }
 
-        .sidebar-overlay.visible { display: block; }
+        .sidebar-overlay.visible {
+            display: block;
+        }
 
         /* ── CONTENT SHELL ── */
         .content {
@@ -173,8 +219,8 @@
             top: 0;
             z-index: 100;
             height: var(--topbar-h);
-            background: rgba(13, 17, 23, 0.92);
-            backdrop-filter: blur(12px);
+            background: rgba(10, 14, 26, 0.85);
+            backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
@@ -197,8 +243,8 @@
             border: none;
             color: var(--text-muted);
             cursor: pointer;
-            padding: 5px;
-            border-radius: 6px;
+            padding: 6px;
+            border-radius: 8px;
             line-height: 0;
             transition: color 0.15s, background 0.15s;
         }
@@ -212,14 +258,15 @@
         .live-badge {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
             font-size: 12px;
             color: var(--text-muted);
-            background: var(--surface2);
+            background: rgba(22, 27, 39, 0.6);
             border: 1px solid var(--border);
             border-radius: 20px;
-            padding: 4px 12px;
+            padding: 5px 14px;
             white-space: nowrap;
+            backdrop-filter: blur(8px);
         }
 
         .live-dot {
@@ -227,13 +274,20 @@
             height: 7px;
             border-radius: 50%;
             background: var(--green);
-            box-shadow: 0 0 6px var(--green);
+            box-shadow: 0 0 8px var(--green);
             animation: livepulse 2s ease-in-out infinite;
         }
 
         @keyframes livepulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.35;
+            }
         }
 
         /* ── PAGE AREAS ── */
@@ -242,19 +296,45 @@
             padding: 24px;
         }
 
-        /* ── OVERVIEW: STATUS BAR ── */
-        .status-bar {
+        /* ── CARD BASE (glass) ── */
+        .glass-card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px 0;
+            border-radius: var(--card-radius);
+            backdrop-filter: var(--glass-blur);
+            transition: border-color 0.25s, box-shadow 0.25s;
+        }
+
+        .glass-card:hover {
+            border-color: var(--border2);
+            box-shadow: 0 4px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        /* ── SEVERITY STATES ── */
+        .glass-card.severity-warn {
+            border-color: rgba(245, 158, 11, 0.4) !important;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.08) !important;
+        }
+
+        .glass-card.severity-critical {
+            border-color: rgba(239, 68, 68, 0.45) !important;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.1) !important;
+        }
+
+        /* ── OVERVIEW: STATUS BAR ── */
+        .status-bar {
             display: flex;
             align-items: center;
             margin-bottom: 20px;
-            transition: border-color 0.2s;
+            animation: cardIn 0.4s ease backwards;
         }
 
-        .status-bar:hover { border-color: var(--border2); }
+        .status-bar>.glass-card {
+            flex: 1;
+            padding: 0;
+            display: flex;
+            overflow: hidden;
+        }
 
         .gauge-item {
             flex: 1;
@@ -262,28 +342,52 @@
             flex-direction: column;
             align-items: center;
             gap: 8px;
-            padding: 8px 24px;
+            padding: 20px 16px;
+            position: relative;
+            transition: background 0.2s;
         }
 
-        .gauge-item + .gauge-item {
+        .gauge-item:hover {
+            background: rgba(255, 255, 255, 0.015);
+        }
+
+        .gauge-item+.gauge-item {
             border-left: 1px solid var(--border);
+        }
+
+        /* gradient top accent per gauge */
+        .gauge-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            border-radius: 2px;
+            background: var(--gauge-accent, var(--green));
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .gauge-item:hover::before {
+            opacity: 1;
         }
 
         .gauge-item-label {
             font-family: "Aldrich", sans-serif;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 400;
             text-transform: uppercase;
-            letter-spacing: 0.07em;
+            letter-spacing: 0.1em;
             color: var(--text-muted);
             align-self: flex-start;
         }
 
-        /* SVG semicircle (dashboard) gauge */
+        /* SVG semicircle gauge */
         .gauge-ring-wrap {
             position: relative;
-            width: 140px;
-            height: 140px;
+            width: 130px;
+            height: 130px;
         }
 
         .gauge-ring-wrap svg {
@@ -295,16 +399,17 @@
         .ring-track {
             fill: none;
             stroke: var(--ring-track);
-            stroke-width: 10;
+            stroke-width: 9;
         }
 
         .ring-fill {
             fill: none;
             stroke: var(--green);
-            stroke-width: 10;
+            stroke-width: 9;
             stroke-linecap: round;
             stroke-dasharray: 0 314.16;
-            transition: stroke-dasharray 0.6s ease, stroke 0.4s ease;
+            transition: stroke-dasharray 0.7s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.4s ease;
+            filter: drop-shadow(0 0 4px currentColor);
         }
 
         .gauge-center {
@@ -319,21 +424,23 @@
 
         .gauge-center-value {
             font-family: "Reddit Mono", monospace;
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 700;
             color: var(--text);
             letter-spacing: -0.02em;
+            transition: color 0.4s;
         }
 
         .gauge-sublabel {
             font-family: "Reddit Mono", monospace;
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-muted);
             text-align: center;
-            line-height: 1.4;
+            line-height: 1.5;
+            margin-top: 2px;
         }
 
-        /* ── OVERVIEW: INFO GRID 2×2 ── */
+        /* ── OVERVIEW: INFO GRID ── */
         .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -341,25 +448,31 @@
         }
 
         .info-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
             padding: 18px 20px;
-            transition: border-color 0.2s;
+            animation: cardIn 0.4s ease backwards;
         }
-
-        .info-card:hover { border-color: var(--border2); }
 
         .info-card-title {
             font-family: "Aldrich", sans-serif;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 400;
             text-transform: uppercase;
-            letter-spacing: 0.07em;
+            letter-spacing: 0.09em;
             color: var(--text-muted);
             padding-bottom: 12px;
             margin-bottom: 16px;
             border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .info-card-title-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex-shrink: 0;
         }
 
         .info-rows {
@@ -372,36 +485,106 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
-            padding: 0 20px;
+            padding: 0 18px;
         }
 
-        .info-row:first-child { padding-left: 0; }
-        .info-row:last-child  { padding-right: 0; }
+        .info-row:first-child {
+            padding-left: 0;
+        }
 
-        .info-row + .info-row {
+        .info-row:last-child {
+            padding-right: 0;
+        }
+
+        .info-row+.info-row {
             border-left: 1px solid var(--border);
         }
 
         .info-row-label {
             font-family: "Reddit Mono", monospace;
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-muted);
         }
 
         .info-row-value {
-            font-size: 17px;
+            font-size: 16px;
             font-weight: 600;
             color: var(--text);
             font-variant-numeric: tabular-nums;
             font-family: "Reddit Mono", monospace;
+            transition: color 0.3s;
         }
 
-        .info-row-value.muted { color: var(--text-muted); }
-        .info-row-value.val-up { color: var(--sent-color); }
-        .info-row-value.val-down { color: var(--recv-color); }
+        .info-row-value.muted {
+            color: var(--text-muted);
+        }
+
+        .info-row-value.val-up {
+            color: var(--sent-color);
+        }
+
+        .info-row-value.val-down {
+            color: var(--recv-color);
+        }
+
+        /* Click-to-copy IP */
+        .copyable {
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .copyable:hover {
+            color: var(--accent);
+        }
+
+        .copyable::after {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2'%3E%3Crect x='9' y='9' width='13' height='13' rx='2'/%3E%3Cpath d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0;
+            transition: opacity 0.15s;
+            flex-shrink: 0;
+        }
+
+        .copyable:hover::after {
+            opacity: 1;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(16px);
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--green);
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-family: "Reddit Mono", monospace;
+            backdrop-filter: blur(12px);
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            z-index: 9999;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
 
         /* ── CLIENTS PAGE ── */
-
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -410,33 +593,55 @@
         }
 
         .stat-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
             padding: 20px 24px;
             position: relative;
             overflow: hidden;
-            transition: border-color 0.2s;
+            animation: cardIn 0.4s ease backwards;
         }
 
+        /* animated gradient border top */
         .stat-card::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             height: 2px;
-            border-radius: 12px 12px 0 0;
+            border-radius: var(--card-radius) var(--card-radius) 0 0;
         }
 
-        .stat-card.c-clients::before { background: var(--accent); }
-        .stat-card.c-traffic::before { background: var(--green); }
-        .stat-card:hover { border-color: var(--border2); }
+        .stat-card.c-clients::before {
+            background: linear-gradient(90deg, var(--accent), #818cf8, var(--accent));
+            background-size: 200% 100%;
+            animation: gradientShift 4s ease infinite;
+        }
+
+        .stat-card.c-traffic::before {
+            background: linear-gradient(90deg, var(--green), #34d399, var(--green));
+            background-size: 200% 100%;
+            animation: gradientShift 4s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 0%;
+            }
+
+            50% {
+                background-position: 100% 0%;
+            }
+
+            100% {
+                background-position: 0% 0%;
+            }
+        }
 
         .stat-card-title {
             font-family: "Aldrich", sans-serif;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 400;
             text-transform: uppercase;
-            letter-spacing: 0.07em;
+            letter-spacing: 0.09em;
             color: var(--text-muted);
             padding-bottom: 12px;
             margin-bottom: 16px;
@@ -446,9 +651,18 @@
             gap: 6px;
         }
 
-        .stat-rows { display: flex; flex-direction: column; gap: 10px; }
+        .stat-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
 
-        .stat-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .stat-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
 
         .stat-row-label {
             font-size: 12px;
@@ -474,17 +688,60 @@
             gap: 5px;
         }
 
-        .stat-row-value .pct { font-size: 11px; font-weight: 500; opacity: 0.7; }
-        .stat-row-value.total { color: var(--accent); font-size: 22px; }
-        .stat-row-value.online { color: var(--green); }
-        .stat-row-value.offline { color: var(--text-muted); }
-        .stat-row-value.traffic-total { color: var(--text); font-size: 22px; }
-        .stat-row-value.recv { color: var(--recv-color); }
-        .stat-row-value.sent { color: var(--sent-color); }
+        .stat-row-value .pct {
+            font-size: 11px;
+            font-weight: 500;
+            opacity: 0.7;
+        }
 
-        .ratio-bar { height: 4px; background: var(--surface3); border-radius: 4px; overflow: hidden; margin-top: 14px; }
-        .ratio-bar-fill { height: 100%; background: var(--green); border-radius: 4px; transition: width 0.5s ease; }
-        .ratio-bar-label { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+        .stat-row-value.total {
+            color: var(--accent);
+            font-size: 22px;
+        }
+
+        .stat-row-value.online {
+            color: var(--green);
+        }
+
+        .stat-row-value.offline {
+            color: var(--text-muted);
+        }
+
+        .stat-row-value.traffic-total {
+            color: var(--text);
+            font-size: 22px;
+        }
+
+        .stat-row-value.recv {
+            color: var(--recv-color);
+        }
+
+        .stat-row-value.sent {
+            color: var(--sent-color);
+        }
+
+        .ratio-bar {
+            height: 4px;
+            background: var(--surface3);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 14px;
+        }
+
+        .ratio-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--green), #34d399);
+            border-radius: 4px;
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .ratio-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
 
         /* Controls */
         .controls {
@@ -498,12 +755,13 @@
 
         .filter-group {
             display: flex;
-            background: var(--surface);
+            background: rgba(22, 27, 39, 0.6);
             border: 1px solid var(--border);
-            border-radius: 9px;
+            border-radius: 10px;
             padding: 4px;
             gap: 2px;
             flex-wrap: wrap;
+            backdrop-filter: blur(8px);
         }
 
         .filter-btn {
@@ -514,107 +772,361 @@
             font-family: "Reddit Mono", monospace;
             font-size: 12px;
             font-weight: 500;
-            border-radius: 6px;
+            border-radius: 7px;
             cursor: pointer;
             transition: all 0.18s;
             white-space: nowrap;
         }
 
-        .filter-btn:hover { color: var(--text); background: var(--surface3); }
-        .filter-btn.active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); }
+        .filter-btn:hover {
+            color: var(--text);
+            background: var(--surface3);
+        }
 
-        .controls-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .filter-btn.active {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(59, 130, 246, 0.35);
+        }
 
-        .search-wrap { position: relative; display: flex; align-items: center; }
+        .controls-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
 
-        .search-icon { position: absolute; left: 12px; color: var(--text-muted); pointer-events: none; display: flex; }
+        .search-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            color: var(--text-muted);
+            pointer-events: none;
+            display: flex;
+            transition: color 0.2s;
+        }
 
         .search-input {
-            background: var(--surface);
+            background: rgba(22, 27, 39, 0.6);
             border: 1px solid var(--border);
             color: var(--text);
             padding: 8px 12px 8px 36px;
             font-family: "Reddit Mono", monospace;
             font-size: 13px;
-            border-radius: 8px;
+            border-radius: 9px;
             width: 200px;
             outline: none;
             transition: all 0.2s;
+            backdrop-filter: blur(8px);
         }
 
-        .search-input:focus { border-color: var(--accent); background: var(--surface2); box-shadow: 0 0 0 3px var(--accent-glow); width: 240px; }
-        .search-input::placeholder { color: var(--text-muted); }
+        .search-input:focus {
+            border-color: var(--accent);
+            background: rgba(28, 35, 51, 0.9);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+            width: 240px;
+        }
+
+        .search-input:focus+.search-icon,
+        .search-wrap:focus-within .search-icon {
+            color: var(--accent);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
 
         /* Table */
         .table-wrap {
-            background: var(--surface);
+            background: rgba(22, 27, 39, 0.6);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: var(--card-radius);
             overflow: hidden;
             overflow-x: auto;
+            backdrop-filter: var(--glass-blur);
+            transition: border-color 0.25s;
         }
 
-        table { width: 100%; border-collapse: collapse; min-width: 680px; }
+        .table-wrap:hover {
+            border-color: var(--border2);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 680px;
+        }
 
         thead th {
             padding: 13px 18px;
             text-align: left;
             font-family: "Aldrich", sans-serif;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 400;
             text-transform: uppercase;
-            letter-spacing: 0.07em;
+            letter-spacing: 0.09em;
             color: var(--text-muted);
             border-bottom: 1px solid var(--border);
-            background: rgba(0, 0, 0, 0.15);
+            background: rgba(0, 0, 0, 0.2);
             white-space: nowrap;
             cursor: pointer;
             user-select: none;
-            transition: color 0.15s;
+            transition: color 0.15s, background 0.15s;
         }
 
-        thead th:hover { color: var(--text-dim); }
-        thead th.sorted { color: var(--accent); }
-        thead th .sort-arrow { display: inline-block; margin-left: 4px; opacity: 0.4; font-size: 10px; transition: opacity 0.15s; }
-        thead th.sorted .sort-arrow { opacity: 1; }
+        thead th:hover {
+            color: var(--text-dim);
+            background: rgba(255, 255, 255, 0.02);
+        }
 
-        tbody tr { border-bottom: 1px solid var(--border); transition: background 0.12s; border-left: 2px solid transparent; }
-        tbody tr.row-online { border-left: 2px solid var(--green); }
-        tbody tr:last-child { border-bottom: none; }
-        tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+        thead th.sorted {
+            color: var(--accent);
+        }
 
-        td { padding: 14px 18px; white-space: nowrap; vertical-align: middle; }
+        /* sort arrow */
+        .sort-arrow {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin-left: 5px;
+            gap: 1px;
+            vertical-align: middle;
+            opacity: 0.3;
+            transition: opacity 0.15s;
+        }
 
-        .cell-name { display: flex; align-items: center; gap: 10px; }
+        .sort-arrow .arr-up,
+        .sort-arrow .arr-dn {
+            width: 0;
+            height: 0;
+            border-left: 3px solid transparent;
+            border-right: 3px solid transparent;
+            transition: border-color 0.2s;
+        }
 
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-        .status-dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); animation: livepulse 2s infinite; }
-        .status-dot.offline { background: var(--text-muted); }
+        .sort-arrow .arr-up {
+            border-bottom: 4px solid currentColor;
+        }
 
-        .name-text { font-weight: 600; color: var(--text); font-size: 13px; }
+        .sort-arrow .arr-dn {
+            border-top: 4px solid currentColor;
+        }
 
-        .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.01em; }
-        .badge.online { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34, 197, 94, 0.2); }
-        .badge.offline { background: rgba(100, 116, 139, 0.1); color: var(--text-muted); border: 1px solid rgba(100, 116, 139, 0.2); }
+        thead th.sorted .sort-arrow {
+            opacity: 1;
+        }
 
-        .ip-text { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-        .recv-text { color: var(--recv-color); font-weight: 500; font-variant-numeric: tabular-nums; }
-        .sent-text { color: var(--sent-color); font-weight: 500; font-variant-numeric: tabular-nums; }
-        .total-text { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
-        .time-online { font-size: 12px; color: var(--green); font-weight: 500; }
-        .time-offline { font-size: 12px; color: var(--text-muted); }
-        .time-label { font-size: 10px; opacity: 0.7; margin-right: 2px; }
+        thead th.sorted.asc .sort-arrow .arr-up {
+            border-bottom-color: var(--accent);
+        }
 
-        .empty-state { padding: 64px 20px; text-align: center; color: var(--text-muted); }
-        .empty-state h3 { font-size: 16px; font-weight: 600; color: var(--border2); margin-bottom: 6px; }
-        .empty-state p { font-size: 13px; }
+        thead th.sorted.asc .sort-arrow .arr-dn {
+            opacity: 0.2;
+        }
 
-        .skeleton { height: 14px; border-radius: 4px; background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        thead th.sorted.desc .sort-arrow .arr-dn {
+            border-top-color: var(--accent);
+        }
 
-        @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+        thead th.sorted.desc .sort-arrow .arr-up {
+            opacity: 0.2;
+        }
 
-        tbody tr { animation: rowIn 0.25s ease backwards; }
-        @keyframes rowIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+        thead th:hover .sort-arrow {
+            opacity: 0.6;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(45, 55, 72, 0.4);
+            transition: background 0.12s;
+            border-left: 2px solid transparent;
+            animation: rowIn 0.3s ease backwards;
+        }
+
+        tbody tr.row-online {
+            border-left-color: var(--green);
+        }
+
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.025);
+        }
+
+        /* fading rows when filter changes */
+        tbody.fading tr {
+            opacity: 0.3;
+            transition: opacity 0.15s;
+        }
+
+        td {
+            padding: 14px 18px;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .cell-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-dot.online {
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+            animation: livepulse 2s infinite;
+        }
+
+        .status-dot.offline {
+            background: var(--text-muted);
+        }
+
+        .name-text {
+            font-weight: 600;
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+
+        .badge.online {
+            background: var(--green-dim);
+            color: var(--green);
+            border: 1px solid rgba(34, 197, 94, 0.25);
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.1);
+        }
+
+        .badge.offline {
+            background: rgba(100, 116, 139, 0.08);
+            color: var(--text-muted);
+            border: 1px solid rgba(100, 116, 139, 0.15);
+        }
+
+        .ip-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .recv-text {
+            color: var(--recv-color);
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .sent-text {
+            color: var(--sent-color);
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .total-text {
+            color: var(--accent);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .time-online {
+            font-size: 12px;
+            color: var(--green);
+            font-weight: 500;
+        }
+
+        .time-offline {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .time-label {
+            font-size: 10px;
+            opacity: 0.6;
+            margin-right: 3px;
+        }
+
+        .empty-state {
+            padding: 64px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--border2);
+            margin-bottom: 6px;
+        }
+
+        .empty-state p {
+            font-size: 13px;
+        }
+
+        .skeleton {
+            height: 14px;
+            border-radius: 4px;
+            background: linear-gradient(90deg,
+                    rgba(33, 41, 61, 0.8) 25%,
+                    rgba(45, 55, 72, 0.6) 50%,
+                    rgba(33, 41, 61, 0.8) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.6s infinite;
+        }
+
+        @keyframes shimmer {
+            from {
+                background-position: 200% 0;
+            }
+
+            to {
+                background-position: -200% 0;
+            }
+        }
+
+        @keyframes rowIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        @keyframes cardIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
 
         .clients-footer {
             display: flex;
@@ -627,16 +1139,54 @@
             padding-top: 14px;
         }
 
+        /* ── NUMBER COUNTER ANIMATION ── */
+        .count-anim {
+            transition: none;
+        }
+
+        /* ── STAGGERED CARD ENTRANCE ── */
+        .info-card:nth-child(1) {
+            animation-delay: 0.05s;
+        }
+
+        .info-card:nth-child(2) {
+            animation-delay: 0.10s;
+        }
+
+        .info-card:nth-child(3) {
+            animation-delay: 0.15s;
+        }
+
+        .info-card:nth-child(4) {
+            animation-delay: 0.20s;
+        }
+
+        .info-card:nth-child(5) {
+            animation-delay: 0.25s;
+        }
+
+        .info-card:nth-child(6) {
+            animation-delay: 0.30s;
+        }
+
+        .stat-card:nth-child(1) {
+            animation-delay: 0.05s;
+        }
+
+        .stat-card:nth-child(2) {
+            animation-delay: 0.12s;
+        }
+
         /* ── RESPONSIVE ── */
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
-                transition: transform 0.25s ease;
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
             .sidebar.open {
                 transform: translateX(0);
-                box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+                box-shadow: 8px 0 32px rgba(0, 0, 0, 0.6);
             }
 
             .content {
@@ -647,12 +1197,27 @@
                 display: flex;
             }
 
-            /* status bar: wrap to 2×2 */
-            .status-bar { flex-wrap: wrap; }
-            .gauge-item { flex: 0 0 50%; padding: 12px 16px; }
-            .gauge-item + .gauge-item { border-left: none; }
-            .gauge-item:nth-child(even) { border-left: 1px solid var(--border); }
-            .gauge-item:nth-child(n+3) { border-top: 1px solid var(--border); }
+            /* status bar: 2×2 */
+            .status-bar>.glass-card {
+                flex-wrap: wrap;
+            }
+
+            .gauge-item {
+                flex: 0 0 50%;
+                padding: 14px 12px;
+            }
+
+            .gauge-item+.gauge-item {
+                border-left: none;
+            }
+
+            .gauge-item:nth-child(even) {
+                border-left: 1px solid var(--border);
+            }
+
+            .gauge-item:nth-child(n+3) {
+                border-top: 1px solid var(--border);
+            }
 
             .info-grid {
                 grid-template-columns: 1fr;
@@ -664,25 +1229,65 @@
         }
 
         @media (max-width: 520px) {
-            .page-area { padding: 16px; }
+            .page-area {
+                padding: 14px;
+            }
 
-            .controls { flex-direction: column; align-items: stretch; }
-            .controls-right { justify-content: space-between; }
-            .search-input { width: 100%; }
-            .search-input:focus { width: 100%; }
-            .search-wrap { flex: 1; }
-            .filter-btn { padding: 6px 10px; }
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
 
-            td:nth-child(3), th:nth-child(3) { display: none; }
+            .controls-right {
+                justify-content: space-between;
+            }
+
+            .search-input {
+                width: 100%;
+            }
+
+            .search-input:focus {
+                width: 100%;
+            }
+
+            .search-wrap {
+                flex: 1;
+            }
+
+            .filter-btn {
+                padding: 6px 10px;
+            }
+
+            td:nth-child(3),
+            th:nth-child(3) {
+                display: none;
+            }
         }
 
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: var(--bg); }
-        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
     </style>
 </head>
 
 <body>
+
+    <!-- Toast notification -->
+    <div class="toast" id="toast"></div>
 
     <!-- Sidebar overlay (mobile) -->
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
@@ -691,19 +1296,17 @@
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
             <span class="sidebar-brand-text">Server Monitor</span>
-            <svg class="sidebar-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"/>
-            </svg>
+            <span class="sidebar-brand-dot"></span>
         </div>
 
         <ul class="sidebar-nav">
             <li>
                 <a href="/panel" id="nav-overview">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7"/>
-                        <rect x="14" y="3" width="7" height="7"/>
-                        <rect x="14" y="14" width="7" height="7"/>
-                        <rect x="3" y="14" width="7" height="7"/>
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
                     </svg>
                     Overview
                 </a>
@@ -711,10 +1314,10 @@
             <li>
                 <a href="/panel/clients" id="nav-clients">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                     Clients
                 </a>
@@ -722,8 +1325,9 @@
             <li>
                 <a href="/settings" id="nav-settings">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
                     </svg>
                     Panel Settings
                 </a>
@@ -734,10 +1338,11 @@
             <ul class="sidebar-nav">
                 <li>
                     <a href="/panel/logout">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                            <polyline points="16 17 21 12 16 7"/>
-                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
                         </svg>
                         Log Out
                     </a>
@@ -754,9 +1359,9 @@
             <div class="topbar-left">
                 <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="3" y1="12" x2="21" y2="12"/>
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <line x1="3" y1="18" x2="21" y2="18"/>
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <line x1="3" y1="18" x2="21" y2="18" />
                     </svg>
                 </button>
             </div>
@@ -771,75 +1376,78 @@
 
             <!-- Status bar: CPU · RAM · Disk · Swap -->
             <div class="status-bar">
+                <div class="glass-card" style="display:flex;flex:1;overflow:hidden;">
 
-                <!-- CPU -->
-                <div class="gauge-item">
-                    <div class="gauge-item-label">CPU</div>
-                    <div class="gauge-ring-wrap">
-                        <svg viewBox="0 0 120 120">
-                            <circle class="ring-track" cx="60" cy="60" r="50" stroke-dasharray="235.62 78.54"/>
-                            <circle class="ring-fill" id="cpu-ring" cx="60" cy="60" r="50"/>
-                        </svg>
-                        <div class="gauge-center">
-                            <span class="gauge-center-value" id="cpu-val">—</span>
+                    <!-- CPU -->
+                    <div class="gauge-item" id="gauge-cpu" style="--gauge-accent: var(--green)">
+                        <div class="gauge-item-label">CPU</div>
+                        <div class="gauge-ring-wrap">
+                            <svg viewBox="0 0 120 120">
+                                <circle class="ring-track" cx="60" cy="60" r="50" stroke-dasharray="235.62 78.54" />
+                                <circle class="ring-fill" id="cpu-ring" cx="60" cy="60" r="50" />
+                            </svg>
+                            <div class="gauge-center">
+                                <span class="gauge-center-value" id="cpu-val">—</span>
+                            </div>
                         </div>
+                        <div class="gauge-sublabel" id="cpu-sub">CPU: — Cores</div>
                     </div>
-                    <div class="gauge-sublabel" id="cpu-sub">CPU: — Cores</div>
-                </div>
 
-                <!-- RAM -->
-                <div class="gauge-item">
-                    <div class="gauge-item-label">RAM</div>
-                    <div class="gauge-ring-wrap">
-                        <svg viewBox="0 0 120 120">
-                            <circle class="ring-track" cx="60" cy="60" r="50" stroke-dasharray="235.62 78.54"/>
-                            <circle class="ring-fill" id="ram-ring" cx="60" cy="60" r="50"/>
-                        </svg>
-                        <div class="gauge-center">
-                            <span class="gauge-center-value" id="ram-val">—</span>
+                    <!-- RAM -->
+                    <div class="gauge-item" id="gauge-ram" style="--gauge-accent: var(--green)">
+                        <div class="gauge-item-label">RAM</div>
+                        <div class="gauge-ring-wrap">
+                            <svg viewBox="0 0 120 120">
+                                <circle class="ring-track" cx="60" cy="60" r="50" stroke-dasharray="235.62 78.54" />
+                                <circle class="ring-fill" id="ram-ring" cx="60" cy="60" r="50" />
+                            </svg>
+                            <div class="gauge-center">
+                                <span class="gauge-center-value" id="ram-val">—</span>
+                            </div>
                         </div>
+                        <div class="gauge-sublabel" id="ram-sub">— / —</div>
                     </div>
-                    <div class="gauge-sublabel" id="ram-sub">— / —</div>
-                </div>
 
-                <!-- Swap -->
-                <div class="gauge-item">
-                    <div class="gauge-item-label">Swap</div>
-                    <div class="gauge-ring-wrap">
-                        <svg viewBox="0 0 120 120">
-                            <circle class="ring-track" cx="60" cy="60" r="50" stroke-dasharray="235.62 78.54"/>
-                            <circle class="ring-fill" id="swap-ring" cx="60" cy="60" r="50"/>
-                        </svg>
-                        <div class="gauge-center">
-                            <span class="gauge-center-value" id="swap-val">—</span>
+                    <!-- Swap -->
+                    <div class="gauge-item" id="gauge-swap" style="--gauge-accent: var(--green)">
+                        <div class="gauge-item-label">Swap</div>
+                        <div class="gauge-ring-wrap">
+                            <svg viewBox="0 0 120 120">
+                                <circle class="ring-track" cx="60" cy="60" r="50" stroke-dasharray="235.62 78.54" />
+                                <circle class="ring-fill" id="swap-ring" cx="60" cy="60" r="50" />
+                            </svg>
+                            <div class="gauge-center">
+                                <span class="gauge-center-value" id="swap-val">—</span>
+                            </div>
                         </div>
+                        <div class="gauge-sublabel" id="swap-sub">— / —</div>
                     </div>
-                    <div class="gauge-sublabel" id="swap-sub">— / —</div>
-                </div>
 
-                <!-- Disk -->
-                <div class="gauge-item">
-                    <div class="gauge-item-label">Disk</div>
-                    <div class="gauge-ring-wrap">
-                        <svg viewBox="0 0 120 120">
-                            <circle class="ring-track" cx="60" cy="60" r="50" stroke-dasharray="235.62 78.54"/>
-                            <circle class="ring-fill" id="disk-ring" cx="60" cy="60" r="50"/>
-                        </svg>
-                        <div class="gauge-center">
-                            <span class="gauge-center-value" id="disk-val">—</span>
+                    <!-- Disk -->
+                    <div class="gauge-item" id="gauge-disk" style="--gauge-accent: var(--green)">
+                        <div class="gauge-item-label">Disk</div>
+                        <div class="gauge-ring-wrap">
+                            <svg viewBox="0 0 120 120">
+                                <circle class="ring-track" cx="60" cy="60" r="50" stroke-dasharray="235.62 78.54" />
+                                <circle class="ring-fill" id="disk-ring" cx="60" cy="60" r="50" />
+                            </svg>
+                            <div class="gauge-center">
+                                <span class="gauge-center-value" id="disk-val">—</span>
+                            </div>
                         </div>
+                        <div class="gauge-sublabel" id="disk-sub">— / —</div>
                     </div>
-                    <div class="gauge-sublabel" id="disk-sub">— / —</div>
-                </div>
 
+                </div>
             </div>
 
             <!-- 4 info cards (2×2 grid) -->
             <div class="info-grid">
 
                 <!-- Overall Speed -->
-                <div class="info-card">
-                    <div class="info-card-title">Overall Speed</div>
+                <div class="info-card glass-card">
+                    <div class="info-card-title"><span class="info-card-title-dot"
+                            style="background:var(--sent-color)"></span>Overall Speed</div>
                     <div class="info-rows">
                         <div class="info-row">
                             <span class="info-row-label">↑ Upload</span>
@@ -853,8 +1461,9 @@
                 </div>
 
                 <!-- Total Data -->
-                <div class="info-card">
-                    <div class="info-card-title">Total Data</div>
+                <div class="info-card glass-card">
+                    <div class="info-card-title"><span class="info-card-title-dot"
+                            style="background:var(--recv-color)"></span>Total Data</div>
                     <div class="info-rows">
                         <div class="info-row">
                             <span class="info-row-label">Sent</span>
@@ -872,23 +1481,25 @@
                 </div>
 
                 <!-- IP Addresses -->
-                <div class="info-card">
-                    <div class="info-card-title">IP Addresses</div>
+                <div class="info-card glass-card">
+                    <div class="info-card-title"><span class="info-card-title-dot"
+                            style="background:var(--accent)"></span>IP Addresses</div>
                     <div class="info-rows">
                         <div class="info-row">
                             <span class="info-row-label">IPv4</span>
-                            <span class="info-row-value" id="ip-v4">—</span>
+                            <span class="info-row-value copyable" id="ip-v4" title="Click to copy">—</span>
                         </div>
                         <div class="info-row">
                             <span class="info-row-label">IPv6</span>
-                            <span class="info-row-value" id="ip-v6">—</span>
+                            <span class="info-row-value copyable" id="ip-v6" title="Click to copy">—</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Connection Stats -->
-                <div class="info-card">
-                    <div class="info-card-title">Connection Stats</div>
+                <div class="info-card glass-card">
+                    <div class="info-card-title"><span class="info-card-title-dot"
+                            style="background:var(--green)"></span>Connection Stats</div>
                     <div class="info-rows">
                         <div class="info-row">
                             <span class="info-row-label">TCP</span>
@@ -902,8 +1513,8 @@
                 </div>
 
                 <!-- Uptime -->
-                <div class="info-card">
-                    <div class="info-card-title">Uptime</div>
+                <div class="info-card glass-card">
+                    <div class="info-card-title"><span class="info-card-title-dot"></span>Uptime</div>
                     <div class="info-rows">
                         <div class="info-row">
                             <span class="info-row-label" id="uptime-os-label">OS</span>
@@ -917,8 +1528,9 @@
                 </div>
 
                 <!-- Client Status -->
-                <div class="info-card">
-                    <div class="info-card-title">Client Status</div>
+                <div class="info-card glass-card">
+                    <div class="info-card-title"><span class="info-card-title-dot"
+                            style="background:var(--green)"></span>Client Status</div>
                     <div class="info-rows">
                         <div class="info-row">
                             <span class="info-row-label">Online</span>
@@ -944,30 +1556,34 @@
             <!-- Stats: 2 cards -->
             <div class="stats-grid">
                 <!-- Clients card -->
-                <div class="stat-card c-clients">
+                <div class="stat-card glass-card c-clients">
                     <div class="stat-card-title">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                            <circle cx="9" cy="7" r="4"/>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                         </svg>
                         Clients
                     </div>
                     <div class="stat-rows">
                         <div class="stat-row">
-                            <div class="stat-row-label"><span class="dot" style="background:var(--accent)"></span>Total</div>
+                            <div class="stat-row-label"><span class="dot" style="background:var(--accent)"></span>Total
+                            </div>
                             <div class="stat-row-value total" id="stat-total">—</div>
                         </div>
                         <div class="stat-row">
-                            <div class="stat-row-label"><span class="dot" style="background:var(--green)"></span>Online</div>
+                            <div class="stat-row-label"><span class="dot" style="background:var(--green)"></span>Online
+                            </div>
                             <div class="stat-row-value online">
                                 <span id="stat-online">—</span>
                                 <span class="pct" id="stat-online-pct"></span>
                             </div>
                         </div>
                         <div class="stat-row">
-                            <div class="stat-row-label"><span class="dot" style="background:var(--text-muted)"></span>Offline</div>
+                            <div class="stat-row-label"><span class="dot"
+                                    style="background:var(--text-muted)"></span>Offline</div>
                             <div class="stat-row-value offline">
                                 <span id="stat-offline">—</span>
                                 <span class="pct" id="stat-offline-pct"></span>
@@ -984,26 +1600,30 @@
                 </div>
 
                 <!-- Traffic card -->
-                <div class="stat-card c-traffic">
+                <div class="stat-card glass-card c-traffic">
                     <div class="stat-card-title">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="8 17 12 21 16 17"/>
-                            <polyline points="16 7 12 3 8 7"/>
-                            <line x1="12" y1="3" x2="12" y2="21"/>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="8 17 12 21 16 17" />
+                            <polyline points="16 7 12 3 8 7" />
+                            <line x1="12" y1="3" x2="12" y2="21" />
                         </svg>
                         Traffic
                     </div>
                     <div class="stat-rows">
                         <div class="stat-row">
-                            <div class="stat-row-label"><span class="dot" style="background:var(--text-dim)"></span>Total</div>
+                            <div class="stat-row-label"><span class="dot"
+                                    style="background:var(--text-dim)"></span>Total</div>
                             <div class="stat-row-value traffic-total" id="stat-total-traffic">—</div>
                         </div>
                         <div class="stat-row">
-                            <div class="stat-row-label"><span class="dot" style="background:var(--recv-color)"></span>Download</div>
+                            <div class="stat-row-label"><span class="dot"
+                                    style="background:var(--recv-color)"></span>Download</div>
                             <div class="stat-row-value recv" id="stat-recv">—</div>
                         </div>
                         <div class="stat-row">
-                            <div class="stat-row-label"><span class="dot" style="background:var(--sent-color)"></span>Upload</div>
+                            <div class="stat-row-label"><span class="dot"
+                                    style="background:var(--sent-color)"></span>Upload</div>
                             <div class="stat-row-value sent" id="stat-sent">—</div>
                         </div>
                     </div>
@@ -1021,9 +1641,10 @@
                 <div class="controls-right">
                     <div class="search-wrap">
                         <span class="search-icon">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"/>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
                             </svg>
                         </span>
                         <input class="search-input" type="text" id="search" placeholder="Search client...">
@@ -1036,12 +1657,17 @@
                 <table>
                     <thead>
                         <tr>
-                            <th data-col="name">Client <span class="sort-arrow">↕</span></th>
-                            <th data-col="status">Status <span class="sort-arrow">↕</span></th>
+                            <th data-col="name">Client <span class="sort-arrow"><span class="arr-up"></span><span
+                                        class="arr-dn"></span></span></th>
+                            <th data-col="status">Status <span class="sort-arrow"><span class="arr-up"></span><span
+                                        class="arr-dn"></span></span></th>
                             <th data-col="ip">IP Address</th>
-                            <th data-col="recv">Download <span class="sort-arrow">↕</span></th>
-                            <th data-col="sent">Upload <span class="sort-arrow">↕</span></th>
-                            <th data-col="total">Total <span class="sort-arrow">↕</span></th>
+                            <th data-col="recv">Download <span class="sort-arrow"><span class="arr-up"></span><span
+                                        class="arr-dn"></span></span></th>
+                            <th data-col="sent">Upload <span class="sort-arrow"><span class="arr-up"></span><span
+                                        class="arr-dn"></span></span></th>
+                            <th data-col="total">Total <span class="sort-arrow"><span class="arr-up"></span><span
+                                        class="arr-dn"></span></span></th>
                             <th data-col="time">Last Connected</th>
                         </tr>
                     </thead>
@@ -1109,6 +1735,38 @@
             });
             overlay.addEventListener('click', closeSidebar);
 
+            // ── Toast ──────────────────────────────────────────────────────────
+            var toastEl = document.getElementById('toast');
+            var toastTimer = null;
+            function showToast(msg) {
+                toastEl.textContent = msg;
+                toastEl.classList.add('show');
+                if (toastTimer) clearTimeout(toastTimer);
+                toastTimer = setTimeout(function () {
+                    toastEl.classList.remove('show');
+                }, 2000);
+            }
+
+            // ── Copy to clipboard ──────────────────────────────────────────────
+            function copyText(text) {
+                if (!text || text === '—' || text === 'N/A') return;
+                navigator.clipboard.writeText(text).then(function () {
+                    showToast('✓ Copied: ' + text);
+                }).catch(function () {
+                    showToast('Copy failed');
+                });
+            }
+
+            // Bind copyable IP elements
+            ['ip-v4', 'ip-v6'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('click', function () {
+                        copyText(el.textContent.trim());
+                    });
+                }
+            });
+
             // ── Shared helpers ─────────────────────────────────────────────────
             function updateTimestamp() {
                 var now = new Date();
@@ -1118,9 +1776,9 @@
 
             function fmtBytes(n) {
                 if (n >= 1e12) return (n / 1e12).toFixed(2) + ' TB';
-                if (n >= 1e9)  return (n / 1e9).toFixed(2)  + ' GB';
-                if (n >= 1e6)  return (n / 1e6).toFixed(2)  + ' MB';
-                if (n >= 1e3)  return (n / 1e3).toFixed(2)  + ' KB';
+                if (n >= 1e9) return (n / 1e9).toFixed(2) + ' GB';
+                if (n >= 1e6) return (n / 1e6).toFixed(2) + ' MB';
+                if (n >= 1e3) return (n / 1e3).toFixed(2) + ' KB';
                 return n + ' B';
             }
 
@@ -1136,24 +1794,77 @@
                     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
             }
 
-            // ── Gauge color based on usage ratio ──────────────────────────────
+            // ── Gauge color & severity ─────────────────────────────────────────
             function gaugeColor(ratio) {
-                if (ratio < 0.50) return '#22c55e'; // green  0–50%
-                if (ratio < 0.85) return '#f59e0b'; // amber 50–85%
-                return '#ef4444';                   // red   85–100%
+                if (ratio < 0.50) return 'var(--green)';
+                if (ratio < 0.85) return 'var(--amber)';
+                return 'var(--danger)';
+            }
+
+            function gaugeAccentColor(ratio) {
+                if (ratio < 0.50) return 'var(--green)';
+                if (ratio < 0.85) return 'var(--amber)';
+                return 'var(--danger)';
+            }
+
+            // Update gauge container severity class
+            function setGaugeSeverity(gaugeId, ratio) {
+                var el = document.getElementById(gaugeId);
+                if (!el) return;
+                el.style.setProperty('--gauge-accent', gaugeAccentColor(ratio));
+                // Also update parent card severity
+                var card = el.closest('.glass-card');
+                if (card) {
+                    card.classList.remove('severity-warn', 'severity-critical');
+                    if (ratio >= 0.85) card.classList.add('severity-critical');
+                    else if (ratio >= 0.50) card.classList.add('severity-warn');
+                }
             }
 
             // ── Set SVG ring ───────────────────────────────────────────────────
             function setRing(id, ratio) {
                 var el = document.getElementById(id);
                 if (!el) return;
-                var arcLen = 235.62; // 75% of circumference (2π×50 = 314.16)
+                var arcLen = 235.62;
                 var fill = arcLen * Math.min(1, Math.max(0, ratio));
                 el.style.strokeDasharray = fill + ' 314.16';
                 el.style.stroke = gaugeColor(ratio);
+                el.style.filter = 'drop-shadow(0 0 5px ' + gaugeColor(ratio) + ')';
             }
 
-            // ── Format uptime seconds into human-readable string ───────────────
+            // ── Number counter animation ───────────────────────────────────────
+            var counterTimers = {};
+            function animateNumber(el, newText, duration) {
+                // Only animate simple percentage values like "72.3%"
+                var match = newText.match(/^(\d+(\.\d+)?)(%?)$/);
+                if (!match) { el.textContent = newText; return; }
+                var newVal = parseFloat(match[1]);
+                var suffix = match[3] || '';
+                var decimals = match[2] ? match[2].length - 1 : 0;
+                var oldVal = parseFloat(el.textContent) || 0;
+                if (isNaN(oldVal)) oldVal = 0;
+                var diff = newVal - oldVal;
+                if (Math.abs(diff) < 0.01) { el.textContent = newText; return; }
+
+                var startTime = null;
+                var id = el.id || Math.random();
+                if (counterTimers[id]) cancelAnimationFrame(counterTimers[id]);
+
+                function step(ts) {
+                    if (!startTime) startTime = ts;
+                    var progress = Math.min((ts - startTime) / duration, 1);
+                    // ease out
+                    var eased = 1 - Math.pow(1 - progress, 3);
+                    var current = oldVal + diff * eased;
+                    el.textContent = current.toFixed(decimals) + suffix;
+                    if (progress < 1) {
+                        counterTimers[id] = requestAnimationFrame(step);
+                    }
+                }
+                counterTimers[id] = requestAnimationFrame(step);
+            }
+
+            // ── Format uptime ──────────────────────────────────────────────────
             function fmtUptime(secs) {
                 if (!secs) return '—';
                 var d = Math.floor(secs / 86400);
@@ -1185,44 +1896,49 @@
                 function updateDashboard(stats) {
                     // CPU
                     var cpuPct = stats.cpu_percent || 0;
-                    document.getElementById('cpu-val').textContent = cpuPct.toFixed(1) + '%';
+                    var cpuEl = document.getElementById('cpu-val');
+                    animateNumber(cpuEl, cpuPct.toFixed(1) + '%', 500);
                     document.getElementById('cpu-sub').textContent = (stats.cpu_cores || '?') + ' Cores';
                     setRing('cpu-ring', cpuPct / 100);
+                    setGaugeSeverity('gauge-cpu', cpuPct / 100);
 
                     // RAM
                     var ramUsed = stats.mem_used || 0;
                     var ramTotal = stats.mem_total || 1;
                     var ramRatio = ramTotal > 0 ? ramUsed / ramTotal : 0;
-                    document.getElementById('ram-val').textContent = (ramRatio * 100).toFixed(1) + '%';
+                    animateNumber(document.getElementById('ram-val'), (ramRatio * 100).toFixed(1) + '%', 500);
                     document.getElementById('ram-sub').textContent = fmtBytes(ramUsed) + ' / ' + fmtBytes(ramTotal);
                     setRing('ram-ring', ramRatio);
+                    setGaugeSeverity('gauge-ram', ramRatio);
 
                     // Disk
                     var diskUsed = stats.disk_used || 0;
                     var diskTotal = stats.disk_total || 1;
                     var diskRatio = diskTotal > 0 ? diskUsed / diskTotal : 0;
-                    document.getElementById('disk-val').textContent = (diskRatio * 100).toFixed(1) + '%';
+                    animateNumber(document.getElementById('disk-val'), (diskRatio * 100).toFixed(1) + '%', 500);
                     document.getElementById('disk-sub').textContent = fmtBytes(diskUsed) + ' / ' + fmtBytes(diskTotal);
                     setRing('disk-ring', diskRatio);
+                    setGaugeSeverity('gauge-disk', diskRatio);
 
                     // Swap
                     var swapUsed = stats.swap_used || 0;
                     var swapTotal = stats.swap_total || 0;
                     var swapRatio = swapTotal > 0 ? swapUsed / swapTotal : 0;
                     if (swapTotal > 0) {
-                        document.getElementById('swap-val').textContent = (swapRatio * 100).toFixed(1) + '%';
+                        animateNumber(document.getElementById('swap-val'), (swapRatio * 100).toFixed(1) + '%', 500);
                         document.getElementById('swap-sub').textContent = fmtBytes(swapUsed) + ' / ' + fmtBytes(swapTotal);
                     } else {
                         document.getElementById('swap-val').textContent = 'N/A';
                         document.getElementById('swap-sub').textContent = 'No Swap';
                     }
                     setRing('swap-ring', swapRatio);
+                    setGaugeSeverity('gauge-swap', swapRatio);
 
                     // Overall speed
                     document.getElementById('ov-up').textContent = fmtSpeed(stats.net_up_speed || 0);
                     document.getElementById('ov-down').textContent = fmtSpeed(stats.net_down_speed || 0);
 
-                    // Total VPN client traffic (all-time, from DB)
+                    // Total VPN traffic
                     var vpnSent = stats.vpn_total_sent || 0;
                     var vpnRecv = stats.vpn_total_recv || 0;
                     document.getElementById('net-total').textContent = fmtBytes(vpnSent + vpnRecv);
@@ -1237,11 +1953,11 @@
 
                     var v4el = document.getElementById('ip-v4');
                     v4el.textContent = publicIPv4;
-                    v4el.className = 'info-row-value' + (publicIPv4 === 'N/A' ? ' muted' : '');
+                    v4el.className = 'info-row-value copyable' + (publicIPv4 === 'N/A' ? ' muted' : '');
 
                     var v6el = document.getElementById('ip-v6');
                     v6el.textContent = publicIPv6;
-                    v6el.className = 'info-row-value' + (publicIPv6 === 'N/A' ? ' muted' : '');
+                    v6el.className = 'info-row-value copyable' + (publicIPv6 === 'N/A' ? ' muted' : '');
 
                     // Connection stats
                     document.getElementById('conn-tcp').textContent = stats.tcp_count != null ? stats.tcp_count : '—';
@@ -1263,10 +1979,10 @@
 
                     // Client Status
                     var csOnline = stats.client_online != null ? stats.client_online : 0;
-                    var csTotal  = stats.client_total  != null ? stats.client_total  : 0;
-                    document.getElementById('cs-online').textContent  = csOnline;
+                    var csTotal = stats.client_total != null ? stats.client_total : 0;
+                    document.getElementById('cs-online').textContent = csOnline;
                     document.getElementById('cs-offline').textContent = csTotal - csOnline;
-                    document.getElementById('cs-total').textContent   = csTotal;
+                    document.getElementById('cs-total').textContent = csTotal;
 
                     updateTimestamp();
                 }
@@ -1299,7 +2015,6 @@
                     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
                 }
 
-                // WebSocket — push updates; fall back to polling on failure
                 function connectWS() {
                     var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
                     var sock = new WebSocket(proto + '//' + location.host + '/ws');
@@ -1310,10 +2025,10 @@
                     };
 
                     sock.onmessage = function (evt) {
-                        try { updateDashboard(JSON.parse(evt.data)); } catch (e) {}
+                        try { updateDashboard(JSON.parse(evt.data)); } catch (e) { }
                     };
 
-                    sock.onerror = function () {};
+                    sock.onerror = function () { };
 
                     sock.onclose = function () {
                         startPolling();
@@ -1336,7 +2051,22 @@
                 var userHasSorted = false;
                 var searchQuery = '';
 
+                // Update sort arrow classes
+                function updateSortArrows() {
+                    document.querySelectorAll('#page-clients thead th[data-col]').forEach(function (th) {
+                        th.classList.remove('sorted', 'asc', 'desc');
+                        if (th.dataset.col === sortCol && userHasSorted) {
+                            th.classList.add('sorted');
+                            th.classList.add(sortDir === -1 ? 'desc' : 'asc');
+                        }
+                    });
+                }
+
                 function fetchClients() {
+                    // Fade current rows optimistically
+                    var tbody = document.getElementById('client-tbody');
+                    tbody.classList.add('fading');
+
                     fetch('/api/clients?filter=' + currentFilter).then(function (res) {
                         if (!res.ok) {
                             if (res.status === 401) { location.href = '/panel/login'; }
@@ -1344,11 +2074,13 @@
                         }
                         return res.json();
                     }).then(function (data) {
+                        tbody.classList.remove('fading');
                         allClients = data || [];
                         renderTable();
                         updateStats();
                         updateTimestamp();
                     }).catch(function (e) {
+                        tbody.classList.remove('fading');
                         console.error('Fetch error:', e);
                     });
                 }
@@ -1461,7 +2193,7 @@
                         btn.classList.add('active');
                         currentFilter = btn.dataset.filter;
                         userHasSorted = false;
-                        document.querySelectorAll('#page-clients thead th').forEach(function (t) { t.classList.remove('sorted'); });
+                        updateSortArrows();
                         fetchClients();
                     });
                 });
@@ -1473,8 +2205,7 @@
                         if (sortCol === col) { sortDir *= -1; }
                         else { sortCol = col; sortDir = -1; }
                         userHasSorted = true;
-                        document.querySelectorAll('#page-clients thead th').forEach(function (t) { t.classList.remove('sorted'); });
-                        th.classList.add('sorted');
+                        updateSortArrows();
                         renderTable();
                     });
                 });

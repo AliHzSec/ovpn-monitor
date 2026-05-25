@@ -8,7 +8,8 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Reddit+Mono:wght@200..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Reddit+Mono:wght@200..900&display=swap"
+        rel="stylesheet">
     <style>
         *,
         *::before,
@@ -20,14 +21,13 @@
 
         :root {
             --bg: #0d1117;
-            --surface: #161b27;
-            --surface2: #1c2333;
+            --surface: rgba(22, 27, 39, 0.7);
+            --surface2: rgba(28, 35, 51, 0.8);
             --surface3: #21293d;
-            --border: #2d3748;
-            --border2: #3a4a63;
+            --border: rgba(45, 55, 72, 0.6);
+            --border2: rgba(58, 74, 99, 0.9);
             --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.15);
-            --accent-dim: rgba(59, 130, 246, 0.06);
+            --accent-glow: rgba(59, 130, 246, 0.18);
             --green: #22c55e;
             --green-dim: rgba(34, 197, 94, 0.1);
             --text: #e2e8f0;
@@ -36,9 +36,13 @@
             --danger: #ef4444;
             --recv-color: #38bdf8;
             --sent-color: #fb923c;
+            --glass-blur: blur(16px);
+            --card-radius: 14px;
         }
 
-        html { height: 100%; }
+        html {
+            height: 100%;
+        }
 
         body {
             font-family: "Reddit Mono", monospace;
@@ -50,12 +54,27 @@
             flex-direction: column;
         }
 
+        /* ── AMBIENT BACKGROUND ── */
         body::before {
             content: '';
             position: fixed;
             inset: 0;
             z-index: 0;
-            background: radial-gradient(ellipse 100% 40% at 50% 0%, rgba(59, 130, 246, 0.06) 0%, transparent 60%);
+            background:
+                radial-gradient(ellipse 70% 45% at 50% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 65%),
+                radial-gradient(ellipse 50% 35% at 80% 80%, rgba(34, 197, 94, 0.04) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.02) 1px, transparent 1px);
+            background-size: 32px 32px;
             pointer-events: none;
         }
 
@@ -64,9 +83,9 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            height: 60px;
-            background: rgba(13, 17, 23, 0.92);
-            backdrop-filter: blur(12px);
+            height: 56px;
+            background: rgba(10, 14, 26, 0.88);
+            backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
@@ -77,13 +96,25 @@
         }
 
         .logo-text {
-            font-size: 15px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
+            font-family: "Aldrich", sans-serif;
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
             color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .logo-text span { color: var(--accent); }
+        .logo-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+            flex-shrink: 0;
+        }
 
         .topbar-center {
             display: flex;
@@ -103,14 +134,15 @@
         .live-badge {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
             font-size: 11px;
             color: var(--text-muted);
-            background: var(--surface2);
+            background: rgba(22, 27, 39, 0.6);
             border: 1px solid var(--border);
             border-radius: 20px;
-            padding: 4px 12px;
+            padding: 5px 14px;
             white-space: nowrap;
+            backdrop-filter: blur(8px);
         }
 
         .live-dot {
@@ -118,13 +150,20 @@
             height: 7px;
             border-radius: 50%;
             background: var(--green);
-            box-shadow: 0 0 6px var(--green);
+            box-shadow: 0 0 8px var(--green);
             animation: livepulse 2s ease-in-out infinite;
         }
 
         @keyframes livepulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.35;
+            }
         }
 
         /* ── MAIN ── */
@@ -133,7 +172,7 @@
             z-index: 1;
             padding: 28px 24px;
             flex: 1;
-            max-width: 900px;
+            max-width: 860px;
             width: 100%;
             margin: 0 auto;
         }
@@ -141,11 +180,41 @@
         /* ── HERO ── */
         .hero {
             text-align: center;
-            padding: 32px 0 36px;
+            padding: 36px 0 40px;
+            animation: heroIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+        }
+
+        @keyframes heroIn {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        /* avatar circle */
+        .hero-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(34, 197, 94, 0.15));
+            border: 1px solid var(--border2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-family: "Aldrich", sans-serif;
+            font-size: 20px;
+            color: var(--text-dim);
+            backdrop-filter: var(--glass-blur);
         }
 
         .hero-name {
-            font-size: 32px;
+            font-size: 30px;
             font-weight: 700;
             letter-spacing: -0.03em;
             color: var(--text);
@@ -153,17 +222,42 @@
         }
 
         .hero-ip {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-muted);
-            margin-top: 6px;
+            margin-top: 7px;
             font-variant-numeric: tabular-nums;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: color 0.2s;
+        }
+
+        .hero-ip:hover {
+            color: var(--accent);
+        }
+
+        .hero-ip::after {
+            content: '';
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2'%3E%3Crect x='9' y='9' width='13' height='13' rx='2'/%3E%3Cpath d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .hero-ip:hover::after {
+            opacity: 1;
         }
 
         .hero-badge-row {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 10px;
             margin-top: 14px;
         }
 
@@ -171,7 +265,7 @@
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            padding: 4px 12px;
+            padding: 4px 14px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
@@ -181,67 +275,146 @@
         .badge.online {
             background: var(--green-dim);
             color: var(--green);
-            border: 1px solid rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.25);
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.12);
         }
 
         .badge.offline {
-            background: rgba(100, 116, 139, 0.1);
+            background: rgba(100, 116, 139, 0.08);
             color: var(--text-muted);
             border: 1px solid rgba(100, 116, 139, 0.2);
         }
 
         .hero-time {
-            font-size: 13px;
+            font-size: 12px;
             margin-top: 10px;
         }
 
-        .hero-time.connected { color: var(--green); }
-        .hero-time.last-seen { color: var(--text-muted); }
+        .hero-time.connected {
+            color: var(--green);
+        }
+
+        .hero-time.last-seen {
+            color: var(--text-muted);
+        }
+
+        /* divider */
+        .hero-divider {
+            width: 48px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--border2), transparent);
+            margin: 24px auto 0;
+            border-radius: 2px;
+        }
 
         /* ── STATS GRID ── */
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 14px;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
         .stat-card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: var(--card-radius);
             padding: 20px 24px;
             position: relative;
             overflow: hidden;
-            transition: border-color 0.2s;
+            backdrop-filter: var(--glass-blur);
+            transition: border-color 0.25s, box-shadow 0.25s;
+            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
         }
 
+        .stat-card:hover {
+            border-color: var(--border2);
+            box-shadow: 0 4px 28px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        /* animated gradient top border */
         .stat-card::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             height: 2px;
-            border-radius: 12px 12px 0 0;
-            background: var(--accent);
+            border-radius: var(--card-radius) var(--card-radius) 0 0;
         }
 
-        .stat-card.c-alltime::before { background: var(--green); }
+        .stat-card.c-usage::before {
+            background: linear-gradient(90deg, var(--accent), #818cf8, var(--accent));
+            background-size: 200% 100%;
+            animation: gradientShift 4s ease infinite;
+        }
 
-        .stat-card:hover { border-color: var(--border2); }
+        .stat-card.c-alltime::before {
+            background: linear-gradient(90deg, var(--green), #34d399, var(--green));
+            background-size: 200% 100%;
+            animation: gradientShift 4s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 0%;
+            }
+
+            50% {
+                background-position: 100% 0%;
+            }
+
+            100% {
+                background-position: 0% 0%;
+            }
+        }
+
+        .stat-card:nth-child(1) {
+            animation-delay: 0.08s;
+        }
+
+        .stat-card:nth-child(2) {
+            animation-delay: 0.16s;
+        }
+
+        @keyframes cardIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
 
         .stat-card-title {
+            font-family: "Aldrich", sans-serif;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 400;
             text-transform: uppercase;
-            letter-spacing: 0.07em;
+            letter-spacing: 0.09em;
             color: var(--text-muted);
             margin-bottom: 16px;
+            padding-bottom: 11px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .title-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            flex-shrink: 0;
         }
 
         .stat-rows {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 11px;
         }
 
         .stat-row {
@@ -270,34 +443,51 @@
             font-size: 15px;
             font-weight: 700;
             letter-spacing: -0.02em;
+            font-variant-numeric: tabular-nums;
+            transition: color 0.3s;
         }
 
-        .stat-row-value.total { color: var(--accent); font-size: 22px; }
-        .stat-row-value.traffic-total { color: var(--text); font-size: 22px; }
-        .stat-row-value.recv { color: var(--recv-color); }
-        .stat-row-value.sent { color: var(--sent-color); }
+        .stat-row-value.total {
+            color: var(--accent);
+            font-size: 22px;
+        }
+
+        .stat-row-value.traffic-total {
+            color: var(--text);
+            font-size: 22px;
+        }
+
+        .stat-row-value.recv {
+            color: var(--recv-color);
+        }
+
+        .stat-row-value.sent {
+            color: var(--sent-color);
+        }
 
         /* ── FILTER TABS ── */
         .filter-group {
             display: flex;
-            background: var(--surface);
+            background: rgba(22, 27, 39, 0.6);
             border: 1px solid var(--border);
-            border-radius: 9px;
+            border-radius: 10px;
             padding: 4px;
             gap: 2px;
             flex-wrap: wrap;
             margin-bottom: 16px;
+            backdrop-filter: blur(8px);
+            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.24s backwards;
         }
 
         .filter-btn {
             background: transparent;
             border: none;
             color: var(--text-muted);
-            padding: 6px 16px;
+            padding: 6px 18px;
             font-family: "Reddit Mono", monospace;
             font-size: 12px;
             font-weight: 500;
-            border-radius: 6px;
+            border-radius: 7px;
             cursor: pointer;
             transition: all 0.18s;
             white-space: nowrap;
@@ -311,19 +501,55 @@
         .filter-btn.active {
             background: var(--accent);
             color: #fff;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 2px 12px rgba(59, 130, 246, 0.35);
         }
 
         /* ── INFO BOX ── */
         .info-box {
-            background: var(--surface);
-            border: 1px solid var(--border);
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.15);
             border-radius: 10px;
             padding: 12px 16px;
             font-size: 12px;
             color: var(--text-muted);
-            line-height: 1.6;
-            margin-bottom: 16px;
+            line-height: 1.7;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.30s backwards;
+        }
+
+        .info-box-icon {
+            color: var(--accent);
+            flex-shrink: 0;
+            margin-top: 1px;
+            opacity: 0.7;
+        }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(16px);
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--green);
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-family: "Reddit Mono", monospace;
+            backdrop-filter: blur(12px);
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            z-index: 9999;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
 
         /* ── FOOTER ── */
@@ -340,33 +566,85 @@
             font-size: 12px;
             color: var(--text-muted);
             flex-shrink: 0;
+            background: rgba(10, 14, 26, 0.5);
+            backdrop-filter: blur(8px);
         }
 
         /* ── RESPONSIVE ── */
         @media (max-width: 900px) {
-            .topbar-center { display: none; }
+            .topbar-center {
+                display: none;
+            }
+
+            .live-badge {
+                display: flex;
+            }
+
+            /* keep badge visible, just not in center slot */
         }
 
         @media (max-width: 600px) {
-            .topbar { padding: 0 16px; }
-            .main { padding: 20px 16px; }
-            .stats-grid { grid-template-columns: 1fr; gap: 10px; }
-            .hero-name { font-size: 26px; }
-            .filter-btn { padding: 6px 10px; }
-            .footer { justify-content: center; }
+            .topbar {
+                padding: 0 16px;
+            }
+
+            .topbar-center {
+                display: none;
+            }
+
+            .main {
+                padding: 18px 14px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .hero-name {
+                font-size: 24px;
+            }
+
+            .filter-btn {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+
+            .footer {
+                justify-content: center;
+            }
         }
 
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: var(--bg); }
-        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
     </style>
 </head>
 
 <body>
 
+    <div class="toast" id="toast"></div>
+
     <!-- TOPBAR -->
     <header class="topbar">
-        <div class="logo-text">Server<span>Monitor</span></div>
+        <div class="logo-text">
+            <span class="logo-dot"></span>
+            Server Monitor
+        </div>
         <div class="topbar-center">
             <div class="live-badge">
                 <div class="live-dot"></div>
@@ -381,8 +659,9 @@
 
         <!-- Hero -->
         <div class="hero">
+            <div class="hero-avatar" id="hero-avatar">—</div>
             <div class="hero-name">{{.CommonName}}</div>
-            <div class="hero-ip">{{.VPNAddress}}</div>
+            <div class="hero-ip" id="hero-ip" title="Click to copy">{{.VPNAddress}}</div>
             <div class="hero-badge-row">
                 {{if .Online}}
                 <span class="badge online">● Online</span>
@@ -395,13 +674,17 @@
             {{else if .LastSeen}}
             <div class="hero-time last-seen">Last seen: {{.LastSeen}}</div>
             {{end}}
+            <div class="hero-divider"></div>
         </div>
 
         <!-- Stats row: Usage (filtered) + All Time -->
         <div class="stats-grid">
             <!-- Usage card — updates with filter -->
-            <div class="stat-card">
-                <div class="stat-card-title" id="usage-title">Usage — Today</div>
+            <div class="stat-card c-usage">
+                <div class="stat-card-title">
+                    <span class="title-dot" style="background:var(--accent)"></span>
+                    <span id="usage-title">Usage — Today</span>
+                </div>
                 <div class="stat-rows">
                     <div class="stat-row">
                         <div class="stat-row-label">
@@ -429,7 +712,10 @@
 
             <!-- All Time card — fixed -->
             <div class="stat-card c-alltime">
-                <div class="stat-card-title">All Time</div>
+                <div class="stat-card-title">
+                    <span class="title-dot" style="background:var(--green)"></span>
+                    All Time
+                </div>
                 <div class="stat-rows">
                     <div class="stat-row">
                         <div class="stat-row-label">
@@ -466,63 +752,93 @@
 
         <!-- Info box -->
         <div class="info-box">
-            Traffic data shown reflects your cumulative usage. All-time totals are always displayed on the right.
+            <span class="info-box-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+            </span>
         </div>
 
     </main>
 
     <!-- FOOTER -->
     <footer class="footer">
-        <span>OpenVPN Client Monitor</span>
-        <span>Your IP: {{.VPNAddress}}</span>
+        <span>Your IP: <span id="footer-ip" style="cursor:pointer;transition:color 0.2s"
+                title="Click to copy">{{.VPNAddress}}</span></span>
     </footer>
 
     <script>
         (function () {
             'use strict';
 
-            let currentFilter = 'today';
+            /* ── Toast ── */
+            var toastEl = document.getElementById('toast');
+            var toastTimer = null;
+            function showToast(msg) {
+                toastEl.textContent = msg;
+                toastEl.classList.add('show');
+                if (toastTimer) clearTimeout(toastTimer);
+                toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 2200);
+            }
 
+            /* ── Copy helper ── */
+            function copyText(text) {
+                if (!text || text === '—') return;
+                navigator.clipboard.writeText(text).then(function () {
+                    showToast('✓ Copied: ' + text);
+                }).catch(function () {
+                    showToast('Copy failed');
+                });
+            }
+
+            /* ── Bind copy on hero IP + footer IP ── */
+            var heroIp = document.getElementById('hero-ip');
+            var footerIp = document.getElementById('footer-ip');
+
+            if (heroIp) {
+                heroIp.addEventListener('click', function () { copyText(heroIp.textContent.trim()); });
+            }
+            if (footerIp) {
+                footerIp.addEventListener('click', function () { copyText(footerIp.textContent.trim()); });
+                footerIp.addEventListener('mouseenter', function () { footerIp.style.color = 'var(--accent)'; });
+                footerIp.addEventListener('mouseleave', function () { footerIp.style.color = ''; });
+            }
+
+            /* ── Avatar initials ── */
+            var avatarEl = document.getElementById('hero-avatar');
+            var nameEl = document.querySelector('.hero-name');
+            if (avatarEl && nameEl) {
+                var name = nameEl.textContent.trim();
+                avatarEl.textContent = name ? name.charAt(0).toUpperCase() : '?';
+            }
+
+            /* ── Format bytes ── */
             function fmtBytes(n) {
                 if (n >= 1e12) return (n / 1e12).toFixed(2) + ' TB';
-                if (n >= 1e9)  return (n / 1e9).toFixed(2)  + ' GB';
-                if (n >= 1e6)  return (n / 1e6).toFixed(2)  + ' MB';
-                if (n >= 1e3)  return (n / 1e3).toFixed(2)  + ' KB';
+                if (n >= 1e9) return (n / 1e9).toFixed(2) + ' GB';
+                if (n >= 1e6) return (n / 1e6).toFixed(2) + ' MB';
+                if (n >= 1e3) return (n / 1e3).toFixed(2) + ' KB';
                 return n + ' B';
             }
 
             function setUsageCard(data) {
-                if (!data) {
-                    document.getElementById('u-total').textContent = '—';
-                    document.getElementById('u-recv').textContent  = '—';
-                    document.getElementById('u-sent').textContent  = '—';
-                    return;
-                }
-                document.getElementById('u-total').textContent = data.total_traffic_readable  || fmtBytes(data.total_traffic  || 0);
-                document.getElementById('u-recv').textContent  = data.bytes_received_readable || fmtBytes(data.bytes_received || 0);
-                document.getElementById('u-sent').textContent  = data.bytes_sent_readable     || fmtBytes(data.bytes_sent     || 0);
+                document.getElementById('u-total').textContent = data ? (data.total_traffic_readable || fmtBytes(data.total_traffic || 0)) : '—';
+                document.getElementById('u-recv').textContent = data ? (data.bytes_received_readable || fmtBytes(data.bytes_received || 0)) : '—';
+                document.getElementById('u-sent').textContent = data ? (data.bytes_sent_readable || fmtBytes(data.bytes_sent || 0)) : '—';
             }
 
             function setAllTimeCard(data) {
-                if (!data) {
-                    document.getElementById('a-total').textContent = '—';
-                    document.getElementById('a-recv').textContent  = '—';
-                    document.getElementById('a-sent').textContent  = '—';
-                    return;
-                }
-                document.getElementById('a-total').textContent = data.total_traffic_readable  || fmtBytes(data.total_traffic  || 0);
-                document.getElementById('a-recv').textContent  = data.bytes_received_readable || fmtBytes(data.bytes_received || 0);
-                document.getElementById('a-sent').textContent  = data.bytes_sent_readable     || fmtBytes(data.bytes_sent     || 0);
+                document.getElementById('a-total').textContent = data ? (data.total_traffic_readable || fmtBytes(data.total_traffic || 0)) : '—';
+                document.getElementById('a-recv').textContent = data ? (data.bytes_received_readable || fmtBytes(data.bytes_received || 0)) : '—';
+                document.getElementById('a-sent').textContent = data ? (data.bytes_sent_readable || fmtBytes(data.bytes_sent || 0)) : '—';
             }
 
             async function fetchUsage(filter) {
                 try {
-                    const res = await fetch('/api/client-stats?filter=' + filter);
-                    if (!res.ok) {
-                        setUsageCard(null);
-                        return;
-                    }
-                    setUsageCard(await res.json());
+                    var res = await fetch('/api/client-stats?filter=' + filter);
+                    setUsageCard(res.ok ? await res.json() : null);
                 } catch (e) {
                     setUsageCard(null);
                 }
@@ -530,16 +846,15 @@
 
             async function fetchAllTime() {
                 try {
-                    const res = await fetch('/api/client-stats?filter=all');
-                    if (!res.ok) { setAllTimeCard(null); return; }
-                    setAllTimeCard(await res.json());
+                    var res = await fetch('/api/client-stats?filter=all');
+                    setAllTimeCard(res.ok ? await res.json() : null);
                 } catch (e) {
                     setAllTimeCard(null);
                 }
             }
 
             function updateTimestamp() {
-                const now = new Date();
+                var now = new Date();
                 document.getElementById('last-update').textContent =
                     'Updated ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             }
@@ -549,23 +864,23 @@
                 updateTimestamp();
             }
 
-            // Filter button clicks update left card only.
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            var currentFilter = 'today';
+
+            /* ── Filter buttons ── */
+            document.querySelectorAll('.filter-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    document.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
                     btn.classList.add('active');
                     currentFilter = btn.dataset.filter;
-                    const label = btn.dataset.label || btn.textContent;
+                    var label = btn.dataset.label || btn.textContent;
                     document.getElementById('usage-title').textContent = 'Usage — ' + label;
                     fetchUsage(currentFilter);
                 });
             });
 
-            // Initial load.
+            /* ── Init ── */
             refresh();
             fetchAllTime();
-
-            // Auto-refresh every 30s.
             setInterval(refresh, 30000);
 
         })();
