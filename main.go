@@ -1,10 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"errors"
-	"flag"
 	"fmt"
 	"log/slog"
 	"net"
@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -51,66 +52,62 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	}
 	exeDir := filepath.Dir(exe)
 
-	flagDB := flag.String("db", "", "path to SQLite database")
-	flagLog := flag.String("log", "", "path to OpenVPN status log")
-	flagAddr := flag.String("addr", "", "listen address (host:port)")
-	flagCertsDir := flag.String("certs-dir", "", "path to OpenVPN issued certs directory")
-	flagTemplatesDir := flag.String("templates-dir", "", "path to HTML templates directory")
-	flagIPPFile := flag.String("ipp-file", "", "path to OpenVPN ipp.txt file")
-	flagClientSubnet := flag.String("client-subnet", "", "VPN client subnet override (CIDR)")
-	flagAdminUser := flag.String("admin-user", "", "admin username")
-	flagAdminPass := flag.String("admin-pass", "", "admin password")
-	flagSessionTTL := flag.String("session-ttl", "", "session TTL (e.g. 24h)")
-	flag.Parse()
+	dbPath := filepath.Join(exeDir, "db.sqlite")
+	templatesDir := filepath.Join(exeDir, "templates")
 
-	resolve := func(flagVal, envKey, def string) string {
-		if flagVal != "" {
-			return flagVal
-		}
-		if v := os.Getenv(envKey); v != "" {
-			return v
-		}
-		return def
-	}
-
-	sessionTTLStr := resolve(*flagSessionTTL, "SESSION_TTL", "24h")
-	sessionTTL, err := time.ParseDuration(sessionTTLStr)
+	// Step 1: open database
+	sqldb, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
-		sessionTTL = 24 * time.Hour
+		return err
+	}
+	defer sqldb.Close()
+	sqldb.SetMaxOpenConns(1)
+	sqldb.SetConnMaxLifetime(0)
+
+	if _, err := sqldb.ExecContext(ctx, `PRAGMA journal_mode=WAL`); err != nil {
+		return err
+	}
+	if _, err := sqldb.ExecContext(ctx, `PRAGMA busy_timeout=5000`); err != nil {
+		return err
 	}
 
-	opts := config.Options{
-		DB:           resolve(*flagDB, "DB_PATH", filepath.Join(exeDir, "db.sqlite")),
-		Log:          resolve(*flagLog, "OPENVPN_STATUS_LOG", ""),
-		Addr:         resolve(*flagAddr, "ADDR", "0.0.0.0:8080"),
-		CertsDir:     resolve(*flagCertsDir, "OPENVPN_CERT_DIR", ""),
-		TemplatesDir: resolve(*flagTemplatesDir, "TEMPLATES_DIR", filepath.Join(exeDir, "templates")),
-		IPPFile:      resolve(*flagIPPFile, "OPENVPN_IPP_FILE", ""),
-		ClientSubnet: resolve(*flagClientSubnet, "OPENVPN_CLIENT_SUBNET", ""),
-		AdminUser:    resolve(*flagAdminUser, "ADMIN_USER", "admin"),
-		AdminPass:    resolve(*flagAdminPass, "ADMIN_PASS", "changeme"),
-		SessionTTL:   sessionTTL,
+	// Step 2: migrate schema (creates tables and inserts default settings)
+	database := db.New(sqldb)
+	if err := database.Migrate(ctx); err != nil {
+		return err
 	}
 
-	if opts.CertsDir == "" {
-		logger.Warn("no certs directory configured; set --certs-dir or OPENVPN_CERT_DIR")
+	// Step 3: load config from database
+	opts, err := config.LoadFromDB(ctx, sqldb)
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
 	}
+	if opts.Addr == "" {
+		opts.Addr = "0.0.0.0:80"
+	}
+
 	if opts.Log == "" {
-		logger.Warn("no status log configured; set --log or OPENVPN_STATUS_LOG")
+		logger.Warn("no status log configured; watcher will be disabled. Set via /settings")
+	}
+	if opts.CertsDir == "" {
+		logger.Warn("no certs directory configured; set via /settings")
 	}
 
-	// Determine VPN subnet for client portal access control.
+	// Step 4: determine VPN subnet from OpenVPN server config, fall back to ipp.txt
 	var vpnNet *net.IPNet
-	if opts.ClientSubnet != "" {
-		_, vpnNet, err = net.ParseCIDR(opts.ClientSubnet)
-		if err != nil {
-			logger.Warn("invalid OPENVPN_CLIENT_SUBNET, client portal disabled", "err", err)
-			vpnNet = nil
+	if opts.ServerConfig != "" {
+		if cidr, err := parseServerSubnet(opts.ServerConfig); err != nil {
+			logger.Warn("could not parse subnet from server config", "path", opts.ServerConfig, "err", err)
+		} else if _, parsed, err := net.ParseCIDR(cidr); err != nil {
+			logger.Warn("invalid subnet parsed from server config", "cidr", cidr, "err", err)
+		} else {
+			vpnNet = parsed
 		}
-	} else if opts.IPPFile != "" {
+	}
+	if vpnNet == nil && opts.IPPFile != "" {
 		vpnToName, _, loadErr := ipp.LoadIPPFile(opts.IPPFile)
 		if loadErr != nil {
-			logger.Warn("could not load ipp.txt for subnet detection, client portal disabled", "err", loadErr)
+			logger.Warn("could not load ipp.txt for subnet detection", "err", loadErr)
 		} else {
 			for ip := range vpnToName {
 				parsed := net.ParseIP(ip)
@@ -128,8 +125,6 @@ func run(ctx context.Context, logger *slog.Logger) error {
 				logger.Warn("no IPs found in ipp.txt, client portal disabled")
 			}
 		}
-	} else {
-		logger.Warn("no ipp file configured; client portal disabled")
 	}
 
 	detectedSubnet := "<disabled>"
@@ -138,39 +133,20 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	logger.Info("startup config",
-		"db", opts.DB,
+		"db", dbPath,
 		"log", opts.Log,
 		"addr", opts.Addr,
 		"certs_dir", opts.CertsDir,
-		"templates_dir", opts.TemplatesDir,
+		"templates_dir", templatesDir,
 		"ipp_file", opts.IPPFile,
+		"server_config", opts.ServerConfig,
 		"vpn_subnet", detectedSubnet,
 		"admin_user", opts.AdminUser,
 		"session_ttl", opts.SessionTTL,
 	)
 
-	tmpl, err := handler.LoadTemplates(opts.TemplatesDir)
+	tmpl, err := handler.LoadTemplates(templatesDir)
 	if err != nil {
-		return err
-	}
-
-	sqldb, err := sql.Open("sqlite3", opts.DB)
-	if err != nil {
-		return err
-	}
-	defer sqldb.Close()
-	sqldb.SetMaxOpenConns(1)
-	sqldb.SetConnMaxLifetime(0)
-
-	if _, err := sqldb.ExecContext(ctx, `PRAGMA journal_mode=WAL`); err != nil {
-		return err
-	}
-	if _, err := sqldb.ExecContext(ctx, `PRAGMA busy_timeout=5000`); err != nil {
-		return err
-	}
-
-	database := db.New(sqldb)
-	if err := database.Migrate(ctx); err != nil {
 		return err
 	}
 
@@ -194,7 +170,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	mux := http.NewServeMux()
 	handler.Register(mux, database, sessions, online, ippSt, tmpl, vpnNet,
-		opts.AdminUser, opts.AdminPass, opts.SessionTTL, logger, opts.TemplatesDir, cache)
+		opts.SessionTTL, logger, templatesDir, cache)
 
 	srv := &http.Server{Addr: opts.Addr, Handler: mux}
 	srvErr := make(chan error, 1)
@@ -211,6 +187,52 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		// bound successfully
 	}
 
+	// Step 5: start log watcher (disabled if log path not configured)
+	if opts.Log == "" {
+		logger.Warn("watcher disabled: configure openvpn_status_log via /settings and restart")
+		<-ctx.Done()
+		return ctx.Err()
+	}
+
 	w := watcher.Watcher{DB: database, Logger: logger, Certs: certList, Online: online}
 	return w.Watch(ctx, opts.Log)
+}
+
+// parseServerSubnet reads an OpenVPN server config file and extracts the VPN
+// subnet from the "server <ip> <mask>" directive, returning it as a CIDR string.
+func parseServerSubnet(configPath string) (string, error) {
+	f, err := os.Open(configPath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if !strings.HasPrefix(line, "server ") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+		ipStr := fields[1]
+		maskStr := fields[2]
+
+		parsedMask := net.ParseIP(maskStr)
+		if parsedMask == nil {
+			return "", fmt.Errorf("invalid netmask %q in server config", maskStr)
+		}
+		m := net.IPMask(parsedMask.To4())
+		ones, bits := m.Size()
+		if bits == 0 {
+			return "", fmt.Errorf("could not determine prefix length from mask %q", maskStr)
+		}
+		return fmt.Sprintf("%s/%d", ipStr, ones), nil
+	}
+	if err := sc.Err(); err != nil {
+		return "", err
+	}
+	return "", fmt.Errorf("no 'server' directive found in %s", configPath)
 }

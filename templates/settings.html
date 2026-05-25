@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Settings — Monitoring</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Reddit+Mono:wght@200..900&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0d1117;
+            --surface: #161b27;
+            --surface2: #1c2333;
+            --surface3: #21293d;
+            --border: #2d3748;
+            --border2: #3a4a63;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --green: #22c55e;
+            --green-dim: rgba(34, 197, 94, 0.1);
+            --text: #e2e8f0;
+            --text-dim: #a0aec0;
+            --text-muted: #718096;
+            --danger: #ef4444;
+            --danger-dim: rgba(239, 68, 68, 0.12);
+            --warn: #f59e0b;
+            --warn-dim: rgba(245, 158, 11, 0.1);
+            --sidebar-bg: #0a0e1a;
+            --sidebar-width: 200px;
+            --topbar-h: 48px;
+        }
+
+        html { height: 100%; }
+
+        body {
+            font-family: "Reddit Mono", monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
+            font-size: 15px;
+            display: flex;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: radial-gradient(ellipse 100% 40% at 50% 0%, rgba(59, 130, 246, 0.05) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 200;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 16px 14px;
+            border-bottom: 1px solid var(--border);
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        .sidebar-brand-text {
+            font-family: "Aldrich", sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+            color: var(--text);
+        }
+
+        .sidebar-chevron { color: var(--text-muted); flex-shrink: 0; opacity: 0.6; }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 8px 0;
+            flex: 1;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-family: "Reddit Mono", monospace;
+            font-size: 14px;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+            transition: color 0.15s, background 0.15s, border-color 0.15s;
+        }
+
+        .sidebar-nav a:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+
+        .sidebar-nav a.active {
+            color: var(--green);
+            border-left-color: var(--green);
+            background: rgba(34, 197, 94, 0.06);
+        }
+
+        .sidebar-nav a svg { flex-shrink: 0; opacity: 0.7; }
+        .sidebar-nav a.active svg { opacity: 1; }
+
+        .sidebar-bottom {
+            border-top: 1px solid var(--border);
+            padding: 8px 0;
+            flex-shrink: 0;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 199;
+        }
+        .sidebar-overlay.visible { display: block; }
+
+        /* ── CONTENT SHELL ── */
+        .content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100dvh;
+            min-width: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: var(--topbar-h);
+            background: rgba(13,17,23,0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .hamburger {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 6px;
+            line-height: 0;
+            transition: color 0.15s, background 0.15s;
+        }
+        .hamburger:hover { color: var(--text); background: var(--surface2); }
+
+        .topbar-title {
+            font-family: "Aldrich", sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+        }
+
+        /* ── PAGE AREA ── */
+        .page-area {
+            flex: 1;
+            padding: 28px 24px;
+            max-width: 680px;
+        }
+
+        /* ── FLASH MESSAGES ── */
+        .flash {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .flash.success {
+            background: var(--green-dim);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-left: 3px solid var(--green);
+            color: #86efac;
+        }
+
+        .flash.warning {
+            background: var(--warn-dim);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-left: 3px solid var(--warn);
+            color: #fcd34d;
+        }
+
+        /* ── SETTINGS SECTIONS ── */
+        .settings-section {
+            margin-bottom: 32px;
+        }
+
+        .settings-section-title {
+            font-family: "Aldrich", sans-serif;
+            font-size: 11px;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .settings-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        /* ── FORM FIELDS ── */
+        .field-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .field-row:last-child { border-bottom: none; }
+
+        .field-label-wrap {
+            flex: 0 0 200px;
+        }
+
+        .field-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            display: block;
+        }
+
+        .field-note {
+            font-size: 11px;
+            color: var(--warn);
+            margin-top: 2px;
+        }
+
+        .field-input-wrap {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .field-input {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 9px 12px;
+            font-family: "Reddit Mono", monospace;
+            font-size: 13px;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .field-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .field-input::placeholder { color: var(--text-muted); }
+
+        .field-input.password-input { padding-right: 40px; }
+
+        .eye-btn {
+            position: absolute;
+            right: 10px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            padding: 4px;
+            border-radius: 4px;
+            transition: color 0.15s;
+        }
+        .eye-btn:hover { color: var(--text); }
+
+        /* ── SUBMIT BUTTON ── */
+        .btn-save {
+            background: var(--accent);
+            border: none;
+            color: #fff;
+            padding: 11px 28px;
+            font-family: "Reddit Mono", monospace;
+            font-size: 14px;
+            font-weight: 700;
+            border-radius: 9px;
+            cursor: pointer;
+            letter-spacing: -0.01em;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-save:hover {
+            background: #2563eb;
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+            transform: translateY(-1px);
+        }
+        .btn-save:active { transform: translateY(0); }
+
+        .form-footer {
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
+            .sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.5); }
+            .content { margin-left: 0; }
+            .hamburger { display: flex; }
+            .field-row { flex-direction: column; align-items: flex-start; }
+            .field-label-wrap { flex: none; width: 100%; }
+            .field-input-wrap { width: 100%; }
+        }
+
+        @media (max-width: 520px) {
+            .page-area { padding: 16px; }
+        }
+
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <span class="sidebar-brand-text">Server Monitor</span>
+            <svg class="sidebar-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"/>
+            </svg>
+        </div>
+
+        <ul class="sidebar-nav">
+            <li>
+                <a href="/panel">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    Overview
+                </a>
+            </li>
+            <li>
+                <a href="/panel/clients">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Clients
+                </a>
+            </li>
+            <li>
+                <a href="/settings" class="active">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    Panel Settings
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-bottom">
+            <ul class="sidebar-nav">
+                <li>
+                    <a href="/panel/logout">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                        Log Out
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </aside>
+
+    <div class="content">
+
+        <header class="topbar">
+            <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <span class="topbar-title">Panel Settings</span>
+        </header>
+
+        <main class="page-area">
+
+            {{if .Restarting}}
+            <div class="flash warning">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <div>
+                    <strong>Settings saved.</strong> Listening address changed — the service is restarting. Reconnect in a few seconds at the new address.
+                </div>
+            </div>
+            {{else if .Saved}}
+            <div class="flash success">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <div>Settings saved successfully.</div>
+            </div>
+            {{end}}
+
+            <form method="POST" action="/settings">
+
+                <!-- Server -->
+                <div class="settings-section">
+                    <div class="settings-section-title">Server</div>
+                    <div class="settings-card">
+                        <div class="field-row">
+                            <div class="field-label-wrap">
+                                <label class="field-label" for="addr">Listening Address</label>
+                                <div class="field-note">Changing this restarts the service</div>
+                            </div>
+                            <div class="field-input-wrap">
+                                <input class="field-input" type="text" id="addr" name="addr"
+                                    value="{{index .Settings "addr"}}" placeholder="0.0.0.0:80">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Credentials -->
+                <div class="settings-section">
+                    <div class="settings-section-title">Admin Credentials</div>
+                    <div class="settings-card">
+                        <div class="field-row">
+                            <div class="field-label-wrap">
+                                <label class="field-label" for="admin_user">Username</label>
+                            </div>
+                            <div class="field-input-wrap">
+                                <input class="field-input" type="text" id="admin_user" name="admin_user"
+                                    value="{{index .Settings "admin_user"}}" placeholder="admin"
+                                    autocomplete="username">
+                            </div>
+                        </div>
+                        <div class="field-row">
+                            <div class="field-label-wrap">
+                                <label class="field-label" for="admin_pass">Password</label>
+                            </div>
+                            <div class="field-input-wrap">
+                                <input class="field-input password-input" type="password" id="admin_pass" name="admin_pass"
+                                    value="{{index .Settings "admin_pass"}}" placeholder="••••••••"
+                                    autocomplete="new-password">
+                                <button type="button" class="eye-btn" id="eye-btn" aria-label="Toggle password visibility">
+                                    <svg id="eye-open" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                    <svg id="eye-closed" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                                        <line x1="1" y1="1" x2="23" y2="23"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OpenVPN Paths -->
+                <div class="settings-section">
+                    <div class="settings-section-title">OpenVPN Paths</div>
+                    <div class="settings-card">
+                        <div class="field-row">
+                            <div class="field-label-wrap">
+                                <label class="field-label" for="openvpn_status_log">Status Log Path</label>
+                            </div>
+                            <div class="field-input-wrap">
+                                <input class="field-input" type="text" id="openvpn_status_log" name="openvpn_status_log"
+                                    value="{{index .Settings "openvpn_status_log"}}"
+                                    placeholder="/var/log/openvpn/status.log">
+                            </div>
+                        </div>
+                        <div class="field-row">
+                            <div class="field-label-wrap">
+                                <label class="field-label" for="openvpn_cert_dir">Certificate Directory</label>
+                            </div>
+                            <div class="field-input-wrap">
+                                <input class="field-input" type="text" id="openvpn_cert_dir" name="openvpn_cert_dir"
+                                    value="{{index .Settings "openvpn_cert_dir"}}"
+                                    placeholder="/etc/openvpn/server/easy-rsa/pki/issued">
+                            </div>
+                        </div>
+                        <div class="field-row">
+                            <div class="field-label-wrap">
+                                <label class="field-label" for="openvpn_ipp_file">IPP File Path</label>
+                            </div>
+                            <div class="field-input-wrap">
+                                <input class="field-input" type="text" id="openvpn_ipp_file" name="openvpn_ipp_file"
+                                    value="{{index .Settings "openvpn_ipp_file"}}"
+                                    placeholder="/etc/openvpn/server/ipp.txt">
+                            </div>
+                        </div>
+                        <div class="field-row">
+                            <div class="field-label-wrap">
+                                <label class="field-label" for="openvpn_server_config">Server Config File</label>
+                            </div>
+                            <div class="field-input-wrap">
+                                <input class="field-input" type="text" id="openvpn_server_config" name="openvpn_server_config"
+                                    value="{{index .Settings "openvpn_server_config"}}"
+                                    placeholder="/etc/openvpn/server/server.conf">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-footer">
+                    <button type="submit" class="btn-save">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Save Settings
+                    </button>
+                </div>
+
+            </form>
+
+        </main>
+    </div>
+
+    <script>
+        (function () {
+            // Hamburger
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('sidebar-overlay');
+            var hamburger = document.getElementById('hamburger');
+            hamburger.addEventListener('click', function () {
+                var open = sidebar.classList.toggle('open');
+                overlay.classList.toggle('visible', open);
+            });
+            overlay.addEventListener('click', function () {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('visible');
+            });
+
+            // Password show/hide
+            var eyeBtn = document.getElementById('eye-btn');
+            var passInput = document.getElementById('admin_pass');
+            var eyeOpen = document.getElementById('eye-open');
+            var eyeClosed = document.getElementById('eye-closed');
+            if (eyeBtn) {
+                eyeBtn.addEventListener('click', function () {
+                    var isPass = passInput.type === 'password';
+                    passInput.type = isPass ? 'text' : 'password';
+                    eyeOpen.style.display = isPass ? 'none' : '';
+                    eyeClosed.style.display = isPass ? '' : 'none';
+                });
+            }
+        })();
+    </script>
+
+</body>
+</html>

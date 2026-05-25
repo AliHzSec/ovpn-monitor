@@ -23,7 +23,6 @@ type LogEntry struct {
 	BytesSent      int64
 	ConnectedSince string
 	ConnectedEpoch int64
-	Cipher         string
 }
 
 type ClientPortalData struct {

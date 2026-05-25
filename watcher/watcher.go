@@ -100,7 +100,7 @@ func parseOpenVPNLog(f io.Reader, certs *cert.Whitelist, logger *slog.Logger) ([
 		}
 
 		record := strings.Split(line, ",")
-		// FORMAT: CLIENT_LIST,CommonName,RealAddress,VirtualAddr,VirtualIPv6,BytesReceived,BytesSent,ConnectedSince,ConnectedSinceT,Username,ClientID,PeerID,DataChannelCipher
+		// FORMAT: CLIENT_LIST,CommonName,RealAddress,VirtualAddr,VirtualIPv6,BytesReceived,BytesSent,ConnectedSince,ConnectedSinceT,...
 		if len(record) < 9 {
 			continue
 		}
@@ -130,11 +130,6 @@ func parseOpenVPNLog(f io.Reader, certs *cert.Whitelist, logger *slog.Logger) ([
 		}
 		connectedSince := time.Unix(epoch, 0).Local().Format("2006-01-02 15:04:05")
 
-		cipher := ""
-		if len(record) > 12 {
-			cipher = strings.TrimSpace(record[12])
-		}
-
 		entries = append(entries, model.LogEntry{
 			CommonName:     name,
 			RealAddress:    record[2],
@@ -143,7 +138,6 @@ func parseOpenVPNLog(f io.Reader, certs *cert.Whitelist, logger *slog.Logger) ([
 			BytesSent:      bytesSent,
 			ConnectedSince: connectedSince,
 			ConnectedEpoch: epoch,
-			Cipher:         cipher,
 		})
 	}
 

@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -50,6 +51,12 @@ func VPNClientIP(r *http.Request, vpnNet *net.IPNet) (net.IP, bool) {
 	return ip, vpnNet.Contains(ip)
 }
 
+type settingsPageData struct {
+	Settings   map[string]string
+	Saved      bool
+	Restarting bool
+}
+
 func Register(
 	mux *http.ServeMux,
 	database *db.DB,
@@ -58,7 +65,6 @@ func Register(
 	ippSt *ipp.Store,
 	tmpl *template.Template,
 	vpnNet *net.IPNet,
-	adminUser, adminPass string,
 	sessionTTL time.Duration,
 	logger *slog.Logger,
 	templatesDir string,
@@ -106,13 +112,11 @@ func Register(
 		ch := cache.Subscribe()
 		defer cache.Unsubscribe(ch)
 
-		// Push current snapshot immediately so the page isn't blank.
 		if _, data := cache.Get(); data != nil {
 			conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 			wsWriteText(rw.Writer, data)
 		}
 
-		// Read goroutine: discard incoming frames but detect client disconnect.
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
@@ -188,7 +192,14 @@ func Register(
 		if r.Method == http.MethodPost {
 			user := r.FormValue("username")
 			pass := r.FormValue("password")
-			if user == adminUser && pass == adminPass {
+			// Read credentials from DB on each attempt so changes take effect immediately.
+			settings, err := database.GetAllSettings(r.Context())
+			if err != nil {
+				logger.Error("login: read settings: " + err.Error())
+				http.Error(w, "Internal Error", http.StatusInternalServerError)
+				return
+			}
+			if user == settings["admin_user"] && pass == settings["admin_pass"] {
 				token := auth.GenerateToken()
 				sessions.Set(token)
 				http.SetCookie(w, &http.Cookie{
@@ -226,6 +237,57 @@ func Register(
 	// ── Clients page ──────────────────────────────────────────────────────────
 	mux.Handle("/panel/clients", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		renderTemplate(w, tmpl, "dashboard.html", nil)
+	})))
+
+	// ── Settings page (GET + POST) ────────────────────────────────────────────
+	mux.Handle("/settings", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			current, err := database.GetAllSettings(r.Context())
+			if err != nil {
+				logger.Error("settings: read current: " + err.Error())
+				http.Error(w, "Internal Error", http.StatusInternalServerError)
+				return
+			}
+
+			keys := []string{
+				"addr", "admin_user", "admin_pass",
+				"openvpn_status_log", "openvpn_cert_dir",
+				"openvpn_ipp_file", "openvpn_server_config",
+			}
+			addrChanged := r.FormValue("addr") != current["addr"]
+			for _, key := range keys {
+				val := r.FormValue(key)
+				if err := database.SaveSetting(r.Context(), key, val); err != nil {
+					logger.Error("settings: save "+key+": "+err.Error())
+					http.Error(w, "Failed to save settings", http.StatusInternalServerError)
+					return
+				}
+			}
+
+			if addrChanged {
+				go func() {
+					time.Sleep(500 * time.Millisecond)
+					os.Exit(0)
+				}()
+				http.Redirect(w, r, "/settings?saved=1&restarting=1", http.StatusSeeOther)
+				return
+			}
+			http.Redirect(w, r, "/settings?saved=1", http.StatusSeeOther)
+			return
+		}
+
+		settings, err := database.GetAllSettings(r.Context())
+		if err != nil {
+			logger.Error("settings: read: " + err.Error())
+			http.Error(w, "Internal Error", http.StatusInternalServerError)
+			return
+		}
+		data := settingsPageData{
+			Settings:   settings,
+			Saved:      r.URL.Query().Get("saved") == "1",
+			Restarting: r.URL.Query().Get("restarting") == "1",
+		}
+		renderTemplate(w, tmpl, "settings.html", data)
 	})))
 
 	// ── Client portal (root) ──────────────────────────────────────────────────
