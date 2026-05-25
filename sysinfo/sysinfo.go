@@ -27,8 +27,10 @@ type SystemStats struct {
 	DiskFree     uint64   `json:"disk_free"`
 	NetUpSpeed   uint64   `json:"net_up_speed"`   // bytes/sec
 	NetDownSpeed uint64   `json:"net_down_speed"` // bytes/sec
-	NetSent      uint64   `json:"net_sent"`       // total bytes sent (all time)
-	NetRecv      uint64   `json:"net_recv"`       // total bytes received (all time)
+	NetSent      uint64   `json:"net_sent"`       // interface counter: total bytes sent since boot
+	NetRecv      uint64   `json:"net_recv"`       // interface counter: total bytes received since boot
+	VPNTotalSent uint64   `json:"vpn_total_sent"` // all-time sum of VPN client bytes_sent from DB
+	VPNTotalRecv uint64   `json:"vpn_total_recv"` // all-time sum of VPN client bytes_received from DB
 	IPs          []string `json:"ips"`
 	IPv6s        []string `json:"ipv6s"`
 	TCPCount     int      `json:"tcp_count"`

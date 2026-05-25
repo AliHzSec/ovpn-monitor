@@ -336,6 +336,13 @@ func (d *DB) ClientStatsByName(ctx context.Context, commonName, cutoff string) (
 	return &c, nil
 }
 
+// SumAllTraffic returns the all-time sum of bytes_sent and bytes_received across every session.
+func (d *DB) SumAllTraffic(ctx context.Context) (sent, recv uint64, err error) {
+	const q = `SELECT COALESCE(SUM(bytes_sent), 0), COALESCE(SUM(bytes_received), 0) FROM sessions`
+	err = d.db.QueryRowContext(ctx, q).Scan(&sent, &recv)
+	return
+}
+
 func formatBytes(bytes int64) string {
 	const (
 		KB = 1 << 10

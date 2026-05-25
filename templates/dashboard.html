@@ -1188,9 +1188,9 @@
                     document.getElementById('ov-up').textContent = fmtSpeed(stats.net_up_speed || 0);
                     document.getElementById('ov-down').textContent = fmtSpeed(stats.net_down_speed || 0);
 
-                    // Total data
-                    document.getElementById('net-sent').textContent = fmtBytes(stats.net_sent || 0);
-                    document.getElementById('net-recv').textContent = fmtBytes(stats.net_recv || 0);
+                    // Total VPN client traffic (all-time, from DB)
+                    document.getElementById('net-sent').textContent = fmtBytes(stats.vpn_total_sent || 0);
+                    document.getElementById('net-recv').textContent = fmtBytes(stats.vpn_total_recv || 0);
 
                     // IP Addresses
                     var ips = stats.ips || [];

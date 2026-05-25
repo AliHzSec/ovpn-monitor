@@ -184,7 +184,9 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	sessions := auth.NewSessionStore(opts.SessionTTL)
 
-	cache := sysinfo.NewStatsCache()
+	cache := sysinfo.NewStatsCache(func(ctx context.Context) (uint64, uint64, error) {
+		return database.SumAllTraffic(ctx)
+	})
 
 	go certList.RefreshLoop(ctx, opts.CertsDir, logger)
 	go ippSt.RefreshLoop(ctx, opts.IPPFile, database, logger)

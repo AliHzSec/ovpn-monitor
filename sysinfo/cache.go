@@ -41,16 +41,23 @@ func (h *broadcastHub) broadcast(data []byte) {
 	h.mu.Unlock()
 }
 
+// TrafficQuerier fetches the all-time sum of VPN client traffic from persistent storage.
+// Returning (0, 0, nil) is valid when no sessions exist yet.
+type TrafficQuerier func(ctx context.Context) (sent, recv uint64, err error)
+
 // StatsCache collects system stats on a background loop and distributes them to subscribers.
 type StatsCache struct {
-	mu    sync.RWMutex
-	stats *SystemStats
-	data  []byte // pre-serialized JSON
-	hub   *broadcastHub
+	mu           sync.RWMutex
+	stats        *SystemStats
+	data         []byte // pre-serialized JSON
+	hub          *broadcastHub
+	queryTraffic TrafficQuerier
 }
 
-func NewStatsCache() *StatsCache {
-	return &StatsCache{hub: newBroadcastHub()}
+// NewStatsCache creates an empty cache. queryTraffic is called on every collection cycle
+// to merge all-time VPN traffic totals into the snapshot; pass nil to omit.
+func NewStatsCache(queryTraffic TrafficQuerier) *StatsCache {
+	return &StatsCache{hub: newBroadcastHub(), queryTraffic: queryTraffic}
 }
 
 // Get returns the latest cached stats and their pre-serialized JSON (both nil until first collection).
@@ -76,6 +83,14 @@ func (c *StatsCache) Run(ctx context.Context) {
 	for {
 		stats, err := Collect() // blocks ~1s
 		if err == nil {
+			if c.queryTraffic != nil {
+				dbCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+				if sent, recv, qErr := c.queryTraffic(dbCtx); qErr == nil {
+					stats.VPNTotalSent = sent
+					stats.VPNTotalRecv = recv
+				}
+				cancel()
+			}
 			if data, jsonErr := json.Marshal(stats); jsonErr == nil {
 				c.mu.Lock()
 				c.stats = stats
