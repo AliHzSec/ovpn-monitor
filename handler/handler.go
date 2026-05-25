@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -63,6 +62,7 @@ func Register(
 	sessionTTL time.Duration,
 	logger *slog.Logger,
 	templatesDir string,
+	cache *sysinfo.StatsCache,
 ) {
 	// ── Static files ─────────────────────────────────────────────────────────
 	mux.Handle("/static/", http.StripPrefix("/static/",
@@ -70,31 +70,13 @@ func Register(
 
 	// ── Admin API ────────────────────────────────────────────────────────────
 	mux.Handle("/api/server-stats", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-		defer cancel()
-
-		type result struct {
-			stats *sysinfo.SystemStats
-			err   error
+		_, data := cache.Get()
+		if data == nil {
+			http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
+			return
 		}
-		ch := make(chan result, 1)
-		go func() {
-			stats, err := sysinfo.Collect()
-			ch <- result{stats, err}
-		}()
-
-		select {
-		case res := <-ch:
-			if res.err != nil {
-				logger.Error("server-stats: " + res.err.Error())
-				http.Error(w, "Internal Error", http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(res.stats)
-		case <-ctx.Done():
-			http.Error(w, "Gateway Timeout", http.StatusGatewayTimeout)
-		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(data)
 	})))
 
 	mux.Handle("/api/clients", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -111,6 +93,54 @@ func Register(
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(clients)
+	})))
+
+	// ── WebSocket real-time stats ─────────────────────────────────────────────
+	mux.Handle("/ws", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, rw, err := wsUpgrade(w, r)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+
+		ch := cache.Subscribe()
+		defer cache.Unsubscribe(ch)
+
+		// Push current snapshot immediately so the page isn't blank.
+		if _, data := cache.Get(); data != nil {
+			conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+			wsWriteText(rw.Writer, data)
+		}
+
+		// Read goroutine: discard incoming frames but detect client disconnect.
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			buf := make([]byte, 256)
+			for {
+				conn.SetReadDeadline(time.Now().Add(120 * time.Second))
+				if _, err := conn.Read(buf); err != nil {
+					return
+				}
+			}
+		}()
+
+		for {
+			select {
+			case data, ok := <-ch:
+				if !ok {
+					return
+				}
+				conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+				if err := wsWriteText(rw.Writer, data); err != nil {
+					return
+				}
+			case <-done:
+				return
+			case <-r.Context().Done():
+				return
+			}
+		}
 	})))
 
 	// ── Client stats API (VPN IP only, no auth) ──────────────────────────────

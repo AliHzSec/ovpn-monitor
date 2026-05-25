@@ -22,6 +22,7 @@ import (
 	"ovpnmonitor/db"
 	"ovpnmonitor/handler"
 	"ovpnmonitor/ipp"
+	"ovpnmonitor/sysinfo"
 	"ovpnmonitor/tracker"
 	"ovpnmonitor/watcher"
 )
@@ -183,12 +184,15 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	sessions := auth.NewSessionStore(opts.SessionTTL)
 
+	cache := sysinfo.NewStatsCache()
+
 	go certList.RefreshLoop(ctx, opts.CertsDir, logger)
 	go ippSt.RefreshLoop(ctx, opts.IPPFile, database, logger)
+	go cache.Run(ctx)
 
 	mux := http.NewServeMux()
 	handler.Register(mux, database, sessions, online, ippSt, tmpl, vpnNet,
-		opts.AdminUser, opts.AdminPass, opts.SessionTTL, logger, opts.TemplatesDir)
+		opts.AdminUser, opts.AdminPass, opts.SessionTTL, logger, opts.TemplatesDir, cache)
 
 	srv := &http.Server{Addr: opts.Addr, Handler: mux}
 	srvErr := make(chan error, 1)

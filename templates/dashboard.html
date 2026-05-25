@@ -19,27 +19,27 @@
         }
 
         :root {
-            --bg: #070b0f;
-            --surface: #0e1520;
-            --surface2: #131d2b;
-            --surface3: #192434;
-            --border: #1c2a3a;
-            --border2: #243348;
+            --bg: #0d1117;
+            --surface: #161b27;
+            --surface2: #1c2333;
+            --surface3: #21293d;
+            --border: #2d3748;
+            --border2: #3a4a63;
             --accent: #3b82f6;
             --accent-glow: rgba(59, 130, 246, 0.15);
             --accent-dim: rgba(59, 130, 246, 0.06);
             --green: #22c55e;
             --green-dim: rgba(34, 197, 94, 0.1);
             --text: #e2e8f0;
-            --text-dim: #94a3b8;
-            --text-muted: #64748b;
+            --text-dim: #a0aec0;
+            --text-muted: #718096;
             --danger: #ef4444;
             --recv-color: #38bdf8;
             --sent-color: #fb923c;
             /* Layout & new vars */
-            --sidebar-bg: #0a0f1a;
+            --sidebar-bg: #0a0e1a;
             --sidebar-width: 200px;
-            --ring-track: #1c2a3a;
+            --ring-track: #2d3748;
             --topbar-h: 48px;
         }
 
@@ -173,7 +173,7 @@
             top: 0;
             z-index: 100;
             height: var(--topbar-h);
-            background: rgba(10, 15, 26, 0.92);
+            background: rgba(13, 17, 23, 0.92);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
             display: flex;
@@ -282,8 +282,8 @@
         /* SVG semicircle (dashboard) gauge */
         .gauge-ring-wrap {
             position: relative;
-            width: 90px;
-            height: 90px;
+            width: 140px;
+            height: 140px;
         }
 
         .gauge-ring-wrap svg {
@@ -295,13 +295,13 @@
         .ring-track {
             fill: none;
             stroke: var(--ring-track);
-            stroke-width: 8;
+            stroke-width: 10;
         }
 
         .ring-fill {
             fill: none;
             stroke: var(--green);
-            stroke-width: 8;
+            stroke-width: 10;
             stroke-linecap: round;
             stroke-dasharray: 0 314.16;
             transition: stroke-dasharray 0.6s ease, stroke 0.4s ease;
@@ -319,7 +319,7 @@
 
         .gauge-center-value {
             font-family: "Reddit Mono", monospace;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 700;
             color: var(--text);
             letter-spacing: -0.02em;
@@ -522,7 +522,6 @@
 
         .filter-btn:hover { color: var(--text); background: var(--surface3); }
         .filter-btn.active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); }
-        .filter-btn[data-filter="online"].active { background: var(--green); box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3); }
 
         .controls-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
@@ -982,8 +981,7 @@
             <!-- Controls -->
             <div class="controls">
                 <div class="filter-group">
-                    <button class="filter-btn active" data-filter="online" id="btn-online">Online</button>
-                    <button class="filter-btn" data-filter="today">Today</button>
+                    <button class="filter-btn active" data-filter="today">Today</button>
                     <button class="filter-btn" data-filter="week">7 Days</button>
                     <button class="filter-btn" data-filter="month">30 Days</button>
                     <button class="filter-btn" data-filter="all">All Time</button>
@@ -1150,6 +1148,86 @@
                     return privateRanges.some(function (r) { return r.test(ip); });
                 }
 
+                function updateDashboard(stats) {
+                    // CPU
+                    var cpuPct = stats.cpu_percent || 0;
+                    document.getElementById('cpu-val').textContent = cpuPct.toFixed(1) + '%';
+                    document.getElementById('cpu-sub').textContent = (stats.cpu_cores || '?') + ' Cores';
+                    setRing('cpu-ring', cpuPct / 100);
+
+                    // RAM
+                    var ramUsed = stats.mem_used || 0;
+                    var ramTotal = stats.mem_total || 1;
+                    var ramRatio = ramTotal > 0 ? ramUsed / ramTotal : 0;
+                    document.getElementById('ram-val').textContent = (ramRatio * 100).toFixed(1) + '%';
+                    document.getElementById('ram-sub').textContent = fmtBytes(ramUsed) + ' / ' + fmtBytes(ramTotal);
+                    setRing('ram-ring', ramRatio);
+
+                    // Disk
+                    var diskUsed = stats.disk_used || 0;
+                    var diskTotal = stats.disk_total || 1;
+                    var diskRatio = diskTotal > 0 ? diskUsed / diskTotal : 0;
+                    document.getElementById('disk-val').textContent = (diskRatio * 100).toFixed(1) + '%';
+                    document.getElementById('disk-sub').textContent = fmtBytes(diskUsed) + ' / ' + fmtBytes(diskTotal);
+                    setRing('disk-ring', diskRatio);
+
+                    // Swap
+                    var swapUsed = stats.swap_used || 0;
+                    var swapTotal = stats.swap_total || 0;
+                    var swapRatio = swapTotal > 0 ? swapUsed / swapTotal : 0;
+                    if (swapTotal > 0) {
+                        document.getElementById('swap-val').textContent = (swapRatio * 100).toFixed(1) + '%';
+                        document.getElementById('swap-sub').textContent = fmtBytes(swapUsed) + ' / ' + fmtBytes(swapTotal);
+                    } else {
+                        document.getElementById('swap-val').textContent = 'N/A';
+                        document.getElementById('swap-sub').textContent = 'No Swap';
+                    }
+                    setRing('swap-ring', swapRatio);
+
+                    // Overall speed
+                    document.getElementById('ov-up').textContent = fmtSpeed(stats.net_up_speed || 0);
+                    document.getElementById('ov-down').textContent = fmtSpeed(stats.net_down_speed || 0);
+
+                    // Total data
+                    document.getElementById('net-sent').textContent = fmtBytes(stats.net_sent || 0);
+                    document.getElementById('net-recv').textContent = fmtBytes(stats.net_recv || 0);
+
+                    // IP Addresses
+                    var ips = stats.ips || [];
+                    var ipv6s = stats.ipv6s || [];
+                    var publicIPv4 = ips.find(function (ip) { return !isPrivate(ip); }) || 'N/A';
+                    var publicIPv6 = ipv6s.find(function (ip) { return ip[0] === '2' || ip[0] === '3'; }) || 'N/A';
+
+                    var v4el = document.getElementById('ip-v4');
+                    v4el.textContent = publicIPv4;
+                    v4el.className = 'info-row-value' + (publicIPv4 === 'N/A' ? ' muted' : '');
+
+                    var v6el = document.getElementById('ip-v6');
+                    v6el.textContent = publicIPv6;
+                    v6el.className = 'info-row-value' + (publicIPv6 === 'N/A' ? ' muted' : '');
+
+                    // Connection stats
+                    document.getElementById('conn-tcp').textContent = stats.tcp_count != null ? stats.tcp_count : '—';
+                    document.getElementById('conn-udp').textContent = stats.udp_count != null ? stats.udp_count : '—';
+
+                    // Uptime
+                    document.getElementById('uptime-os').textContent = fmtUptime(stats.os_uptime || 0);
+                    var vpnUptimeEl = document.getElementById('uptime-vpn');
+                    if (stats.ovpn_uptime > 0) {
+                        vpnUptimeEl.textContent = fmtUptime(stats.ovpn_uptime);
+                        vpnUptimeEl.className = 'info-row-value';
+                    } else {
+                        vpnUptimeEl.textContent = 'Not Running';
+                        vpnUptimeEl.className = 'info-row-value muted';
+                    }
+
+                    updateTimestamp();
+                }
+
+                // REST polling fallback
+                var pollTimer = null;
+                var wsRetryDelay = 2000;
+
                 function fetchServerStats() {
                     fetch('/api/server-stats').then(function (res) {
                         if (!res.ok) {
@@ -1158,107 +1236,61 @@
                         }
                         return res.json();
                     }).then(function (stats) {
-                        if (!stats) return;
-
-                        // CPU
-                        var cpuPct = stats.cpu_percent || 0;
-                        document.getElementById('cpu-val').textContent = cpuPct.toFixed(1) + '%';
-                        document.getElementById('cpu-sub').textContent = (stats.cpu_cores || '?') + ' Cores';
-                        setRing('cpu-ring', cpuPct / 100);
-
-                        // RAM
-                        var ramUsed = stats.mem_used || 0;
-                        var ramTotal = stats.mem_total || 1;
-                        var ramRatio = ramTotal > 0 ? ramUsed / ramTotal : 0;
-                        document.getElementById('ram-val').textContent = (ramRatio * 100).toFixed(1) + '%';
-                        document.getElementById('ram-sub').textContent = fmtBytes(ramUsed) + ' / ' + fmtBytes(ramTotal);
-                        setRing('ram-ring', ramRatio);
-
-                        // Disk
-                        var diskUsed = stats.disk_used || 0;
-                        var diskTotal = stats.disk_total || 1;
-                        var diskRatio = diskTotal > 0 ? diskUsed / diskTotal : 0;
-                        document.getElementById('disk-val').textContent = (diskRatio * 100).toFixed(1) + '%';
-                        document.getElementById('disk-sub').textContent = fmtBytes(diskUsed) + ' / ' + fmtBytes(diskTotal);
-                        setRing('disk-ring', diskRatio);
-
-                        // Swap
-                        var swapUsed = stats.swap_used || 0;
-                        var swapTotal = stats.swap_total || 0;
-                        var swapRatio = swapTotal > 0 ? swapUsed / swapTotal : 0;
-                        if (swapTotal > 0) {
-                            document.getElementById('swap-val').textContent = (swapRatio * 100).toFixed(1) + '%';
-                            document.getElementById('swap-sub').textContent = fmtBytes(swapUsed) + ' / ' + fmtBytes(swapTotal);
-                        } else {
-                            document.getElementById('swap-val').textContent = 'N/A';
-                            document.getElementById('swap-sub').textContent = 'No Swap';
-                        }
-                        setRing('swap-ring', swapRatio);
-
-                        // Overall speed
-                        var upSpeed = stats.net_up_speed || 0;
-                        var downSpeed = stats.net_down_speed || 0;
-                        document.getElementById('ov-up').textContent = fmtSpeed(upSpeed);
-                        document.getElementById('ov-down').textContent = fmtSpeed(downSpeed);
-
-                        // Total data
-                        document.getElementById('net-sent').textContent = fmtBytes(stats.net_sent || 0);
-                        document.getElementById('net-recv').textContent = fmtBytes(stats.net_recv || 0);
-
-                        // IP Addresses
-                        var ips = stats.ips || [];
-                        var ipv6s = stats.ipv6s || [];
-                        var publicIPv4 = ips.find(function (ip) { return !isPrivate(ip); }) || 'N/A';
-                        var publicIPv6 = (ipv6s).find(function (ip) {
-                            return ip[0] === '2' || ip[0] === '3';
-                        }) || 'N/A';
-
-                        var v4el = document.getElementById('ip-v4');
-                        v4el.textContent = publicIPv4;
-                        v4el.className = 'info-row-value' + (publicIPv4 === 'N/A' ? ' muted' : '');
-
-                        var v6el = document.getElementById('ip-v6');
-                        v6el.textContent = publicIPv6;
-                        v6el.className = 'info-row-value' + (publicIPv6 === 'N/A' ? ' muted' : '');
-
-                        // Connection stats
-                        document.getElementById('conn-tcp').textContent = stats.tcp_count != null ? stats.tcp_count : '—';
-                        document.getElementById('conn-udp').textContent = stats.udp_count != null ? stats.udp_count : '—';
-
-                        // Uptime
-                        document.getElementById('uptime-os').textContent = fmtUptime(stats.os_uptime || 0);
-                        var vpnUptimeEl = document.getElementById('uptime-vpn');
-                        if (stats.ovpn_uptime > 0) {
-                            vpnUptimeEl.textContent = fmtUptime(stats.ovpn_uptime);
-                            vpnUptimeEl.className = 'info-row-value';
-                        } else {
-                            vpnUptimeEl.textContent = 'Not Running';
-                            vpnUptimeEl.className = 'info-row-value muted';
-                        }
-
-                        updateTimestamp();
+                        if (stats) updateDashboard(stats);
                     }).catch(function (e) {
                         console.error('server-stats error:', e);
                     });
                 }
 
-                fetchServerStats();
-                setInterval(fetchServerStats, 3000);
+                function startPolling() {
+                    if (pollTimer) return;
+                    fetchServerStats();
+                    pollTimer = setInterval(fetchServerStats, 3000);
+                }
+
+                function stopPolling() {
+                    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+                }
+
+                // WebSocket — push updates; fall back to polling on failure
+                function connectWS() {
+                    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    var sock = new WebSocket(proto + '//' + location.host + '/ws');
+
+                    sock.onopen = function () {
+                        wsRetryDelay = 2000;
+                        stopPolling();
+                    };
+
+                    sock.onmessage = function (evt) {
+                        try { updateDashboard(JSON.parse(evt.data)); } catch (e) {}
+                    };
+
+                    sock.onerror = function () {};
+
+                    sock.onclose = function () {
+                        startPolling();
+                        setTimeout(connectWS, wsRetryDelay);
+                        wsRetryDelay = Math.min(wsRetryDelay * 2, 30000);
+                    };
+                }
+
+                startPolling();
+                connectWS();
             }
 
             // ── CLIENTS PAGE ───────────────────────────────────────────────────
             if (path === '/panel/clients') {
 
                 var allClients = [];
-                var currentFilter = 'online';
+                var currentFilter = 'today';
                 var sortCol = 'total';
                 var sortDir = -1;
                 var userHasSorted = false;
                 var searchQuery = '';
 
                 function fetchClients() {
-                    var apiFilter = currentFilter === 'online' ? 'all' : currentFilter;
-                    fetch('/api/clients?filter=' + apiFilter).then(function (res) {
+                    fetch('/api/clients?filter=' + currentFilter).then(function (res) {
                         if (!res.ok) {
                             if (res.status === 401) { location.href = '/panel/login'; }
                             throw new Error('HTTP ' + res.status);
@@ -1297,17 +1329,10 @@
                     document.getElementById('ratio-bar-fill').style.width = pctOn + '%';
                     document.getElementById('ratio-label-online').textContent = 'Online ' + pctOn + '%';
                     document.getElementById('ratio-label-offline').textContent = 'Offline ' + pctOff + '%';
-
-                    var btnOnline = document.getElementById('btn-online');
-                    btnOnline.textContent = online > 0 ? 'Online (' + online + ')' : 'Online';
                 }
 
                 function renderTable() {
                     var data = allClients.slice();
-
-                    if (currentFilter === 'online') {
-                        data = data.filter(function (c) { return c.online; });
-                    }
 
                     if (searchQuery) {
                         var q = searchQuery.toLowerCase();
