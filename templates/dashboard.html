@@ -8,7 +8,7 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Reddit+Mono:wght@200..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Reddit+Mono:wght@200..900&display=swap" rel="stylesheet">
     <style>
         *,
         *::before,
@@ -50,7 +50,7 @@
             background: var(--bg);
             color: var(--text);
             min-height: 100dvh;
-            font-size: 14px;
+            font-size: 15px;
             display: flex;
         }
 
@@ -91,9 +91,10 @@
         }
 
         .sidebar-brand-text {
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: -0.01em;
+            font-family: "Aldrich", sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 0.01em;
             color: var(--text);
         }
 
@@ -116,7 +117,8 @@
             padding: 10px 14px;
             color: var(--text-muted);
             text-decoration: none;
-            font-size: 13px;
+            font-family: "Reddit Mono", monospace;
+            font-size: 14px;
             font-weight: 500;
             border-left: 3px solid transparent;
             transition: color 0.15s, background 0.15s, border-color 0.15s;
@@ -211,7 +213,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-muted);
             background: var(--surface2);
             border: 1px solid var(--border);
@@ -268,8 +270,9 @@
         }
 
         .gauge-item-label {
-            font-size: 11px;
-            font-weight: 600;
+            font-family: "Aldrich", sans-serif;
+            font-size: 13px;
+            font-weight: 400;
             text-transform: uppercase;
             letter-spacing: 0.07em;
             color: var(--text-muted);
@@ -301,10 +304,8 @@
             stroke-width: 8;
             stroke-linecap: round;
             stroke-dasharray: 0 314.16;
-            transition: stroke-dasharray 0.6s ease, stroke 0.3s ease;
+            transition: stroke-dasharray 0.6s ease, stroke 0.4s ease;
         }
-
-        .ring-fill.danger { stroke: var(--danger); }
 
         .gauge-center {
             position: absolute;
@@ -317,14 +318,16 @@
         }
 
         .gauge-center-value {
-            font-size: 13px;
+            font-family: "Reddit Mono", monospace;
+            font-size: 16px;
             font-weight: 700;
             color: var(--text);
             letter-spacing: -0.02em;
         }
 
         .gauge-sublabel {
-            font-size: 11px;
+            font-family: "Reddit Mono", monospace;
+            font-size: 12px;
             color: var(--text-muted);
             text-align: center;
             line-height: 1.4;
@@ -348,12 +351,15 @@
         .info-card:hover { border-color: var(--border2); }
 
         .info-card-title {
-            font-size: 11px;
-            font-weight: 600;
+            font-family: "Aldrich", sans-serif;
+            font-size: 12px;
+            font-weight: 400;
             text-transform: uppercase;
             letter-spacing: 0.07em;
             color: var(--text-muted);
-            margin-bottom: 14px;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
         }
 
         .info-rows {
@@ -377,12 +383,13 @@
         }
 
         .info-row-label {
-            font-size: 12px;
+            font-family: "Reddit Mono", monospace;
+            font-size: 13px;
             color: var(--text-muted);
         }
 
         .info-row-value {
-            font-size: 15px;
+            font-size: 17px;
             font-weight: 600;
             color: var(--text);
             font-variant-numeric: tabular-nums;
@@ -425,12 +432,15 @@
         .stat-card:hover { border-color: var(--border2); }
 
         .stat-card-title {
-            font-size: 11px;
-            font-weight: 600;
+            font-family: "Aldrich", sans-serif;
+            font-size: 12px;
+            font-weight: 400;
             text-transform: uppercase;
             letter-spacing: 0.07em;
             color: var(--text-muted);
+            padding-bottom: 12px;
             margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             gap: 6px;
@@ -550,8 +560,9 @@
         thead th {
             padding: 13px 18px;
             text-align: left;
-            font-size: 11px;
-            font-weight: 600;
+            font-family: "Aldrich", sans-serif;
+            font-size: 12px;
+            font-weight: 400;
             text-transform: uppercase;
             letter-spacing: 0.07em;
             color: var(--text-muted);
@@ -878,6 +889,21 @@
                     </div>
                 </div>
 
+                <!-- Uptime (spans full width) -->
+                <div class="info-card" style="grid-column: 1 / -1">
+                    <div class="info-card-title">Uptime</div>
+                    <div class="info-rows">
+                        <div class="info-row">
+                            <span class="info-row-label">OpenVPN Service</span>
+                            <span class="info-row-value" id="uptime-vpn">—</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-row-label">OS</span>
+                            <span class="info-row-value" id="uptime-os">—</span>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </main>
 
@@ -1078,6 +1104,13 @@
                     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
             }
 
+            // ── Gauge color based on usage ratio ──────────────────────────────
+            function gaugeColor(ratio) {
+                if (ratio < 0.50) return '#22c55e'; // green  0–50%
+                if (ratio < 0.85) return '#f59e0b'; // amber 50–85%
+                return '#ef4444';                   // red   85–100%
+            }
+
             // ── Set SVG ring ───────────────────────────────────────────────────
             function setRing(id, ratio) {
                 var el = document.getElementById(id);
@@ -1085,8 +1118,22 @@
                 var arcLen = 235.62; // 75% of circumference (2π×50 = 314.16)
                 var fill = arcLen * Math.min(1, Math.max(0, ratio));
                 el.style.strokeDasharray = fill + ' 314.16';
-                if (ratio > 0.9) el.classList.add('danger');
-                else el.classList.remove('danger');
+                el.style.stroke = gaugeColor(ratio);
+            }
+
+            // ── Format uptime seconds into human-readable string ───────────────
+            function fmtUptime(secs) {
+                if (!secs) return '—';
+                var d = Math.floor(secs / 86400);
+                var h = Math.floor((secs % 86400) / 3600);
+                var m = Math.floor((secs % 3600) / 60);
+                var s = secs % 60;
+                var parts = [];
+                if (d > 0) parts.push(d + 'd');
+                if (h > 0) parts.push(h + 'h');
+                if (m > 0) parts.push(m + 'm');
+                parts.push(s + 's');
+                return parts.join(' ');
             }
 
             // ── OVERVIEW PAGE ──────────────────────────────────────────────────
@@ -1115,30 +1162,38 @@
 
                         // CPU
                         var cpuPct = stats.cpu_percent || 0;
-                        document.getElementById('cpu-val').textContent = cpuPct.toFixed(2) + '%';
-                        document.getElementById('cpu-sub').textContent = 'CPU: ' + (stats.cpu_cores || '?') + ' Cores';
+                        document.getElementById('cpu-val').textContent = cpuPct.toFixed(1) + '%';
+                        document.getElementById('cpu-sub').textContent = (stats.cpu_cores || '?') + ' Cores';
                         setRing('cpu-ring', cpuPct / 100);
 
                         // RAM
                         var ramUsed = stats.mem_used || 0;
                         var ramTotal = stats.mem_total || 1;
-                        document.getElementById('ram-val').textContent = fmtBytes(ramUsed);
+                        var ramRatio = ramTotal > 0 ? ramUsed / ramTotal : 0;
+                        document.getElementById('ram-val').textContent = (ramRatio * 100).toFixed(1) + '%';
                         document.getElementById('ram-sub').textContent = fmtBytes(ramUsed) + ' / ' + fmtBytes(ramTotal);
-                        setRing('ram-ring', ramUsed / ramTotal);
+                        setRing('ram-ring', ramRatio);
 
                         // Disk
                         var diskUsed = stats.disk_used || 0;
                         var diskTotal = stats.disk_total || 1;
-                        document.getElementById('disk-val').textContent = fmtBytes(diskUsed);
+                        var diskRatio = diskTotal > 0 ? diskUsed / diskTotal : 0;
+                        document.getElementById('disk-val').textContent = (diskRatio * 100).toFixed(1) + '%';
                         document.getElementById('disk-sub').textContent = fmtBytes(diskUsed) + ' / ' + fmtBytes(diskTotal);
-                        setRing('disk-ring', diskUsed / diskTotal);
+                        setRing('disk-ring', diskRatio);
 
                         // Swap
                         var swapUsed = stats.swap_used || 0;
                         var swapTotal = stats.swap_total || 0;
-                        document.getElementById('swap-val').textContent = fmtBytes(swapUsed);
-                        document.getElementById('swap-sub').textContent = fmtBytes(swapUsed) + ' / ' + fmtBytes(swapTotal);
-                        setRing('swap-ring', swapTotal > 0 ? swapUsed / swapTotal : 0);
+                        var swapRatio = swapTotal > 0 ? swapUsed / swapTotal : 0;
+                        if (swapTotal > 0) {
+                            document.getElementById('swap-val').textContent = (swapRatio * 100).toFixed(1) + '%';
+                            document.getElementById('swap-sub').textContent = fmtBytes(swapUsed) + ' / ' + fmtBytes(swapTotal);
+                        } else {
+                            document.getElementById('swap-val').textContent = 'N/A';
+                            document.getElementById('swap-sub').textContent = 'No Swap';
+                        }
+                        setRing('swap-ring', swapRatio);
 
                         // Overall speed
                         var upSpeed = stats.net_up_speed || 0;
@@ -1169,6 +1224,17 @@
                         // Connection stats
                         document.getElementById('conn-tcp').textContent = stats.tcp_count != null ? stats.tcp_count : '—';
                         document.getElementById('conn-udp').textContent = stats.udp_count != null ? stats.udp_count : '—';
+
+                        // Uptime
+                        document.getElementById('uptime-os').textContent = fmtUptime(stats.os_uptime || 0);
+                        var vpnUptimeEl = document.getElementById('uptime-vpn');
+                        if (stats.ovpn_uptime > 0) {
+                            vpnUptimeEl.textContent = fmtUptime(stats.ovpn_uptime);
+                            vpnUptimeEl.className = 'info-row-value';
+                        } else {
+                            vpnUptimeEl.textContent = 'Not Running';
+                            vpnUptimeEl.className = 'info-row-value muted';
+                        }
 
                         updateTimestamp();
                     }).catch(function (e) {

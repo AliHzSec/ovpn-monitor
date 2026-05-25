@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
@@ -32,6 +33,8 @@ type SystemStats struct {
 	IPv6s        []string `json:"ipv6s"`
 	TCPCount     int      `json:"tcp_count"`
 	UDPCount     int      `json:"udp_count"`
+	OSUptime     uint64   `json:"os_uptime"`   // seconds since system boot
+	OVPNUptime   uint64   `json:"ovpn_uptime"` // seconds since openvpn service started
 }
 
 type cpuSample struct {
@@ -297,6 +300,61 @@ func countProcNet(path string, filterState string) (int, error) {
 	return count, sc.Err()
 }
 
+func readOSUptime() (uint64, error) {
+	f, err := os.Open("/proc/uptime")
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	if sc.Scan() {
+		fields := strings.Fields(sc.Text())
+		if len(fields) >= 1 {
+			secs, err := strconv.ParseFloat(fields[0], 64)
+			if err != nil {
+				return 0, err
+			}
+			return uint64(secs), nil
+		}
+	}
+	return 0, fmt.Errorf("failed to parse /proc/uptime")
+}
+
+func getServiceUptime(osUptimeSec uint64, serviceName string) (uint64, error) {
+	out, err := exec.Command("systemctl", "show", serviceName,
+		"--property=ActiveEnterTimestampMonotonic", "--no-pager").Output()
+	if err != nil {
+		return 0, err
+	}
+	line := strings.TrimSpace(string(out))
+	idx := strings.IndexByte(line, '=')
+	if idx < 0 {
+		return 0, fmt.Errorf("unexpected systemctl output: %q", line)
+	}
+	microseconds, err := strconv.ParseUint(strings.TrimSpace(line[idx+1:]), 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	if microseconds == 0 {
+		return 0, fmt.Errorf("service %q not active", serviceName)
+	}
+	startedAtSec := microseconds / 1_000_000
+	if osUptimeSec < startedAtSec {
+		return 0, nil
+	}
+	return osUptimeSec - startedAtSec, nil
+}
+
+func getOVPNUptime(osUptimeSec uint64) uint64 {
+	candidates := []string{"openvpn", "openvpn@server", "openvpn-server@server"}
+	for _, name := range candidates {
+		if uptime, err := getServiceUptime(osUptimeSec, name); err == nil {
+			return uptime
+		}
+	}
+	return 0
+}
+
 // Collect gathers all metrics and returns a SystemStats snapshot.
 // It blocks for ~1 second to sample CPU and network speed.
 func Collect() (*SystemStats, error) {
@@ -370,6 +428,9 @@ func Collect() (*SystemStats, error) {
 		return nil, fmt.Errorf("udp count: %w", err)
 	}
 
+	osUptime, _ := readOSUptime()
+	ovpnUptime := getOVPNUptime(osUptime)
+
 	return &SystemStats{
 		CPUPercent:   cpuPct,
 		CPUCores:     runtime.NumCPU(),
@@ -389,5 +450,7 @@ func Collect() (*SystemStats, error) {
 		IPv6s:        ipv6s,
 		TCPCount:     tcpCount,
 		UDPCount:     udpCount,
+		OSUptime:     osUptime,
+		OVPNUptime:   ovpnUptime,
 	}, nil
 }
