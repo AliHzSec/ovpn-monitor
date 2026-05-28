@@ -128,6 +128,14 @@ func parseOpenVPNLog(f io.Reader, certs *cert.Whitelist, logger *slog.Logger) ([
 			logger.Warn("skipping malformed log line", "line", line, "error", err)
 			continue
 		}
+		// Guard against torn/partial reads of status.log yielding a garbage
+		// time_t (e.g. an extra digit appended), which would otherwise be
+		// stored as an absurd far-future connected-since date.
+		const minEpoch = 946684800 // 2000-01-01 UTC
+		if epoch < minEpoch || epoch > time.Now().Add(24*time.Hour).Unix() {
+			logger.Warn("skipping line with implausible connected-since epoch", "epoch", epoch, "common_name", name)
+			continue
+		}
 		connectedSince := time.Unix(epoch, 0).Local().Format("2006-01-02 15:04:05")
 
 		entries = append(entries, model.LogEntry{

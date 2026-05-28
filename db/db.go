@@ -240,7 +240,8 @@ func (d *DB) QueryClients(ctx context.Context, filter string) ([]model.Client, e
 			COALESCE(MAX(s.connected_since), '')              AS connected_since,
 			c.last_seen
 		FROM clients c
-		LEFT JOIN sessions s ON s.client_id = c.id AND s.connected_since >= ?
+		LEFT JOIN sessions s ON s.client_id = c.id
+			AND (s.connected_since >= ? OR s.disconnected_at IS NULL OR s.disconnected_at >= ?)
 		GROUP BY c.id
 		ORDER BY total_traffic DESC`
 
@@ -264,7 +265,7 @@ func (d *DB) QueryClients(ctx context.Context, filter string) ([]model.Client, e
 		err  error
 	)
 	if cutoff != "" {
-		rows, err = d.db.QueryContext(ctx, withCutoff, cutoff)
+		rows, err = d.db.QueryContext(ctx, withCutoff, cutoff, cutoff)
 	} else {
 		rows, err = d.db.QueryContext(ctx, noCutoff)
 	}
@@ -334,7 +335,8 @@ func (d *DB) ClientStatsByName(ctx context.Context, commonName, cutoff string) (
 			COALESCE(MAX(s.connected_since), ''),
 			c.last_seen
 		FROM clients c
-		LEFT JOIN sessions s ON s.client_id = c.id AND s.connected_since >= ?
+		LEFT JOIN sessions s ON s.client_id = c.id
+			AND (s.connected_since >= ? OR s.disconnected_at IS NULL OR s.disconnected_at >= ?)
 		WHERE c.common_name = ?
 		GROUP BY c.id`
 	const noCutoff = `
@@ -352,7 +354,7 @@ func (d *DB) ClientStatsByName(ctx context.Context, commonName, cutoff string) (
 		GROUP BY c.id`
 	var row *sql.Row
 	if cutoff != "" {
-		row = d.db.QueryRowContext(ctx, withCutoff, cutoff, commonName)
+		row = d.db.QueryRowContext(ctx, withCutoff, cutoff, cutoff, commonName)
 	} else {
 		row = d.db.QueryRowContext(ctx, noCutoff, commonName)
 	}
