@@ -3,6 +3,7 @@ package watcher
 import (
 	"bufio"
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
@@ -38,11 +39,29 @@ func (w Watcher) Watch(ctx context.Context, file string) error {
 	w.ensureKnownClients(ctx)
 	w.processLog(ctx, file)
 
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case event := <-fw.Events:
 			if event.Op&fsnotify.Write == fsnotify.Write {
 				w.Logger.Info("Log file updated: " + event.Name)
+				w.processLog(ctx, file)
+			}
+		case <-ticker.C:
+			// If OpenVPN stops writing the status file (crash, service stop),
+			// no fsnotify Write events arrive and clients would stay "online"
+			// forever. Detect a stale file and close out their sessions.
+			if fi, err := os.Stat(file); err == nil && time.Since(fi.ModTime()) > 3*time.Minute {
+				w.Logger.Warn("status log not updated recently; assuming OpenVPN is unresponsive",
+					"path", file, "last_modified", fi.ModTime().Format(time.RFC3339))
+				if err := w.DB.CloseAllOpenSessions(ctx); err != nil {
+					w.Logger.Error("Close stale sessions: " + err.Error())
+				}
+				w.Online.Set(map[string]bool{})
+			} else {
+				// File is fresh (or stat failed): resync to catch any missed events.
 				w.processLog(ctx, file)
 			}
 		case err := <-fw.Errors:
@@ -92,8 +111,16 @@ func parseOpenVPNLog(f io.Reader, certs *cert.Whitelist, logger *slog.Logger) ([
 	scanner := bufio.NewScanner(f)
 
 	var entries []model.LogEntry
+	sawEnd := false
 	for scanner.Scan() {
 		line := scanner.Text()
+
+		// OpenVPN terminates a complete status dump with an "END" line. Its
+		// presence means we read the file in full rather than mid-rewrite.
+		if line == "END" {
+			sawEnd = true
+			continue
+		}
 
 		if !strings.HasPrefix(line, "CLIENT_LIST,") {
 			continue
@@ -149,5 +176,15 @@ func parseOpenVPNLog(f io.Reader, certs *cert.Whitelist, logger *slog.Logger) ([
 		})
 	}
 
-	return entries, scanner.Err()
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	if !sawEnd {
+		// No END marker: the file was truncated or read mid-rewrite. Returning an
+		// error makes the caller skip this read instead of acting on a partial
+		// snapshot (which would corrupt byte counts and spuriously disconnect clients).
+		return nil, errors.New("incomplete status log read: missing END marker")
+	}
+
+	return entries, nil
 }

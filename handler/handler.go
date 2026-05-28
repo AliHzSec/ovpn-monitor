@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
 	"ovpnmonitor/auth"
 	"ovpnmonitor/db"
 	"ovpnmonitor/ipp"
@@ -161,7 +162,8 @@ func Register(
 			return
 		}
 		filter := r.URL.Query().Get("filter")
-		c, err := database.ClientStatsByName(r.Context(), commonName, db.CutoffFor(filter))
+		cutoff, kind := db.CutoffFor(filter)
+		c, err := database.ClientStatsByName(r.Context(), commonName, cutoff, kind)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				http.Error(w, "Not Found", http.StatusNotFound)
@@ -199,7 +201,8 @@ func Register(
 				http.Error(w, "Internal Error", http.StatusInternalServerError)
 				return
 			}
-			if user == settings["admin_user"] && pass == settings["admin_pass"] {
+			passOK := bcrypt.CompareHashAndPassword([]byte(settings["admin_pass"]), []byte(pass)) == nil
+			if user == settings["admin_user"] && passOK {
 				token := auth.GenerateToken()
 				sessions.Set(token)
 				http.SetCookie(w, &http.Cookie{
@@ -250,7 +253,7 @@ func Register(
 			}
 
 			keys := []string{
-				"addr", "admin_user", "admin_pass",
+				"addr", "admin_user",
 				"openvpn_status_log", "openvpn_cert_dir",
 				"openvpn_ipp_file", "openvpn_server_config",
 			}
@@ -259,6 +262,21 @@ func Register(
 				val := r.FormValue(key)
 				if err := database.SaveSetting(r.Context(), key, val); err != nil {
 					logger.Error("settings: save "+key+": "+err.Error())
+					http.Error(w, "Failed to save settings", http.StatusInternalServerError)
+					return
+				}
+			}
+
+			// Only change the password when a new one is supplied; store it hashed.
+			if newPass := r.FormValue("admin_pass"); newPass != "" && newPass != current["admin_pass"] {
+				hash, err := bcrypt.GenerateFromPassword([]byte(newPass), bcrypt.DefaultCost)
+				if err != nil {
+					logger.Error("settings: hash password: " + err.Error())
+					http.Error(w, "Failed to save settings", http.StatusInternalServerError)
+					return
+				}
+				if err := database.SaveSetting(r.Context(), "admin_pass", string(hash)); err != nil {
+					logger.Error("settings: save admin_pass: " + err.Error())
 					http.Error(w, "Failed to save settings", http.StatusInternalServerError)
 					return
 				}

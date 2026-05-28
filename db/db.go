@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
 	"ovpnmonitor/model"
 )
 
@@ -57,7 +58,44 @@ func (d *DB) Migrate(ctx context.Context) error {
 			return err
 		}
 	}
+	// Ensure the admin password is stored as a bcrypt hash. This converts the
+	// default 'admin' seed and any pre-existing plaintext value to a hash.
+	if err := d.ensureHashedAdminPassword(ctx); err != nil {
+		return err
+	}
 	return nil
+}
+
+// ensureHashedAdminPassword migrates a plaintext admin_pass to a bcrypt hash.
+// A value that is already a valid bcrypt hash is left untouched.
+func (d *DB) ensureHashedAdminPassword(ctx context.Context) error {
+	var stored string
+	err := d.db.QueryRowContext(ctx,
+		`SELECT value FROM settings WHERE key = 'admin_pass'`).Scan(&stored)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if _, err := bcrypt.Cost([]byte(stored)); err == nil {
+		return nil // already a bcrypt hash
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(stored), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	_, err = d.db.ExecContext(ctx,
+		`UPDATE settings SET value = ? WHERE key = 'admin_pass'`, string(hash))
+	return err
+}
+
+// CloseAllOpenSessions marks every currently-open session as disconnected.
+// Used when OpenVPN appears unresponsive so clients don't linger as "online".
+func (d *DB) CloseAllOpenSessions(ctx context.Context) error {
+	_, err := d.db.ExecContext(ctx,
+		`UPDATE sessions SET disconnected_at = datetime('now','localtime') WHERE disconnected_at IS NULL`)
+	return err
 }
 
 func (d *DB) UpsertKnownClient(ctx context.Context, name string) error {
@@ -212,24 +250,48 @@ func (d *DB) ProcessLogEntries(ctx context.Context, entries []model.LogEntry) er
 	return tx.Commit()
 }
 
-func CutoffFor(filter string) string {
+// CutoffFor returns the lower-bound timestamp for a traffic filter together
+// with the filter kind, which selects the session JOIN condition (see
+// joinCondition). An unbounded filter (e.g. "all") yields empty strings.
+func CutoffFor(filter string) (cutoff, kind string) {
 	now := time.Now()
 	switch filter {
 	case "today":
-		return now.Format("2006-01-02") + " 00:00:00"
+		return now.Format("2006-01-02") + " 00:00:00", "today"
 	case "week":
-		return now.AddDate(0, 0, -7).Format("2006-01-02 15:04:05")
+		return now.AddDate(0, 0, -7).Format("2006-01-02 15:04:05"), "week"
 	case "month":
-		return now.AddDate(0, -1, 0).Format("2006-01-02 15:04:05")
+		return now.AddDate(0, -1, 0).Format("2006-01-02 15:04:05"), "month"
+	default:
+		return "", ""
+	}
+}
+
+// joinCondition returns the session LEFT JOIN predicate for a filter kind.
+// Both bounded kinds bind the cutoff timestamp twice. The returned fragment is
+// a fixed internal constant (no user input), so concatenating it is injection-safe.
+func joinCondition(kind string) string {
+	switch kind {
+	case "today":
+		// Today's window: include sessions started today, still-open sessions,
+		// and sessions that ended today. A still-open session that began before
+		// midnight only over-counts its (small) pre-midnight portion.
+		return ` AND (s.connected_since >= ? OR s.disconnected_at IS NULL OR s.disconnected_at >= ?)`
+	case "week", "month":
+		// Longer windows: include sessions that started within the window, or
+		// closed sessions that ended within it. Deliberately exclude still-open
+		// sessions that began before the window, whose full cumulative bytes
+		// (potentially weeks of history) would otherwise be counted.
+		return ` AND (s.connected_since >= ? OR (s.disconnected_at IS NOT NULL AND s.disconnected_at >= ?))`
 	default:
 		return ""
 	}
 }
 
 func (d *DB) QueryClients(ctx context.Context, filter string) ([]model.Client, error) {
-	cutoff := CutoffFor(filter)
+	cutoff, kind := CutoffFor(filter)
 
-	const withCutoff = `
+	query := `
 		SELECT
 			c.common_name,
 			c.real_address,
@@ -240,23 +302,7 @@ func (d *DB) QueryClients(ctx context.Context, filter string) ([]model.Client, e
 			COALESCE(MAX(s.connected_since), '')              AS connected_since,
 			c.last_seen
 		FROM clients c
-		LEFT JOIN sessions s ON s.client_id = c.id
-			AND (s.connected_since >= ? OR s.disconnected_at IS NULL OR s.disconnected_at >= ?)
-		GROUP BY c.id
-		ORDER BY total_traffic DESC`
-
-	const noCutoff = `
-		SELECT
-			c.common_name,
-			c.real_address,
-			c.vpn_address,
-			COALESCE(SUM(s.bytes_received), 0)                AS bytes_received,
-			COALESCE(SUM(s.bytes_sent), 0)                    AS bytes_sent,
-			COALESCE(SUM(s.bytes_received + s.bytes_sent), 0) AS total_traffic,
-			COALESCE(MAX(s.connected_since), '')              AS connected_since,
-			c.last_seen
-		FROM clients c
-		LEFT JOIN sessions s ON s.client_id = c.id
+		LEFT JOIN sessions s ON s.client_id = c.id` + joinCondition(kind) + `
 		GROUP BY c.id
 		ORDER BY total_traffic DESC`
 
@@ -265,9 +311,9 @@ func (d *DB) QueryClients(ctx context.Context, filter string) ([]model.Client, e
 		err  error
 	)
 	if cutoff != "" {
-		rows, err = d.db.QueryContext(ctx, withCutoff, cutoff, cutoff)
+		rows, err = d.db.QueryContext(ctx, query, cutoff, cutoff)
 	} else {
-		rows, err = d.db.QueryContext(ctx, noCutoff)
+		rows, err = d.db.QueryContext(ctx, query)
 	}
 	if err != nil {
 		return nil, err
@@ -324,8 +370,8 @@ func (d *DB) ClientByVPNAddress(ctx context.Context, vpnAddr string) (*model.Cli
 	return &c, nil
 }
 
-func (d *DB) ClientStatsByName(ctx context.Context, commonName, cutoff string) (*model.Client, error) {
-	const withCutoff = `
+func (d *DB) ClientStatsByName(ctx context.Context, commonName, cutoff, kind string) (*model.Client, error) {
+	query := `
 		SELECT
 			c.common_name,
 			c.vpn_address,
@@ -335,28 +381,14 @@ func (d *DB) ClientStatsByName(ctx context.Context, commonName, cutoff string) (
 			COALESCE(MAX(s.connected_since), ''),
 			c.last_seen
 		FROM clients c
-		LEFT JOIN sessions s ON s.client_id = c.id
-			AND (s.connected_since >= ? OR s.disconnected_at IS NULL OR s.disconnected_at >= ?)
-		WHERE c.common_name = ?
-		GROUP BY c.id`
-	const noCutoff = `
-		SELECT
-			c.common_name,
-			c.vpn_address,
-			COALESCE(SUM(s.bytes_received), 0),
-			COALESCE(SUM(s.bytes_sent), 0),
-			COALESCE(SUM(s.bytes_received + s.bytes_sent), 0),
-			COALESCE(MAX(s.connected_since), ''),
-			c.last_seen
-		FROM clients c
-		LEFT JOIN sessions s ON s.client_id = c.id
+		LEFT JOIN sessions s ON s.client_id = c.id` + joinCondition(kind) + `
 		WHERE c.common_name = ?
 		GROUP BY c.id`
 	var row *sql.Row
 	if cutoff != "" {
-		row = d.db.QueryRowContext(ctx, withCutoff, cutoff, cutoff, commonName)
+		row = d.db.QueryRowContext(ctx, query, cutoff, cutoff, commonName)
 	} else {
-		row = d.db.QueryRowContext(ctx, noCutoff, commonName)
+		row = d.db.QueryRowContext(ctx, query, commonName)
 	}
 	var c model.Client
 	if err := row.Scan(

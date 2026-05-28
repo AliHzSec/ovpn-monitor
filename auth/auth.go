@@ -15,9 +15,28 @@ type SessionStore struct {
 }
 
 func NewSessionStore(ttl time.Duration) *SessionStore {
-	return &SessionStore{
+	s := &SessionStore{
 		sessions: make(map[string]time.Time),
 		ttl:      ttl,
+	}
+	go s.sweepLoop()
+	return s
+}
+
+// sweepLoop periodically evicts expired tokens so the session map does not grow
+// unbounded with tokens that are never presented again.
+func (s *SessionStore) sweepLoop() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		now := time.Now()
+		s.mu.Lock()
+		for token, expiry := range s.sessions {
+			if now.After(expiry) {
+				delete(s.sessions, token)
+			}
+		}
+		s.mu.Unlock()
 	}
 }
 
