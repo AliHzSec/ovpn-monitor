@@ -5,15 +5,26 @@ import (
 	"database/sql"
 	"errors"
 	"strconv"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"ovpnmonitor/model"
 )
 
-type DB struct{ db *sql.DB }
+type DB struct {
+	db *sql.DB
 
-func New(sqldb *sql.DB) *DB { return &DB{db: sqldb} }
+	// absent tracks, per client_id, the number of consecutive valid
+	// (END-marker-confirmed) reads in which the client was missing. A session is
+	// only closed once this reaches 2, so a single missed read can't churn
+	// sessions. Guarded by mu; only ProcessLogEntries / CloseAllOpenSessions
+	// touch it.
+	mu     sync.Mutex
+	absent map[int64]int
+}
+
+func New(sqldb *sql.DB) *DB { return &DB{db: sqldb, absent: make(map[int64]int)} }
 
 func (d *DB) Migrate(ctx context.Context) error {
 	if _, err := d.db.ExecContext(ctx, `PRAGMA foreign_keys = ON`); err != nil {
@@ -35,7 +46,9 @@ func (d *DB) Migrate(ctx context.Context) error {
 			bytes_received  INTEGER NOT NULL DEFAULT 0 CHECK (bytes_received >= 0),
 			bytes_sent      INTEGER NOT NULL DEFAULT 0 CHECK (bytes_sent >= 0),
 			real_address    TEXT NOT NULL DEFAULT '',
-			vpn_address     TEXT NOT NULL DEFAULT ''
+			vpn_address     TEXT NOT NULL DEFAULT '',
+			protocol        TEXT NOT NULL DEFAULT '',
+			UNIQUE (client_id, connected_since, protocol)
 		)`,
 		`CREATE TABLE IF NOT EXISTS settings (
 			key   TEXT PRIMARY KEY,
@@ -95,6 +108,12 @@ func (d *DB) ensureHashedAdminPassword(ctx context.Context) error {
 func (d *DB) CloseAllOpenSessions(ctx context.Context) error {
 	_, err := d.db.ExecContext(ctx,
 		`UPDATE sessions SET disconnected_at = datetime('now','localtime') WHERE disconnected_at IS NULL`)
+	if err == nil {
+		// Everyone is now offline; forget any pending absence counts.
+		d.mu.Lock()
+		d.absent = make(map[int64]int)
+		d.mu.Unlock()
+	}
 	return err
 }
 
@@ -140,14 +159,6 @@ func (d *DB) ProcessLogEntries(ctx context.Context, entries []model.LogEntry) er
 	}
 	defer tx.Rollback()
 
-	// Remove duplicate open sessions — keep only the newest per client.
-	if _, err := tx.ExecContext(ctx,
-		`DELETE FROM sessions WHERE disconnected_at IS NULL AND id NOT IN (
-			SELECT MAX(id) FROM sessions WHERE disconnected_at IS NULL GROUP BY client_id
-		)`); err != nil {
-		return err
-	}
-
 	now := time.Now().Format("2006-01-02 15:04:05")
 	seenClientIDs := make(map[int64]bool, len(entries))
 
@@ -169,52 +180,35 @@ func (d *DB) ProcessLogEntries(ctx context.Context, entries []model.LogEntry) er
 		}
 		seenClientIDs[clientID] = true
 
-		// Close any open session whose connected_since differs — client reconnected.
+		// Close any still-open session for this client from a DIFFERENT connection
+		// (different connected_since OR a different protocol at the same second —
+		// e.g. a UDP↔TCP switch). Keeps the one-open-session-per-client invariant
+		// before we (re)open the current one.
 		if _, err := tx.ExecContext(ctx,
-			`UPDATE sessions SET disconnected_at=? WHERE client_id=? AND disconnected_at IS NULL AND connected_since != ?`,
-			now, clientID, entry.ConnectedSince); err != nil {
+			`UPDATE sessions SET disconnected_at=? WHERE client_id=? AND disconnected_at IS NULL AND (connected_since != ? OR protocol != ?)`,
+			now, clientID, entry.ConnectedSince, entry.Protocol); err != nil {
 			return err
 		}
 
-		var sessionID int64
-		var sessionBytesReceived, sessionBytesSent int64
-		err := tx.QueryRowContext(ctx,
-			`SELECT id, bytes_received, bytes_sent FROM sessions WHERE client_id=? AND disconnected_at IS NULL`,
-			clientID).Scan(&sessionID, &sessionBytesReceived, &sessionBytesSent)
-
-		if errors.Is(err, sql.ErrNoRows) {
-			if _, err := tx.ExecContext(ctx,
-				`INSERT INTO sessions (client_id, connected_since, bytes_received, bytes_sent, real_address, vpn_address)
-				 VALUES (?, ?, ?, ?, ?, ?)`,
-				clientID, entry.ConnectedSince, entry.BytesReceived, entry.BytesSent,
-				entry.RealAddress, entry.VPNAddress); err != nil {
-				return err
-			}
-			continue
-		}
-		if err != nil {
+		// Idempotent upsert keyed on (client_id, connected_since, protocol). A
+		// reappearing connection updates its own row instead of spawning a new one,
+		// so a false disconnect can never re-record the connection's cumulative
+		// bytes. Bytes only ever ratchet up (MAX), so a transient low reading is
+		// ignored rather than splitting the session. disconnected_at is cleared so a
+		// session that was falsely closed simply reopens on its existing row.
+		// protocol is part of the identity, so it is not overwritten on conflict.
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO sessions (client_id, connected_since, bytes_received, bytes_sent, real_address, vpn_address, protocol)
+			 VALUES (?, ?, ?, ?, ?, ?, ?)
+			 ON CONFLICT(client_id, connected_since, protocol) DO UPDATE SET
+				bytes_received  = MAX(sessions.bytes_received, excluded.bytes_received),
+				bytes_sent      = MAX(sessions.bytes_sent, excluded.bytes_sent),
+				real_address    = excluded.real_address,
+				vpn_address     = excluded.vpn_address,
+				disconnected_at = NULL`,
+			clientID, entry.ConnectedSince, entry.BytesReceived, entry.BytesSent,
+			entry.RealAddress, entry.VPNAddress, entry.Protocol); err != nil {
 			return err
-		}
-
-		if entry.BytesReceived >= sessionBytesReceived && entry.BytesSent >= sessionBytesSent {
-			if _, err := tx.ExecContext(ctx,
-				`UPDATE sessions SET bytes_received=?, bytes_sent=? WHERE id=?`,
-				entry.BytesReceived, entry.BytesSent, sessionID); err != nil {
-				return err
-			}
-		} else {
-			// Counter regression — close current and open a fresh session.
-			if _, err := tx.ExecContext(ctx,
-				`UPDATE sessions SET disconnected_at=? WHERE id=?`, now, sessionID); err != nil {
-				return err
-			}
-			if _, err := tx.ExecContext(ctx,
-				`INSERT INTO sessions (client_id, connected_since, bytes_received, bytes_sent, real_address, vpn_address)
-				 VALUES (?, ?, ?, ?, ?, ?)`,
-				clientID, entry.ConnectedSince, entry.BytesReceived, entry.BytesSent,
-				entry.RealAddress, entry.VPNAddress); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -237,15 +231,28 @@ func (d *DB) ProcessLogEntries(ctx context.Context, entries []model.LogEntry) er
 		return err
 	}
 
+	// Only close a client's session after it has been absent from 2 consecutive
+	// valid reads. This block reaches ProcessLogEntries only on END-marker-confirmed
+	// reads (partial reads are rejected upstream), so absence here is real, not a
+	// torn-read artifact. A single missed/edge read no longer churns sessions.
+	d.mu.Lock()
 	for _, id := range openClientIDs {
-		if !seenClientIDs[id] {
+		if seenClientIDs[id] {
+			delete(d.absent, id)
+			continue
+		}
+		d.absent[id]++
+		if d.absent[id] >= 2 {
 			if _, err := tx.ExecContext(ctx,
 				`UPDATE sessions SET disconnected_at=? WHERE client_id=? AND disconnected_at IS NULL`,
 				now, id); err != nil {
+				d.mu.Unlock()
 				return err
 			}
+			delete(d.absent, id)
 		}
 	}
+	d.mu.Unlock()
 
 	return tx.Commit()
 }

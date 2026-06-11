@@ -18,6 +18,11 @@ import (
 	"ovpnmonitor/tracker"
 )
 
+// ErrIncompleteLog signals that the status file was read mid-rewrite (no END
+// marker). It is an expected, transient condition — callers must skip the read
+// entirely rather than act on a partial snapshot.
+var ErrIncompleteLog = errors.New("incomplete status log read: missing END marker")
+
 type Watcher struct {
 	DB     *db.DB
 	Logger *slog.Logger
@@ -90,6 +95,13 @@ func (w Watcher) processLog(ctx context.Context, name string) {
 
 	entries, err := parseOpenVPNLog(f, w.Certs, w.Logger)
 	if err != nil {
+		// A partial read (no END marker) is expected when we catch OpenVPN
+		// mid-rewrite. Skip it without touching online state or sessions, so a
+		// torn snapshot can never falsely disconnect clients.
+		if errors.Is(err, ErrIncompleteLog) {
+			w.Logger.Warn("skipping partial status log read; sessions left unchanged")
+			return
+		}
 		w.Logger.Error("Parse log: " + err.Error())
 		return
 	}
@@ -169,6 +181,7 @@ func parseOpenVPNLog(f io.Reader, certs *cert.Whitelist, logger *slog.Logger) ([
 			CommonName:     name,
 			RealAddress:    record[2],
 			VPNAddress:     record[3],
+			Protocol:       protocolOf(record[2]),
 			BytesReceived:  bytesReceived,
 			BytesSent:      bytesSent,
 			ConnectedSince: connectedSince,
@@ -180,11 +193,23 @@ func parseOpenVPNLog(f io.Reader, certs *cert.Whitelist, logger *slog.Logger) ([
 		return nil, err
 	}
 	if !sawEnd {
-		// No END marker: the file was truncated or read mid-rewrite. Returning an
-		// error makes the caller skip this read instead of acting on a partial
+		// No END marker: the file was truncated or read mid-rewrite. Returning the
+		// sentinel makes the caller skip this read instead of acting on a partial
 		// snapshot (which would corrupt byte counts and spuriously disconnect clients).
-		return nil, errors.New("incomplete status log read: missing END marker")
+		return nil, ErrIncompleteLog
 	}
 
 	return entries, nil
+}
+
+// protocolOf returns the transport prefix of an OpenVPN real-address
+// ("tcp4-server", "udp4"), which is stable for the life of a connection —
+// unlike the IP:port, which can change under UDP float. It is used as part of
+// session identity so the UDP and TCP legs of a protocol switch that happen to
+// share a one-second connected_since are not merged into one row.
+func protocolOf(realAddr string) string {
+	if i := strings.IndexByte(realAddr, ':'); i >= 0 {
+		return realAddr[:i]
+	}
+	return realAddr
 }

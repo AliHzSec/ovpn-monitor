@@ -19,6 +19,7 @@ type LogEntry struct {
 	CommonName     string
 	RealAddress    string
 	VPNAddress     string
+	Protocol       string
 	BytesReceived  int64
 	BytesSent      int64
 	ConnectedSince string
