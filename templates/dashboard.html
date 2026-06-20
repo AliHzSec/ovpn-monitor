@@ -1063,6 +1063,14 @@
             border: 1px solid rgba(110, 110, 120, 0.15);
         }
 
+        .ip-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            letter-spacing: -0.01em;
+            font-variant-numeric: tabular-nums;
+        }
+
         .recv-text {
             color: var(--recv-color);
             font-weight: 400;
@@ -1253,6 +1261,7 @@
                 font-size: 14px;
             }
 
+            .ip-text,
             .recv-text,
             .sent-text,
             .total-text,
@@ -1282,14 +1291,23 @@
                 display: flex;
             }
 
-            /* status bar: 2×2 */
+            .page-area {
+                padding: 18px;
+            }
+
+            .status-bar {
+                margin-bottom: 16px;
+            }
+
+            /* status bar: 2×2 — fluid rings so they stay roomy, not cramped */
             .status-bar>.glass-card {
                 flex-wrap: wrap;
             }
 
             .gauge-item {
                 flex: 0 0 50%;
-                padding: 14px 12px;
+                padding: 18px 14px;
+                gap: 6px;
             }
 
             .gauge-item+.gauge-item {
@@ -1304,12 +1322,45 @@
                 border-top: 1px solid var(--border);
             }
 
+            /* ring scales with viewport, capped so it never crowds the cell */
+            .gauge-ring-wrap {
+                width: clamp(96px, 30vw, 118px);
+                height: clamp(96px, 30vw, 118px);
+            }
+
+            .gauge-sublabel {
+                font-size: 10.5px;
+            }
+
+            /* lower cards: stack to 1 column and tighten to match gauge scale */
             .info-grid {
                 grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .info-card {
+                padding: 16px 18px;
+            }
+
+            .info-card-title {
+                margin-bottom: var(--sp-3);
+            }
+
+            .info-row {
+                padding: 0 14px;
+            }
+
+            .info-row-value {
+                font-size: 15px;
             }
 
             .stats-grid {
                 grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .stat-card {
+                padding: 18px 20px;
             }
         }
 
@@ -1341,6 +1392,66 @@
 
             .filter-btn {
                 padding: 6px 10px;
+            }
+
+            td:nth-child(3),
+            th:nth-child(3) {
+                display: none;
+            }
+
+            /* keep gauges and cards on one consistent, breathable scale */
+            .gauge-item {
+                padding: 16px 10px;
+            }
+
+            .gauge-ring-wrap {
+                width: clamp(92px, 32vw, 112px);
+                height: clamp(92px, 32vw, 112px);
+            }
+
+            .info-card {
+                padding: 14px 16px;
+            }
+
+            .info-row {
+                padding: 0 12px;
+            }
+        }
+
+        /* smallest phones (~360px): tighten spacing & type, keep proportions */
+        @media (max-width: 400px) {
+            .page-area {
+                padding: 12px;
+            }
+
+            .gauge-item {
+                padding: 14px 8px;
+            }
+
+            .gauge-ring-wrap {
+                width: clamp(88px, 34vw, 104px);
+                height: clamp(88px, 34vw, 104px);
+            }
+
+            .gauge-center-value {
+                font-size: 15px;
+            }
+
+            .gauge-sublabel {
+                font-size: 10px;
+            }
+
+            .info-row {
+                padding: 0 10px;
+                gap: 4px;
+            }
+
+            .info-row-label {
+                font-size: 11px;
+            }
+
+            .info-row-value {
+                font-size: 14px;
             }
         }
 
@@ -1713,7 +1824,8 @@
             <!-- Controls -->
             <div class="controls">
                 <div class="filter-group">
-                    <button class="filter-btn active" data-filter="today">Today</button>
+                    <button class="filter-btn active" data-filter="online">Online</button>
+                    <button class="filter-btn" data-filter="today">Today</button>
                     <button class="filter-btn" data-filter="week">7 Days</button>
                     <button class="filter-btn" data-filter="month">30 Days</button>
                     <button class="filter-btn" data-filter="all">All Time</button>
@@ -1741,6 +1853,7 @@
                                         class="arr-dn"></span></span></th>
                             <th data-col="status">Status <span class="sort-arrow"><span class="arr-up"></span><span
                                         class="arr-dn"></span></span></th>
+                            <th data-col="ip">IP Address</th>
                             <th data-col="total">Total <span class="sort-arrow"><span class="arr-up"></span><span
                                         class="arr-dn"></span></span></th>
                             <th data-col="recv">Download <span class="sort-arrow"><span class="arr-up"></span><span
@@ -1752,7 +1865,7 @@
                     </thead>
                     <tbody id="client-tbody">
                         <tr>
-                            <td colspan="6">
+                            <td colspan="7">
                                 <div style="padding:32px 0; display:flex; flex-direction:column; gap:12px;">
                                     <div class="skeleton" style="width:60%; height:14px;"></div>
                                     <div class="skeleton" style="width:80%; height:14px;"></div>
@@ -2124,7 +2237,7 @@
             if (path === '/panel/clients') {
 
                 var allClients = [];
-                var currentFilter = 'today';
+                var currentFilter = 'online';
                 var sortCol = 'total';
                 var sortDir = -1;
                 var userHasSorted = false;
@@ -2192,6 +2305,10 @@
                 function renderTable() {
                     var data = allClients.slice();
 
+                    if (currentFilter === 'online') {
+                        data = data.filter(function (c) { return c.online; });
+                    }
+
                     if (searchQuery) {
                         var q = searchQuery.toLowerCase();
                         data = data.filter(function (c) { return c.common_name.toLowerCase().indexOf(q) !== -1; });
@@ -2229,7 +2346,7 @@
 
                     if (!data.length) {
                         tbody.innerHTML =
-                            '<tr><td colspan="6"><div class="empty-state">' +
+                            '<tr><td colspan="7"><div class="empty-state">' +
                             '<h3>No clients found</h3>' +
                             '<p>Try adjusting the filter or search term</p>' +
                             '</div></td></tr>';
@@ -2239,6 +2356,7 @@
                     tbody.innerHTML = data.map(function (c, i) {
                         var online = c.online;
                         var sc = online ? 'online' : 'offline';
+                        var ipStr = online ? esc(c.real_address || '—') : '—';
 
                         var timeHtml;
                         if (online) {
@@ -2255,6 +2373,7 @@
                             '<span class="name-text">' + esc(c.common_name) + '</span>' +
                             '</div></td>' +
                             '<td><span class="badge ' + sc + '">' + (online ? '● Online' : '○ Offline') + '</span></td>' +
+                            '<td class="ip-text">' + ipStr + '</td>' +
                             '<td class="total-text">' + esc(c.total_traffic_readable || fmtBytes(c.total_traffic)) + '</td>' +
                             '<td class="recv-text">' + esc(c.bytes_received_readable || fmtBytes(c.bytes_received)) + '</td>' +
                             '<td class="sent-text">' + esc(c.bytes_sent_readable || fmtBytes(c.bytes_sent)) + '</td>' +
