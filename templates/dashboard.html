@@ -8,7 +8,8 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=Aldrich&family=Geist:ital,wght@0,100..900;1,100..900&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
         rel="stylesheet">
     <style>
         *,
@@ -47,6 +48,24 @@
             --topbar-h: 52px;
             --glass-blur: blur(16px);
             --card-radius: 14px;
+
+            /* ── DESIGN-SYSTEM TOKENS ── */
+            --font-sans: "Geist", "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+            --font-brand: "Aldrich", sans-serif;
+            --fs-title: 21px;
+            --fs-heading: 14px;
+            --fs-body: 13px;
+            --fs-label: 11px;
+            --fs-stat: 17px;
+            --sp-1: 4px;
+            --sp-2: 8px;
+            --sp-3: 12px;
+            --sp-4: 16px;
+            --sp-5: 20px;
+            --sp-6: 24px;
+            --sp-8: 32px;
+            --radius-ctl: 10px;
         }
 
         html {
@@ -54,12 +73,15 @@
         }
 
         body {
-            font-family: "Roboto", sans-serif;
+            font-family: var(--font-sans);
             font-weight: 400;
             background: var(--bg);
             color: var(--text);
             min-height: 100dvh;
             font-size: 15px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            letter-spacing: -0.006em;
             display: flex;
         }
 
@@ -117,10 +139,10 @@
         }
 
         .sidebar-brand-text {
-            font-family: "Aldrich", sans-serif;
+            font-family: var(--font-brand);
             font-size: 13px;
             font-weight: 400;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.14em;
             color: var(--text);
             text-transform: uppercase;
         }
@@ -148,7 +170,7 @@
             padding: 10px 14px;
             color: var(--text-muted);
             text-decoration: none;
-            font-family: "Roboto", sans-serif;
+            font-family: var(--font-sans);
             font-size: 13px;
             font-weight: 500;
             border-left: 2px solid transparent;
@@ -259,7 +281,9 @@
             display: flex;
             align-items: center;
             gap: 7px;
+            font-family: var(--font-mono);
             font-size: 12px;
+            letter-spacing: -0.01em;
             color: var(--text-muted);
             background: rgba(28, 28, 31, 0.6);
             border: 1px solid var(--border);
@@ -293,7 +317,10 @@
         /* ── PAGE AREAS ── */
         .page-area {
             flex: 1;
-            padding: 24px;
+            padding: var(--sp-6);
+            max-width: 1320px;
+            width: 100%;
+            margin-inline: auto;
         }
 
         /* ── CARD BASE (glass) ── */
@@ -375,11 +402,11 @@
         }
 
         .gauge-item-label {
-            font-family: "Aldrich", sans-serif;
-            font-size: 11px;
-            font-weight: 400;
+            font-family: var(--font-sans);
+            font-size: var(--fs-label);
+            font-weight: 500;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.08em;
             color: var(--text-muted);
             align-self: flex-start;
         }
@@ -424,16 +451,16 @@
         }
 
         .gauge-center-value {
-            font-family: "Roboto", sans-serif;
-            font-size: 17px;
-            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: var(--fs-stat);
+            font-weight: 600;
             color: var(--text);
-            letter-spacing: -0.02em;
+            letter-spacing: -0.01em;
             transition: color 0.4s;
         }
 
         .gauge-sublabel {
-            font-family: "Roboto", sans-serif;
+            font-family: var(--font-mono);
             font-size: 11px;
             color: var(--text-muted);
             text-align: center;
@@ -454,18 +481,17 @@
         }
 
         .info-card-title {
-            font-family: "Aldrich", sans-serif;
-            font-size: 11px;
-            font-weight: 400;
-            text-transform: uppercase;
-            letter-spacing: 0.09em;
-            color: var(--text-muted);
-            padding-bottom: 12px;
-            margin-bottom: 16px;
+            font-family: var(--font-sans);
+            font-size: var(--fs-heading);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--text);
+            padding-bottom: var(--sp-3);
+            margin-bottom: var(--sp-4);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            gap: 7px;
+            gap: var(--sp-2);
         }
 
         .info-card-title-dot {
@@ -502,7 +528,7 @@
         }
 
         .info-row-label {
-            font-family: "Roboto", sans-serif;
+            font-family: var(--font-sans);
             font-size: 12px;
             color: var(--text-muted);
         }
@@ -512,7 +538,8 @@
             font-weight: 500;
             color: var(--text);
             font-variant-numeric: tabular-nums;
-            font-family: "Roboto", sans-serif;
+            font-family: var(--font-mono);
+            letter-spacing: -0.01em;
             transition: color 0.3s;
         }
 
@@ -571,7 +598,7 @@
             padding: 8px 18px;
             border-radius: 20px;
             font-size: 13px;
-            font-family: "Roboto", sans-serif;
+            font-family: var(--font-sans);
             backdrop-filter: blur(12px);
             opacity: 0;
             transition: opacity 0.2s, transform 0.2s;
@@ -638,18 +665,17 @@
         }
 
         .stat-card-title {
-            font-family: "Aldrich", sans-serif;
-            font-size: 11px;
-            font-weight: 400;
-            text-transform: uppercase;
-            letter-spacing: 0.09em;
-            color: var(--text-muted);
-            padding-bottom: 12px;
-            margin-bottom: 16px;
+            font-family: var(--font-sans);
+            font-size: var(--fs-heading);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--text);
+            padding-bottom: var(--sp-3);
+            margin-bottom: var(--sp-4);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--sp-2);
         }
 
         .stat-rows {
@@ -681,9 +707,10 @@
         }
 
         .stat-row-value {
-            font-size: 15px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
+            font-family: var(--font-mono);
+            font-size: var(--fs-stat);
+            font-weight: 600;
+            letter-spacing: -0.01em;
             display: flex;
             align-items: baseline;
             gap: 5px;
@@ -770,7 +797,7 @@
             border: none;
             color: var(--text-muted);
             padding: 6px 16px;
-            font-family: "Roboto", sans-serif;
+            font-family: var(--font-sans);
             font-size: 12px;
             font-weight: 500;
             border-radius: 7px;
@@ -817,7 +844,7 @@
             border: 1px solid var(--border);
             color: var(--text);
             padding: 8px 12px 8px 36px;
-            font-family: "Roboto", sans-serif;
+            font-family: var(--font-sans);
             font-size: 13px;
             border-radius: 9px;
             width: 200px;
@@ -860,17 +887,22 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 720px;
+            min-width: 640px;
+        }
+
+        thead th:first-child,
+        td:first-child {
+            min-width: 180px;
         }
 
         thead th {
             padding: 14px 22px;
             text-align: left;
-            font-family: "Aldrich", sans-serif;
-            font-size: 11px;
-            font-weight: 400;
+            font-family: var(--font-sans);
+            font-size: var(--fs-label);
+            font-weight: 500;
             text-transform: uppercase;
-            letter-spacing: 0.09em;
+            letter-spacing: 0.06em;
             color: var(--text-muted);
             border-bottom: 1px solid var(--border);
             background: rgba(0, 0, 0, 0.2);
@@ -1031,27 +1063,27 @@
             border: 1px solid rgba(110, 110, 120, 0.15);
         }
 
-        .ip-text {
-            font-size: 12px;
-            color: var(--text-muted);
-            font-variant-numeric: tabular-nums;
-        }
-
         .recv-text {
             color: var(--recv-color);
             font-weight: 400;
+            font-family: var(--font-mono);
+            letter-spacing: -0.01em;
             font-variant-numeric: tabular-nums;
         }
 
         .sent-text {
             color: var(--sent-color);
             font-weight: 400;
+            font-family: var(--font-mono);
+            letter-spacing: -0.01em;
             font-variant-numeric: tabular-nums;
         }
 
         .total-text {
             color: var(--accent);
             font-weight: 600;
+            font-family: var(--font-mono);
+            letter-spacing: -0.01em;
             font-variant-numeric: tabular-nums;
         }
 
@@ -1059,11 +1091,13 @@
             font-size: 12px;
             color: var(--green);
             font-weight: 400;
+            font-family: var(--font-mono);
         }
 
         .time-offline {
             font-size: 12px;
             color: var(--text-muted);
+            font-family: var(--font-mono);
         }
 
         .time-label {
@@ -1219,7 +1253,6 @@
                 font-size: 14px;
             }
 
-            .ip-text,
             .recv-text,
             .sent-text,
             .total-text,
@@ -1308,11 +1341,6 @@
 
             .filter-btn {
                 padding: 6px 10px;
-            }
-
-            td:nth-child(3),
-            th:nth-child(3) {
-                display: none;
             }
         }
 
@@ -1713,7 +1741,6 @@
                                         class="arr-dn"></span></span></th>
                             <th data-col="status">Status <span class="sort-arrow"><span class="arr-up"></span><span
                                         class="arr-dn"></span></span></th>
-                            <th data-col="ip">IP Address</th>
                             <th data-col="total">Total <span class="sort-arrow"><span class="arr-up"></span><span
                                         class="arr-dn"></span></span></th>
                             <th data-col="recv">Download <span class="sort-arrow"><span class="arr-up"></span><span
@@ -1725,7 +1752,7 @@
                     </thead>
                     <tbody id="client-tbody">
                         <tr>
-                            <td colspan="7">
+                            <td colspan="6">
                                 <div style="padding:32px 0; display:flex; flex-direction:column; gap:12px;">
                                     <div class="skeleton" style="width:60%; height:14px;"></div>
                                     <div class="skeleton" style="width:80%; height:14px;"></div>
@@ -2202,7 +2229,7 @@
 
                     if (!data.length) {
                         tbody.innerHTML =
-                            '<tr><td colspan="7"><div class="empty-state">' +
+                            '<tr><td colspan="6"><div class="empty-state">' +
                             '<h3>No clients found</h3>' +
                             '<p>Try adjusting the filter or search term</p>' +
                             '</div></td></tr>';
@@ -2212,7 +2239,6 @@
                     tbody.innerHTML = data.map(function (c, i) {
                         var online = c.online;
                         var sc = online ? 'online' : 'offline';
-                        var ipStr = online ? esc(c.real_address || '—') : '—';
 
                         var timeHtml;
                         if (online) {
@@ -2229,7 +2255,6 @@
                             '<span class="name-text">' + esc(c.common_name) + '</span>' +
                             '</div></td>' +
                             '<td><span class="badge ' + sc + '">' + (online ? '● Online' : '○ Offline') + '</span></td>' +
-                            '<td class="ip-text">' + ipStr + '</td>' +
                             '<td class="total-text">' + esc(c.total_traffic_readable || fmtBytes(c.total_traffic)) + '</td>' +
                             '<td class="recv-text">' + esc(c.bytes_received_readable || fmtBytes(c.bytes_received)) + '</td>' +
                             '<td class="sent-text">' + esc(c.bytes_sent_readable || fmtBytes(c.bytes_sent)) + '</td>' +

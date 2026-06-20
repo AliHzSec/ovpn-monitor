@@ -8,7 +8,8 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=Aldrich&family=Geist:ital,wght@0,100..900;1,100..900&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
         rel="stylesheet">
     <style>
         *,
@@ -42,6 +43,24 @@
             --topbar-h: 52px;
             --glass-blur: blur(16px);
             --card-radius: 14px;
+
+            /* ── DESIGN-SYSTEM TOKENS ── */
+            --font-sans: "Geist", "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+            --font-brand: "Aldrich", sans-serif;
+            --fs-title: 21px;
+            --fs-heading: 14px;
+            --fs-body: 13px;
+            --fs-label: 11px;
+            --fs-stat: 17px;
+            --sp-1: 4px;
+            --sp-2: 8px;
+            --sp-3: 12px;
+            --sp-4: 16px;
+            --sp-5: 20px;
+            --sp-6: 24px;
+            --sp-8: 32px;
+            --radius-ctl: 10px;
         }
 
         html {
@@ -49,12 +68,15 @@
         }
 
         body {
-            font-family: "Roboto", sans-serif;
+            font-family: var(--font-sans);
             font-weight: 400;
             background: var(--bg);
             color: var(--text);
             min-height: 100dvh;
             font-size: 15px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            letter-spacing: -0.006em;
             display: flex;
         }
 
@@ -111,10 +133,10 @@
         }
 
         .sidebar-brand-text {
-            font-family: "Aldrich", sans-serif;
+            font-family: var(--font-brand);
             font-size: 13px;
             font-weight: 400;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.14em;
             color: var(--text);
             text-transform: uppercase;
         }
@@ -154,7 +176,7 @@
             padding: 10px 14px;
             color: var(--text-muted);
             text-decoration: none;
-            font-family: "Roboto", sans-serif;
+            font-family: var(--font-sans);
             font-size: 13px;
             font-weight: 500;
             border-left: 2px solid transparent;
@@ -251,12 +273,11 @@
         }
 
         .topbar-title {
-            font-family: "Aldrich", sans-serif;
-            font-size: 13px;
-            font-weight: 400;
-            color: var(--text-muted);
-            letter-spacing: 0.07em;
-            text-transform: uppercase;
+            font-family: var(--font-sans);
+            font-size: var(--fs-heading);
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -0.01em;
         }
 
         /* ── PAGE AREA ── */
@@ -357,12 +378,12 @@
         }
 
         .settings-section-title {
-            font-family: "Aldrich", sans-serif;
-            font-size: 11px;
-            font-weight: 400;
+            font-family: var(--font-sans);
+            font-size: var(--fs-label);
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-muted);
+            letter-spacing: 0.07em;
+            color: var(--text-dim);
         }
 
         /* ── SETTINGS CARD ── */
@@ -457,9 +478,10 @@
             border: 1px solid var(--border);
             color: var(--text);
             padding: 10px 14px;
-            font-family: "Roboto", sans-serif;
+            font-family: var(--font-mono);
             font-size: 13px;
-            border-radius: 9px;
+            letter-spacing: -0.01em;
+            border-radius: var(--radius-ctl);
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
             backdrop-filter: blur(8px);
@@ -505,10 +527,10 @@
             border: none;
             color: #fff;
             padding: 12px 28px;
-            font-family: "Roboto", sans-serif;
+            font-family: var(--font-sans);
             font-size: 14px;
-            font-weight: 700;
-            border-radius: 10px;
+            font-weight: 600;
+            border-radius: var(--radius-ctl);
             cursor: pointer;
             letter-spacing: 0.01em;
             transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
