@@ -70,6 +70,10 @@
 
         html {
             height: 100%;
+            /* safety net: never let any descendant produce a horizontal scrollbar.
+               clip (not hidden) avoids creating a scroll container, so position:
+               sticky on the topbar keeps working. */
+            overflow-x: clip;
         }
 
         body {
@@ -505,10 +509,12 @@
         .info-rows {
             display: flex;
             flex-direction: row;
+            min-width: 0;
         }
 
         .info-row {
             flex: 1;
+            min-width: 0;
             display: flex;
             flex-direction: column;
             gap: 6px;
@@ -541,6 +547,11 @@
             font-family: var(--font-mono);
             letter-spacing: -0.01em;
             transition: color 0.3s;
+            min-width: 0;
+            max-width: 100%;
+            /* long, unbreakable tokens (e.g. an IPv6 address) must wrap instead of
+               forcing the card — and the page — wider than the viewport */
+            overflow-wrap: anywhere;
         }
 
         .info-row-value.muted {
@@ -563,6 +574,9 @@
             display: inline-flex;
             align-items: center;
             gap: 5px;
+            max-width: 100%;
+            flex-wrap: wrap;
+            overflow-wrap: anywhere;
         }
 
         .copyable:hover {
@@ -1392,11 +1406,6 @@
 
             .filter-btn {
                 padding: 6px 10px;
-            }
-
-            td:nth-child(3),
-            th:nth-child(3) {
-                display: none;
             }
 
             /* keep gauges and cards on one consistent, breathable scale */
@@ -2259,7 +2268,13 @@
                     var tbody = document.getElementById('client-tbody');
                     tbody.classList.add('fading');
 
-                    fetch('/api/clients?filter=' + currentFilter).then(function (res) {
+                    // The "Online" tab is a client-side view filter, not a traffic
+                    // period: it should show TODAY's traffic for the online clients.
+                    // So reuse the "today" data source and apply the online-only
+                    // filter on the client (see renderTable).
+                    var apiFilter = currentFilter === 'online' ? 'today' : currentFilter;
+
+                    fetch('/api/clients?filter=' + apiFilter).then(function (res) {
                         if (!res.ok) {
                             if (res.status === 401) { location.href = '/panel/login'; }
                             throw new Error('HTTP ' + res.status);
