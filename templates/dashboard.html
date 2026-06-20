@@ -55,6 +55,7 @@
 
         body {
             font-family: "Roboto", sans-serif;
+            font-weight: 400;
             background: var(--bg);
             color: var(--text);
             min-height: 100dvh;
@@ -508,7 +509,7 @@
 
         .info-row-value {
             font-size: 16px;
-            font-weight: 600;
+            font-weight: 500;
             color: var(--text);
             font-variant-numeric: tabular-nums;
             font-family: "Roboto", sans-serif;
@@ -859,11 +860,11 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 680px;
+            min-width: 720px;
         }
 
         thead th {
-            padding: 13px 18px;
+            padding: 14px 22px;
             text-align: left;
             font-family: "Aldrich", sans-serif;
             font-size: 11px;
@@ -942,10 +943,15 @@
         }
 
         tbody tr {
-            border-bottom: 1px solid rgba(60, 60, 66, 0.4);
+            border-bottom: 1px solid rgba(60, 60, 66, 0.55);
             transition: background 0.12s;
             border-left: 2px solid transparent;
             animation: rowIn 0.3s ease backwards;
+        }
+
+        /* subtle zebra striping for row-to-row scannability */
+        tbody tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.018);
         }
 
         tbody tr.row-online {
@@ -957,7 +963,7 @@
         }
 
         tbody tr:hover {
-            background: rgba(255, 255, 255, 0.025);
+            background: rgba(255, 255, 255, 0.05);
         }
 
         /* fading rows when filter changes */
@@ -967,7 +973,7 @@
         }
 
         td {
-            padding: 14px 18px;
+            padding: 16px 22px;
             white-space: nowrap;
             vertical-align: middle;
         }
@@ -996,7 +1002,7 @@
         }
 
         .name-text {
-            font-weight: 600;
+            font-weight: 500;
             color: var(--text);
             font-size: 13px;
         }
@@ -1008,7 +1014,7 @@
             padding: 3px 10px;
             border-radius: 20px;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 500;
             letter-spacing: 0.01em;
         }
 
@@ -1033,13 +1039,13 @@
 
         .recv-text {
             color: var(--recv-color);
-            font-weight: 500;
+            font-weight: 400;
             font-variant-numeric: tabular-nums;
         }
 
         .sent-text {
             color: var(--sent-color);
-            font-weight: 500;
+            font-weight: 400;
             font-variant-numeric: tabular-nums;
         }
 
@@ -1052,7 +1058,7 @@
         .time-online {
             font-size: 12px;
             color: var(--green);
-            font-weight: 500;
+            font-weight: 400;
         }
 
         .time-offline {
@@ -1175,6 +1181,52 @@
 
         .stat-card:nth-child(2) {
             animation-delay: 0.12s;
+        }
+
+        /* ── DESKTOP READABILITY (large screens only) ── */
+        @media (min-width: 1100px) {
+            .page-area {
+                padding: 32px 40px;
+            }
+
+            .info-grid {
+                gap: 16px;
+            }
+
+            .info-card {
+                padding: 20px 24px;
+            }
+
+            .info-row-label {
+                font-size: 13px;
+            }
+
+            .info-row-value {
+                font-size: 17px;
+            }
+
+            /* roomier, more legible client table on desktop */
+            thead th {
+                padding: 15px 26px;
+                font-size: 11.5px;
+            }
+
+            td {
+                padding: 18px 26px;
+            }
+
+            .name-text {
+                font-size: 14px;
+            }
+
+            .ip-text,
+            .recv-text,
+            .sent-text,
+            .total-text,
+            .time-online,
+            .time-offline {
+                font-size: 13px;
+            }
         }
 
         /* ── RESPONSIVE ── */
@@ -1466,16 +1518,16 @@
                             style="background:var(--recv-color)"></span>Total Data</div>
                     <div class="info-rows">
                         <div class="info-row">
-                            <span class="info-row-label">Sent</span>
-                            <span class="info-row-value val-up" id="net-sent">—</span>
+                            <span class="info-row-label">Total</span>
+                            <span class="info-row-value" id="net-total">—</span>
                         </div>
                         <div class="info-row">
                             <span class="info-row-label">Received</span>
                             <span class="info-row-value val-down" id="net-recv">—</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-row-label">Total</span>
-                            <span class="info-row-value" id="net-total">—</span>
+                            <span class="info-row-label">Sent</span>
+                            <span class="info-row-value val-up" id="net-sent">—</span>
                         </div>
                     </div>
                 </div>
@@ -1662,11 +1714,11 @@
                             <th data-col="status">Status <span class="sort-arrow"><span class="arr-up"></span><span
                                         class="arr-dn"></span></span></th>
                             <th data-col="ip">IP Address</th>
+                            <th data-col="total">Total <span class="sort-arrow"><span class="arr-up"></span><span
+                                        class="arr-dn"></span></span></th>
                             <th data-col="recv">Download <span class="sort-arrow"><span class="arr-up"></span><span
                                         class="arr-dn"></span></span></th>
                             <th data-col="sent">Upload <span class="sort-arrow"><span class="arr-up"></span><span
-                                        class="arr-dn"></span></span></th>
-                            <th data-col="total">Total <span class="sort-arrow"><span class="arr-up"></span><span
                                         class="arr-dn"></span></span></th>
                             <th data-col="time">Last Connected</th>
                         </tr>
@@ -2178,9 +2230,9 @@
                             '</div></td>' +
                             '<td><span class="badge ' + sc + '">' + (online ? '● Online' : '○ Offline') + '</span></td>' +
                             '<td class="ip-text">' + ipStr + '</td>' +
+                            '<td class="total-text">' + esc(c.total_traffic_readable || fmtBytes(c.total_traffic)) + '</td>' +
                             '<td class="recv-text">' + esc(c.bytes_received_readable || fmtBytes(c.bytes_received)) + '</td>' +
                             '<td class="sent-text">' + esc(c.bytes_sent_readable || fmtBytes(c.bytes_sent)) + '</td>' +
-                            '<td class="total-text">' + esc(c.total_traffic_readable || fmtBytes(c.total_traffic)) + '</td>' +
                             '<td>' + timeHtml + '</td>' +
                             '</tr>';
                     }).join('');
