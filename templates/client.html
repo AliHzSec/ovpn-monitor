@@ -8,7 +8,7 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Reddit+Mono:wght@200..900&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
         rel="stylesheet">
     <style>
         *,
@@ -20,22 +20,22 @@
         }
 
         :root {
-            --bg: #0d1117;
-            --surface: rgba(22, 27, 39, 0.7);
-            --surface2: rgba(28, 35, 51, 0.8);
-            --surface3: #21293d;
-            --border: rgba(45, 55, 72, 0.6);
-            --border2: rgba(58, 74, 99, 0.9);
+            --bg: #141414;
+            --surface: rgba(28, 28, 31, 0.7);
+            --surface2: rgba(34, 34, 38, 0.8);
+            --surface3: #2a2a30;
+            --border: rgba(60, 60, 66, 0.6);
+            --border2: rgba(78, 78, 86, 0.9);
             --accent: #3b82f6;
             --accent-glow: rgba(59, 130, 246, 0.18);
             --green: #22c55e;
             --green-dim: rgba(34, 197, 94, 0.1);
-            --text: #e2e8f0;
-            --text-dim: #a0aec0;
-            --text-muted: #718096;
+            --text: #e6e6e6;
+            --text-dim: #9b9ba3;
+            --text-muted: #6b6b73;
             --danger: #ef4444;
-            --recv-color: #38bdf8;
-            --sent-color: #fb923c;
+            --recv-color: #3b82f6;
+            --sent-color: #94a3b8;
             --glass-blur: blur(16px);
             --card-radius: 14px;
         }
@@ -45,7 +45,7 @@
         }
 
         body {
-            font-family: "Reddit Mono", monospace;
+            font-family: "Roboto", sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100dvh;
@@ -61,8 +61,8 @@
             inset: 0;
             z-index: 0;
             background:
-                radial-gradient(ellipse 70% 45% at 50% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 65%),
-                radial-gradient(ellipse 50% 35% at 80% 80%, rgba(34, 197, 94, 0.04) 0%, transparent 60%);
+                radial-gradient(ellipse 70% 45% at 50% 0%, rgba(255, 255, 255, 0.02) 0%, transparent 65%),
+                radial-gradient(ellipse 50% 35% at 80% 80%, rgba(0, 0, 0, 0.28) 0%, transparent 60%);
             pointer-events: none;
         }
 
@@ -72,8 +72,8 @@
             inset: 0;
             z-index: 0;
             background-image:
-                linear-gradient(rgba(59, 130, 246, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59, 130, 246, 0.02) 1px, transparent 1px);
+                linear-gradient(rgba(255, 255, 255, 0.014) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px);
             background-size: 32px 32px;
             pointer-events: none;
         }
@@ -84,7 +84,7 @@
             top: 0;
             z-index: 100;
             height: 56px;
-            background: rgba(10, 14, 26, 0.88);
+            background: rgba(17, 17, 19, 0.88);
             backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
             display: flex;
@@ -137,7 +137,7 @@
             gap: 7px;
             font-size: 11px;
             color: var(--text-muted);
-            background: rgba(22, 27, 39, 0.6);
+            background: rgba(28, 28, 31, 0.6);
             border: 1px solid var(--border);
             border-radius: 20px;
             padding: 5px 14px;
@@ -280,9 +280,9 @@
         }
 
         .badge.offline {
-            background: rgba(100, 116, 139, 0.08);
+            background: rgba(110, 110, 120, 0.08);
             color: var(--text-muted);
-            border: 1px solid rgba(100, 116, 139, 0.2);
+            border: 1px solid rgba(110, 110, 120, 0.2);
         }
 
         .hero-time {
@@ -323,6 +323,7 @@
             position: relative;
             overflow: hidden;
             backdrop-filter: var(--glass-blur);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.22);
             transition: border-color 0.25s, box-shadow 0.25s;
             animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
         }
@@ -468,7 +469,7 @@
         /* ── FILTER TABS ── */
         .filter-group {
             display: flex;
-            background: rgba(22, 27, 39, 0.6);
+            background: rgba(28, 28, 31, 0.6);
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 4px;
@@ -484,7 +485,7 @@
             border: none;
             color: var(--text-muted);
             padding: 6px 18px;
-            font-family: "Reddit Mono", monospace;
+            font-family: "Roboto", sans-serif;
             font-size: 12px;
             font-weight: 500;
             border-radius: 7px;
@@ -538,7 +539,7 @@
             padding: 8px 18px;
             border-radius: 20px;
             font-size: 13px;
-            font-family: "Reddit Mono", monospace;
+            font-family: "Roboto", sans-serif;
             backdrop-filter: blur(12px);
             opacity: 0;
             transition: opacity 0.2s, transform 0.2s;
@@ -566,7 +567,7 @@
             font-size: 12px;
             color: var(--text-muted);
             flex-shrink: 0;
-            background: rgba(10, 14, 26, 0.5);
+            background: rgba(17, 17, 19, 0.5);
             backdrop-filter: blur(8px);
         }
 

@@ -8,7 +8,7 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Reddit+Mono:wght@200..900&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
         rel="stylesheet">
     <style>
         *,
@@ -20,13 +20,13 @@
         }
 
         :root {
-            --bg: #0d1117;
-            --surface: rgba(22, 27, 39, 0.7);
-            --surface-solid: #161b27;
-            --surface2: rgba(28, 35, 51, 0.8);
-            --surface3: #21293d;
-            --border: rgba(45, 55, 72, 0.6);
-            --border2: rgba(58, 74, 99, 0.9);
+            --bg: #141414;
+            --surface: rgba(28, 28, 31, 0.7);
+            --surface-solid: #1c1c1f;
+            --surface2: rgba(34, 34, 38, 0.8);
+            --surface3: #2a2a30;
+            --border: rgba(60, 60, 66, 0.6);
+            --border2: rgba(78, 78, 86, 0.9);
             --accent: #3b82f6;
             --accent-glow: rgba(59, 130, 246, 0.18);
             --accent-dim: rgba(59, 130, 246, 0.06);
@@ -36,14 +36,14 @@
             --amber-dim: rgba(245, 158, 11, 0.1);
             --danger: #ef4444;
             --danger-dim: rgba(239, 68, 68, 0.1);
-            --text: #e2e8f0;
-            --text-dim: #a0aec0;
-            --text-muted: #718096;
-            --recv-color: #38bdf8;
-            --sent-color: #fb923c;
-            --sidebar-bg: rgba(8, 12, 24, 0.95);
+            --text: #e6e6e6;
+            --text-dim: #9b9ba3;
+            --text-muted: #6b6b73;
+            --recv-color: #3b82f6;
+            --sent-color: #94a3b8;
+            --sidebar-bg: rgba(15, 15, 17, 0.95);
             --sidebar-width: 200px;
-            --ring-track: rgba(45, 55, 72, 0.5);
+            --ring-track: rgba(60, 60, 66, 0.5);
             --topbar-h: 52px;
             --glass-blur: blur(16px);
             --card-radius: 14px;
@@ -54,7 +54,7 @@
         }
 
         body {
-            font-family: "Reddit Mono", monospace;
+            font-family: "Roboto", sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100dvh;
@@ -69,9 +69,8 @@
             inset: 0;
             z-index: 0;
             background:
-                radial-gradient(ellipse 80% 50% at 20% 0%, rgba(59, 130, 246, 0.07) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(34, 197, 94, 0.04) 0%, transparent 60%),
-                radial-gradient(ellipse 40% 30% at 50% 50%, rgba(59, 130, 246, 0.03) 0%, transparent 70%);
+                radial-gradient(ellipse 80% 50% at 20% 0%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0, 0, 0, 0.28) 0%, transparent 65%);
             pointer-events: none;
         }
 
@@ -82,8 +81,8 @@
             inset: 0;
             z-index: 0;
             background-image:
-                linear-gradient(rgba(59, 130, 246, 0.025) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59, 130, 246, 0.025) 1px, transparent 1px);
+                linear-gradient(rgba(255, 255, 255, 0.014) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px);
             background-size: 32px 32px;
             pointer-events: none;
         }
@@ -148,7 +147,7 @@
             padding: 10px 14px;
             color: var(--text-muted);
             text-decoration: none;
-            font-family: "Reddit Mono", monospace;
+            font-family: "Roboto", sans-serif;
             font-size: 13px;
             font-weight: 500;
             border-left: 2px solid transparent;
@@ -162,9 +161,9 @@
         }
 
         .sidebar-nav a.active {
-            color: var(--green);
-            border-left-color: var(--green);
-            background: rgba(34, 197, 94, 0.06);
+            color: var(--accent);
+            border-left-color: var(--accent);
+            background: rgba(59, 130, 246, 0.07);
         }
 
         .sidebar-nav a svg {
@@ -219,7 +218,7 @@
             top: 0;
             z-index: 100;
             height: var(--topbar-h);
-            background: rgba(10, 14, 26, 0.85);
+            background: rgba(17, 17, 19, 0.85);
             backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
             display: flex;
@@ -261,7 +260,7 @@
             gap: 7px;
             font-size: 12px;
             color: var(--text-muted);
-            background: rgba(22, 27, 39, 0.6);
+            background: rgba(28, 28, 31, 0.6);
             border: 1px solid var(--border);
             border-radius: 20px;
             padding: 5px 14px;
@@ -302,12 +301,13 @@
             border: 1px solid var(--border);
             border-radius: var(--card-radius);
             backdrop-filter: var(--glass-blur);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.22);
             transition: border-color 0.25s, box-shadow 0.25s;
         }
 
         .glass-card:hover {
             border-color: var(--border2);
-            box-shadow: 0 4px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
 
         /* ── SEVERITY STATES ── */
@@ -364,7 +364,7 @@
             right: 0;
             height: 2px;
             border-radius: 2px;
-            background: var(--gauge-accent, var(--green));
+            background: var(--gauge-accent, var(--accent));
             opacity: 0.7;
             transition: opacity 0.3s;
         }
@@ -404,7 +404,7 @@
 
         .ring-fill {
             fill: none;
-            stroke: var(--green);
+            stroke: var(--accent);
             stroke-width: 9;
             stroke-linecap: round;
             stroke-dasharray: 0 314.16;
@@ -423,7 +423,7 @@
         }
 
         .gauge-center-value {
-            font-family: "Reddit Mono", monospace;
+            font-family: "Roboto", sans-serif;
             font-size: 17px;
             font-weight: 700;
             color: var(--text);
@@ -432,7 +432,7 @@
         }
 
         .gauge-sublabel {
-            font-family: "Reddit Mono", monospace;
+            font-family: "Roboto", sans-serif;
             font-size: 11px;
             color: var(--text-muted);
             text-align: center;
@@ -501,7 +501,7 @@
         }
 
         .info-row-label {
-            font-family: "Reddit Mono", monospace;
+            font-family: "Roboto", sans-serif;
             font-size: 12px;
             color: var(--text-muted);
         }
@@ -511,7 +511,7 @@
             font-weight: 600;
             color: var(--text);
             font-variant-numeric: tabular-nums;
-            font-family: "Reddit Mono", monospace;
+            font-family: "Roboto", sans-serif;
             transition: color 0.3s;
         }
 
@@ -570,7 +570,7 @@
             padding: 8px 18px;
             border-radius: 20px;
             font-size: 13px;
-            font-family: "Reddit Mono", monospace;
+            font-family: "Roboto", sans-serif;
             backdrop-filter: blur(12px);
             opacity: 0;
             transition: opacity 0.2s, transform 0.2s;
@@ -755,7 +755,7 @@
 
         .filter-group {
             display: flex;
-            background: rgba(22, 27, 39, 0.6);
+            background: rgba(28, 28, 31, 0.6);
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 4px;
@@ -769,7 +769,7 @@
             border: none;
             color: var(--text-muted);
             padding: 6px 16px;
-            font-family: "Reddit Mono", monospace;
+            font-family: "Roboto", sans-serif;
             font-size: 12px;
             font-weight: 500;
             border-radius: 7px;
@@ -812,11 +812,11 @@
         }
 
         .search-input {
-            background: rgba(22, 27, 39, 0.6);
+            background: rgba(28, 28, 31, 0.6);
             border: 1px solid var(--border);
             color: var(--text);
             padding: 8px 12px 8px 36px;
-            font-family: "Reddit Mono", monospace;
+            font-family: "Roboto", sans-serif;
             font-size: 13px;
             border-radius: 9px;
             width: 200px;
@@ -827,7 +827,7 @@
 
         .search-input:focus {
             border-color: var(--accent);
-            background: rgba(28, 35, 51, 0.9);
+            background: rgba(34, 34, 38, 0.9);
             box-shadow: 0 0 0 3px var(--accent-glow);
             width: 240px;
         }
@@ -843,7 +843,7 @@
 
         /* Table */
         .table-wrap {
-            background: rgba(22, 27, 39, 0.6);
+            background: rgba(28, 28, 31, 0.6);
             border: 1px solid var(--border);
             border-radius: var(--card-radius);
             overflow: hidden;
@@ -942,7 +942,7 @@
         }
 
         tbody tr {
-            border-bottom: 1px solid rgba(45, 55, 72, 0.4);
+            border-bottom: 1px solid rgba(60, 60, 66, 0.4);
             transition: background 0.12s;
             border-left: 2px solid transparent;
             animation: rowIn 0.3s ease backwards;
@@ -1020,9 +1020,9 @@
         }
 
         .badge.offline {
-            background: rgba(100, 116, 139, 0.08);
+            background: rgba(110, 110, 120, 0.08);
             color: var(--text-muted);
-            border: 1px solid rgba(100, 116, 139, 0.15);
+            border: 1px solid rgba(110, 110, 120, 0.15);
         }
 
         .ip-text {
@@ -1087,9 +1087,9 @@
             height: 14px;
             border-radius: 4px;
             background: linear-gradient(90deg,
-                    rgba(33, 41, 61, 0.8) 25%,
-                    rgba(45, 55, 72, 0.6) 50%,
-                    rgba(33, 41, 61, 0.8) 75%);
+                    rgba(40, 40, 46, 0.8) 25%,
+                    rgba(60, 60, 66, 0.6) 50%,
+                    rgba(40, 40, 46, 0.8) 75%);
             background-size: 200% 100%;
             animation: shimmer 1.6s infinite;
         }
@@ -1379,7 +1379,7 @@
                 <div class="glass-card" style="display:flex;flex:1;overflow:hidden;">
 
                     <!-- CPU -->
-                    <div class="gauge-item" id="gauge-cpu" style="--gauge-accent: var(--green)">
+                    <div class="gauge-item" id="gauge-cpu" style="--gauge-accent: var(--accent)">
                         <div class="gauge-item-label">CPU</div>
                         <div class="gauge-ring-wrap">
                             <svg viewBox="0 0 120 120">
@@ -1394,7 +1394,7 @@
                     </div>
 
                     <!-- RAM -->
-                    <div class="gauge-item" id="gauge-ram" style="--gauge-accent: var(--green)">
+                    <div class="gauge-item" id="gauge-ram" style="--gauge-accent: var(--accent)">
                         <div class="gauge-item-label">RAM</div>
                         <div class="gauge-ring-wrap">
                             <svg viewBox="0 0 120 120">
@@ -1409,7 +1409,7 @@
                     </div>
 
                     <!-- Swap -->
-                    <div class="gauge-item" id="gauge-swap" style="--gauge-accent: var(--green)">
+                    <div class="gauge-item" id="gauge-swap" style="--gauge-accent: var(--accent)">
                         <div class="gauge-item-label">Swap</div>
                         <div class="gauge-ring-wrap">
                             <svg viewBox="0 0 120 120">
@@ -1424,7 +1424,7 @@
                     </div>
 
                     <!-- Disk -->
-                    <div class="gauge-item" id="gauge-disk" style="--gauge-accent: var(--green)">
+                    <div class="gauge-item" id="gauge-disk" style="--gauge-accent: var(--accent)">
                         <div class="gauge-item-label">Disk</div>
                         <div class="gauge-ring-wrap">
                             <svg viewBox="0 0 120 120">
@@ -1796,13 +1796,13 @@
 
             // ── Gauge color & severity ─────────────────────────────────────────
             function gaugeColor(ratio) {
-                if (ratio < 0.50) return 'var(--green)';
+                if (ratio < 0.50) return 'var(--accent)';
                 if (ratio < 0.85) return 'var(--amber)';
                 return 'var(--danger)';
             }
 
             function gaugeAccentColor(ratio) {
-                if (ratio < 0.50) return 'var(--green)';
+                if (ratio < 0.50) return 'var(--accent)';
                 if (ratio < 0.85) return 'var(--amber)';
                 return 'var(--danger)';
             }
