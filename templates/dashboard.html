@@ -901,7 +901,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 640px;
+            min-width: 460px;
         }
 
         thead th:first-child,
@@ -1128,6 +1128,118 @@
             margin-right: 3px;
         }
 
+        /* ── EXPANDABLE ROWS ── */
+        .rel-time {
+            font-size: 12px;
+            color: var(--text-dim);
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+        }
+
+        tbody tr.row-online .rel-time {
+            color: var(--text);
+        }
+
+        /* clickable summary row */
+        tbody tr.client-row {
+            cursor: pointer;
+        }
+
+        tbody tr.client-row.expanded {
+            background: rgba(255, 255, 255, 0.045);
+        }
+
+        tbody tr.client-row.expanded {
+            border-bottom-color: transparent;
+        }
+
+        /* chevron */
+        .col-expand {
+            width: 44px;
+            cursor: default;
+        }
+
+        td.cell-expand {
+            text-align: right;
+            color: var(--text-muted);
+        }
+
+        .chevron {
+            display: inline-flex;
+            transition: transform 0.25s ease;
+        }
+
+        tr.client-row.expanded .chevron {
+            transform: rotate(180deg);
+            color: var(--accent);
+        }
+
+        /* detail row: animate via grid-template-rows 0fr → 1fr */
+        tr.detail-row > td {
+            padding: 0 22px;
+            background: rgba(0, 0, 0, 0.22);
+            border-bottom: 1px solid rgba(60, 60, 66, 0.55);
+        }
+
+        .detail-wrap {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.28s ease;
+        }
+
+        tr.detail-row.open > td {
+            border-left: 2px solid var(--accent);
+        }
+
+        tr.detail-row.open .detail-wrap {
+            grid-template-rows: 1fr;
+        }
+
+        .detail-inner {
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px 28px;
+            padding: 18px 4px 20px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 0;
+        }
+
+        .detail-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .detail-value {
+            font-size: 13px;
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+            color: var(--text);
+            letter-spacing: -0.01em;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .detail-value.recv {
+            color: var(--recv-color);
+        }
+
+        .detail-value.sent {
+            color: var(--sent-color);
+        }
+
         .empty-state {
             padding: 64px 20px;
             text-align: center;
@@ -1279,6 +1391,7 @@
             .recv-text,
             .sent-text,
             .total-text,
+            .rel-time,
             .time-online,
             .time-offline {
                 font-size: 13px;
@@ -1862,19 +1975,16 @@
                                         class="arr-dn"></span></span></th>
                             <th data-col="status">Status <span class="sort-arrow"><span class="arr-up"></span><span
                                         class="arr-dn"></span></span></th>
-                            <th data-col="ip">IP Address</th>
                             <th data-col="total">Total <span class="sort-arrow"><span class="arr-up"></span><span
                                         class="arr-dn"></span></span></th>
-                            <th data-col="recv">Download <span class="sort-arrow"><span class="arr-up"></span><span
+                            <th data-col="time">Last Connected <span class="sort-arrow"><span class="arr-up"></span><span
                                         class="arr-dn"></span></span></th>
-                            <th data-col="sent">Upload <span class="sort-arrow"><span class="arr-up"></span><span
-                                        class="arr-dn"></span></span></th>
-                            <th data-col="time">Last Connected</th>
+                            <th class="col-expand" aria-label="Details"></th>
                         </tr>
                     </thead>
                     <tbody id="client-tbody">
                         <tr>
-                            <td colspan="7">
+                            <td colspan="5">
                                 <div style="padding:32px 0; display:flex; flex-direction:column; gap:12px;">
                                     <div class="skeleton" style="width:60%; height:14px;"></div>
                                     <div class="skeleton" style="width:80%; height:14px;"></div>
@@ -1993,6 +2103,44 @@
                 return String(s)
                     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
                     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            // ── Relative time formatting ───────────────────────────────────────
+            // Takes a Unix timestamp in SECONDS (server-computed, timezone-safe)
+            // and returns a human-readable "… ago" string. Computed dynamically
+            // against the current clock so it stays fresh on every render.
+            //   < 60s            → "just now"
+            //   < 60m            → "5 minutes ago"
+            //   < 24h            → "1 hour 38 minutes ago"
+            //   ≥ 24h            → "2 days 21 hours 17 minutes ago"
+            function plural(n, unit) {
+                return n + ' ' + unit + (n === 1 ? '' : 's');
+            }
+
+            function formatRelativeTime(epochSeconds) {
+                epochSeconds = Number(epochSeconds);
+                if (!epochSeconds || epochSeconds <= 0) return 'Never';
+
+                var diff = Math.floor(Date.now() / 1000) - epochSeconds;
+                if (diff < 0) diff = 0;
+                if (diff < 60) return 'just now';
+
+                var totalMinutes = Math.floor(diff / 60);
+                if (totalMinutes < 60) return plural(totalMinutes, 'minute') + ' ago';
+
+                var totalHours = Math.floor(totalMinutes / 60);
+                var minutes = totalMinutes % 60;
+                if (totalHours < 24) {
+                    var hPart = plural(totalHours, 'hour');
+                    return (minutes > 0 ? hPart + ' ' + plural(minutes, 'minute') : hPart) + ' ago';
+                }
+
+                var days = Math.floor(totalHours / 24);
+                var hours = totalHours % 24;
+                var parts = [plural(days, 'day')];
+                if (hours > 0) parts.push(plural(hours, 'hour'));
+                if (minutes > 0) parts.push(plural(minutes, 'minute'));
+                return parts.join(' ') + ' ago';
             }
 
             // ── Gauge color & severity ─────────────────────────────────────────
@@ -2251,6 +2399,8 @@
                 var sortDir = -1;
                 var userHasSorted = false;
                 var searchQuery = '';
+                // Keyed by common_name so expansion survives the 5s auto-refresh.
+                var expanded = Object.create(null);
 
                 // Update sort arrow classes
                 function updateSortArrows() {
@@ -2337,7 +2487,10 @@
                             recv: function (c) { return c.bytes_received; },
                             sent: function (c) { return c.bytes_sent; },
                             total: function (c) { return c.total_traffic; },
-                            status: function (c) { return c.online ? 1 : 0; }
+                            status: function (c) { return c.online ? 1 : 0; },
+                            // "Last Connected" sorts on the relevant timestamp:
+                            // online clients by when they connected, offline by last seen.
+                            time: function (c) { return relevantEpoch(c); }
                         };
                         if (keyOf[sortCol]) {
                             var key = keyOf[sortCol];
@@ -2361,7 +2514,7 @@
 
                     if (!data.length) {
                         tbody.innerHTML =
-                            '<tr><td colspan="7"><div class="empty-state">' +
+                            '<tr><td colspan="5"><div class="empty-state">' +
                             '<h3>No clients found</h3>' +
                             '<p>Try adjusting the filter or search term</p>' +
                             '</div></td></tr>';
@@ -2369,32 +2522,76 @@
                     }
 
                     tbody.innerHTML = data.map(function (c, i) {
-                        var online = c.online;
-                        var sc = online ? 'online' : 'offline';
-                        var ipStr = online ? esc(c.real_address || '—') : '—';
-
-                        var timeHtml;
-                        if (online) {
-                            var since = esc(c.connected_since || '—');
-                            timeHtml = '<span class="time-online"><span class="time-label">Since</span>' + since + '</span>';
-                        } else {
-                            var last = esc(c.last_seen || c.connected_since || 'Never');
-                            timeHtml = '<span class="time-offline"><span class="time-label">Last</span>' + last + '</span>';
-                        }
-
-                        return '<tr class="' + (online ? 'row-online' : '') + '" style="animation-delay:' + (i * 0.025) + 's">' +
-                            '<td><div class="cell-name">' +
-                            '<span class="status-dot ' + sc + '"></span>' +
-                            '<span class="name-text">' + esc(c.common_name) + '</span>' +
-                            '</div></td>' +
-                            '<td><span class="badge ' + sc + '">' + (online ? '● Online' : '○ Offline') + '</span></td>' +
-                            '<td class="ip-text">' + ipStr + '</td>' +
-                            '<td class="total-text">' + esc(c.total_traffic_readable || fmtBytes(c.total_traffic)) + '</td>' +
-                            '<td class="recv-text">' + esc(c.bytes_received_readable || fmtBytes(c.bytes_received)) + '</td>' +
-                            '<td class="sent-text">' + esc(c.bytes_sent_readable || fmtBytes(c.bytes_sent)) + '</td>' +
-                            '<td>' + timeHtml + '</td>' +
-                            '</tr>';
+                        return rowHtml(c, i) + detailHtml(c);
                     }).join('');
+                }
+
+                // The timestamp that "Last Connected" is based on: when an online
+                // client connected, or when an offline client was last seen.
+                function relevantEpoch(c) {
+                    return c.online
+                        ? (c.connected_since_epoch || c.last_seen_epoch || 0)
+                        : (c.last_seen_epoch || c.connected_since_epoch || 0);
+                }
+
+                // Summary row: name, status, total traffic, relative last-connected.
+                function rowHtml(c, i) {
+                    var online = c.online;
+                    var sc = online ? 'online' : 'offline';
+                    var isOpen = !!expanded[c.common_name];
+
+                    var epoch = relevantEpoch(c);
+                    var rel = formatRelativeTime(epoch);
+                    var exact = online ? (c.connected_since || '') : (c.last_seen || c.connected_since || '');
+                    var titleAttr = exact ? ' title="' + esc(exact) + '"' : '';
+
+                    return '<tr class="client-row ' + (online ? 'row-online ' : '') + (isOpen ? 'expanded' : '') +
+                        '" data-name="' + esc(c.common_name) + '" style="animation-delay:' + (i * 0.025) + 's">' +
+                        '<td><div class="cell-name">' +
+                        '<span class="status-dot ' + sc + '"></span>' +
+                        '<span class="name-text">' + esc(c.common_name) + '</span>' +
+                        '</div></td>' +
+                        '<td><span class="badge ' + sc + '">' + (online ? '● Online' : '○ Offline') + '</span></td>' +
+                        '<td class="total-text">' + esc(c.total_traffic_readable || fmtBytes(c.total_traffic)) + '</td>' +
+                        '<td><span class="rel-time"' + titleAttr + '>' + esc(rel) + '</span></td>' +
+                        '<td class="cell-expand"><span class="chevron">' +
+                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+                        '</span></td>' +
+                        '</tr>';
+                }
+
+                // Hidden detail row revealed on expand: IP, up/down traffic, addresses.
+                function detailHtml(c) {
+                    var online = c.online;
+                    var isOpen = !!expanded[c.common_name];
+                    var dash = '—';
+
+                    function item(label, value, cls) {
+                        return '<div class="detail-item">' +
+                            '<span class="detail-label">' + label + '</span>' +
+                            '<span class="detail-value' + (cls ? ' ' + cls : '') + '">' + value + '</span>' +
+                            '</div>';
+                    }
+
+                    var ip = online ? esc(c.real_address || dash) : dash;
+                    var vpn = esc(c.vpn_address || dash);
+                    var recv = esc(c.bytes_received_readable || fmtBytes(c.bytes_received));
+                    var sent = esc(c.bytes_sent_readable || fmtBytes(c.bytes_sent));
+                    var timeLabel = online ? 'Connected Since' : 'Last Seen';
+                    var timeVal = esc((online ? c.connected_since : (c.last_seen || c.connected_since)) || 'Never');
+
+                    var grid =
+                        item('IP Address', ip) +
+                        item('VPN Address', vpn) +
+                        item('Download', recv, 'recv') +
+                        item('Upload', sent, 'sent') +
+                        item(timeLabel, timeVal);
+
+                    return '<tr class="detail-row ' + (isOpen ? 'open' : '') + '" data-detail="' + esc(c.common_name) + '">' +
+                        '<td colspan="5"><div class="detail-wrap"><div class="detail-inner">' +
+                        '<div class="detail-grid">' + grid + '</div>' +
+                        '</div></div></td>' +
+                        '</tr>';
                 }
 
                 // Filter buttons
@@ -2425,6 +2622,22 @@
                 document.getElementById('search').addEventListener('input', function (e) {
                     searchQuery = e.target.value.trim();
                     renderTable();
+                });
+
+                // Row expansion (event delegation — survives re-render). Toggling
+                // classes on the live nodes lets the CSS grid transition animate;
+                // the `expanded` map keeps state across the 5s auto-refresh.
+                document.getElementById('client-tbody').addEventListener('click', function (e) {
+                    var row = e.target.closest('.client-row');
+                    if (!row) return;
+                    var name = row.dataset.name;
+                    var detail = row.nextElementSibling;
+                    var open = !expanded[name];
+                    if (open) { expanded[name] = true; } else { delete expanded[name]; }
+                    row.classList.toggle('expanded', open);
+                    if (detail && detail.classList.contains('detail-row')) {
+                        detail.classList.toggle('open', open);
+                    }
                 });
 
                 // Init + auto-refresh every 5s

@@ -9,6 +9,8 @@ type Client struct {
 	TotalTraffic          int64  `json:"total_traffic"`
 	ConnectedSince        string `json:"connected_since"`
 	LastSeen              string `json:"last_seen"`
+	ConnectedSinceEpoch   int64  `json:"connected_since_epoch"`
+	LastSeenEpoch         int64  `json:"last_seen_epoch"`
 	BytesReceivedReadable string `json:"bytes_received_readable"`
 	BytesSentReadable     string `json:"bytes_sent_readable"`
 	TotalTrafficReadable  string `json:"total_traffic_readable"`

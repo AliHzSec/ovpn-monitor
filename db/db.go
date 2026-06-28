@@ -340,6 +340,8 @@ func (d *DB) QueryClients(ctx context.Context, filter string) ([]model.Client, e
 		c.BytesReceivedReadable = formatBytes(c.BytesReceived)
 		c.BytesSentReadable = formatBytes(c.BytesSent)
 		c.TotalTrafficReadable = formatBytes(c.TotalTraffic)
+		c.ConnectedSinceEpoch = parseLocalEpoch(c.ConnectedSince)
+		c.LastSeenEpoch = parseLocalEpoch(c.LastSeen)
 		clients = append(clients, c)
 	}
 	if err := rows.Err(); err != nil {
@@ -374,6 +376,8 @@ func (d *DB) ClientByVPNAddress(ctx context.Context, vpnAddr string) (*model.Cli
 	c.BytesReceivedReadable = formatBytes(c.BytesReceived)
 	c.BytesSentReadable = formatBytes(c.BytesSent)
 	c.TotalTrafficReadable = formatBytes(c.TotalTraffic)
+	c.ConnectedSinceEpoch = parseLocalEpoch(c.ConnectedSince)
+	c.LastSeenEpoch = parseLocalEpoch(c.LastSeen)
 	return &c, nil
 }
 
@@ -408,6 +412,8 @@ func (d *DB) ClientStatsByName(ctx context.Context, commonName, cutoff, kind str
 	c.BytesReceivedReadable = formatBytes(c.BytesReceived)
 	c.BytesSentReadable = formatBytes(c.BytesSent)
 	c.TotalTrafficReadable = formatBytes(c.TotalTraffic)
+	c.ConnectedSinceEpoch = parseLocalEpoch(c.ConnectedSince)
+	c.LastSeenEpoch = parseLocalEpoch(c.LastSeen)
 	return &c, nil
 }
 
@@ -421,6 +427,20 @@ func (d *DB) CountClients(ctx context.Context) (int, error) {
 	var count int
 	err := d.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM clients`).Scan(&count)
 	return count, err
+}
+
+// parseLocalEpoch converts a stored "2006-01-02 15:04:05" timestamp (written in
+// the server's local time) into Unix seconds so the browser can compute relative
+// time without guessing the timezone. Returns 0 for empty/unparseable values.
+func parseLocalEpoch(s string) int64 {
+	if s == "" {
+		return 0
+	}
+	t, err := time.ParseInLocation("2006-01-02 15:04:05", s, time.Local)
+	if err != nil {
+		return 0
+	}
+	return t.Unix()
 }
 
 func formatBytes(bytes int64) string {
