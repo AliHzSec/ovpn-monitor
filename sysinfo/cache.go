@@ -52,6 +52,13 @@ type HistoryPoint struct {
 // (one averaged point per minute → at most 1440 points).
 const historyRetention = 24 * time.Hour
 
+// history7dRetention bounds the coarse speed history to the last 7 days
+// (one averaged point per 15 minutes → at most 672 points).
+const history7dRetention = 7 * 24 * time.Hour
+
+// history7dBucket is the averaging window of the coarse 7-day history.
+const history7dBucket = 15 * time.Minute
+
 // TrafficQuerier fetches the all-time sum of VPN client traffic from persistent storage.
 // Returning (0, 0, nil) is valid when no sessions exist yet.
 type TrafficQuerier func(ctx context.Context) (sent, recv uint64, err error)
@@ -77,6 +84,14 @@ type StatsCache struct {
 	bucketDown  uint64 // sum of down-speed samples in the current minute
 	bucketUp    uint64 // sum of up-speed samples in the current minute
 	bucketCount uint64 // number of samples in the current minute
+
+	// 7d network speed history (per-15-minute averages), coarser second buffer.
+	history7d     []HistoryPoint
+	history7dJSON []byte // pre-serialized 7d history
+	bucket7Start  int64  // unix seconds of the 15-minute window being accumulated
+	bucket7Down   uint64 // sum of down-speed samples in the current window
+	bucket7Up     uint64 // sum of up-speed samples in the current window
+	bucket7Count  uint64 // number of samples in the current window
 }
 
 // NewStatsCache creates an empty cache. queryTraffic and queryClientCount are called on every
@@ -102,15 +117,20 @@ func (c *StatsCache) Unsubscribe(ch chan []byte) {
 	c.hub.unsubscribe(ch)
 }
 
-// HistoryJSON returns the pre-serialized network speed history for the last
-// 24 hours ("[]" until the first full minute has been sampled).
-func (c *StatsCache) HistoryJSON() []byte {
+// HistoryJSON returns the pre-serialized network speed history for the given
+// range: "7d" selects the coarse 7-day series, anything else the 24-hour one.
+// Returns "[]" until the first full averaging window has been sampled.
+func (c *StatsCache) HistoryJSON(rng string) []byte {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	if c.historyJSON == nil {
+	data := c.historyJSON
+	if rng == "7d" {
+		data = c.history7dJSON
+	}
+	if data == nil {
 		return []byte("[]")
 	}
-	return c.historyJSON
+	return data
 }
 
 // trackSpeed stamps today's peak speed onto stats and folds the sample into
@@ -143,6 +163,19 @@ func (c *StatsCache) trackSpeed(stats *SystemStats, now time.Time) {
 	c.bucketDown += stats.NetDownSpeed
 	c.bucketUp += stats.NetUpSpeed
 	c.bucketCount++
+
+	bucket7 := int64(history7dBucket / time.Second)
+	window := now.Unix() / bucket7 * bucket7
+	if c.bucket7Start == 0 {
+		c.bucket7Start = window
+	}
+	if window != c.bucket7Start {
+		c.flush7dBucketLocked()
+		c.bucket7Start = window
+	}
+	c.bucket7Down += stats.NetDownSpeed
+	c.bucket7Up += stats.NetUpSpeed
+	c.bucket7Count++
 }
 
 // flushBucketLocked averages the accumulated minute into a HistoryPoint,
@@ -171,6 +204,35 @@ func (c *StatsCache) flushBucketLocked() {
 
 	if data, err := json.Marshal(c.history); err == nil {
 		c.historyJSON = data
+	}
+}
+
+// flush7dBucketLocked averages the accumulated 15-minute window into the
+// coarse 7-day history, drops points older than its retention window and
+// re-serializes it. Caller must hold c.mu.
+func (c *StatsCache) flush7dBucketLocked() {
+	if c.bucket7Count == 0 {
+		return
+	}
+	point := HistoryPoint{
+		Timestamp:   c.bucket7Start,
+		DownloadBps: c.bucket7Down / c.bucket7Count,
+		UploadBps:   c.bucket7Up / c.bucket7Count,
+	}
+	c.bucket7Down, c.bucket7Up, c.bucket7Count = 0, 0, 0
+
+	cutoff := point.Timestamp - int64(history7dRetention/time.Second)
+	trim := 0
+	for trim < len(c.history7d) && c.history7d[trim].Timestamp < cutoff {
+		trim++
+	}
+	if trim > 0 {
+		c.history7d = append(c.history7d[:0], c.history7d[trim:]...)
+	}
+	c.history7d = append(c.history7d, point)
+
+	if data, err := json.Marshal(c.history7d); err == nil {
+		c.history7dJSON = data
 	}
 }
 

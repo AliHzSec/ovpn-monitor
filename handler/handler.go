@@ -88,7 +88,7 @@ func Register(
 
 	mux.Handle("/api/network-history", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(cache.HistoryJSON())
+		w.Write(cache.HistoryJSON(r.URL.Query().Get("range")))
 	})))
 
 	mux.Handle("/api/clients", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
