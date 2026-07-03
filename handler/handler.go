@@ -86,6 +86,11 @@ func Register(
 		w.Write(data)
 	})))
 
+	mux.Handle("/api/network-history", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(cache.HistoryJSON())
+	})))
+
 	mux.Handle("/api/clients", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		filter := r.URL.Query().Get("filter")
 		clients, err := database.QueryClients(r.Context(), filter)
@@ -261,7 +266,7 @@ func Register(
 			for _, key := range keys {
 				val := r.FormValue(key)
 				if err := database.SaveSetting(r.Context(), key, val); err != nil {
-					logger.Error("settings: save "+key+": "+err.Error())
+					logger.Error("settings: save " + key + ": " + err.Error())
 					http.Error(w, "Failed to save settings", http.StatusInternalServerError)
 					return
 				}

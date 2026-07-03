@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -35,11 +36,16 @@ type SystemStats struct {
 	IPv6s        []string `json:"ipv6s"`
 	TCPCount     int      `json:"tcp_count"`
 	UDPCount     int      `json:"udp_count"`
-	OSUptime     uint64   `json:"os_uptime"`    // seconds since system boot
-	OVPNUptime   uint64   `json:"ovpn_uptime"`  // seconds since openvpn service started
-	OSName       string   `json:"os_name"`      // PRETTY_NAME from /etc/os-release
+	OSUptime     uint64   `json:"os_uptime"`     // seconds since system boot
+	OVPNUptime   uint64   `json:"ovpn_uptime"`   // seconds since openvpn service started
+	OSName       string   `json:"os_name"`       // PRETTY_NAME from /etc/os-release
 	ClientOnline int      `json:"client_online"` // currently connected VPN clients
 	ClientTotal  int      `json:"client_total"`  // total registered VPN clients
+
+	KernelVersion  string    `json:"kernel_version"`   // output of uname -r
+	Timezone       string    `json:"timezone"`         // system time zone, e.g. Europe/Berlin
+	LoadAvg        []float64 `json:"load_avg"`         // 1/5/15 minute load averages
+	PeakSpeedToday uint64    `json:"peak_speed_today"` // bytes/sec, highest up/down speed since local midnight (set by StatsCache)
 }
 
 type cpuSample struct {
@@ -378,6 +384,60 @@ func readOSName() string {
 	return ""
 }
 
+// Kernel version and time zone never change while the process runs, so they
+// are resolved once and reused on every collection cycle.
+var (
+	hostInfoOnce  sync.Once
+	kernelVersion string
+	timezoneName  string
+)
+
+func hostInfo() (kernel, timezone string) {
+	hostInfoOnce.Do(func() {
+		if out, err := exec.Command("uname", "-r").Output(); err == nil {
+			kernelVersion = strings.TrimSpace(string(out))
+		}
+		timezoneName = readTimezone()
+	})
+	return kernelVersion, timezoneName
+}
+
+func readTimezone() string {
+	if b, err := os.ReadFile("/etc/timezone"); err == nil {
+		if tz := strings.TrimSpace(string(b)); tz != "" {
+			return tz
+		}
+	}
+	// /etc/localtime is usually a symlink into the zoneinfo database.
+	if target, err := os.Readlink("/etc/localtime"); err == nil {
+		if i := strings.Index(target, "zoneinfo/"); i >= 0 {
+			return target[i+len("zoneinfo/"):]
+		}
+	}
+	name, _ := time.Now().Zone()
+	return name
+}
+
+func readLoadAvg() []float64 {
+	b, err := os.ReadFile("/proc/loadavg")
+	if err != nil {
+		return nil
+	}
+	fields := strings.Fields(string(b))
+	if len(fields) < 3 {
+		return nil
+	}
+	loads := make([]float64, 0, 3)
+	for _, s := range fields[:3] {
+		v, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return nil
+		}
+		loads = append(loads, v)
+	}
+	return loads
+}
+
 // Collect gathers all metrics and returns a SystemStats snapshot.
 // It blocks for ~1 second to sample CPU and network speed.
 func Collect() (*SystemStats, error) {
@@ -454,6 +514,7 @@ func Collect() (*SystemStats, error) {
 	osUptime, _ := readOSUptime()
 	ovpnUptime := getOVPNUptime(osUptime)
 	osName := readOSName()
+	kernel, timezone := hostInfo()
 
 	return &SystemStats{
 		CPUPercent:   cpuPct,
@@ -477,5 +538,9 @@ func Collect() (*SystemStats, error) {
 		OSUptime:     osUptime,
 		OVPNUptime:   ovpnUptime,
 		OSName:       osName,
+
+		KernelVersion: kernel,
+		Timezone:      timezone,
+		LoadAvg:       readLoadAvg(),
 	}, nil
 }

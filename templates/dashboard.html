@@ -322,9 +322,7 @@
         .page-area {
             flex: 1;
             padding: var(--sp-6);
-            max-width: 1320px;
             width: 100%;
-            margin-inline: auto;
         }
 
         /* ── CARD BASE (glass) ── */
@@ -353,19 +351,21 @@
             box-shadow: 0 0 20px rgba(239, 68, 68, 0.1) !important;
         }
 
-        /* ── OVERVIEW: STATUS BAR ── */
-        .status-bar {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-            animation: cardIn 0.4s ease backwards;
+        /* ── OVERVIEW: ROW LAYOUT ── */
+        .ov-row {
+            display: grid;
+            grid-template-columns: minmax(0, 13fr) minmax(300px, 7fr);
+            gap: 16px;
+            align-items: stretch;
+            margin-bottom: 16px;
         }
 
-        .status-bar>.glass-card {
-            flex: 1;
-            padding: 0;
+        /* Server resources: the large gauges card */
+        .resources-card {
             display: flex;
+            padding: 0;
             overflow: hidden;
+            animation: cardIn 0.4s ease backwards;
         }
 
         .gauge-item {
@@ -373,8 +373,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
-            padding: 20px 16px;
+            gap: 10px;
+            padding: 26px 18px 24px;
             position: relative;
             transition: background 0.2s;
         }
@@ -415,11 +415,11 @@
             align-self: flex-start;
         }
 
-        /* SVG semicircle gauge */
+        /* SVG semicircle gauge — fluid: grows with the viewport on the full-width layout */
         .gauge-ring-wrap {
             position: relative;
-            width: 130px;
-            height: 130px;
+            width: clamp(112px, 8.5vw, 170px);
+            height: clamp(112px, 8.5vw, 170px);
         }
 
         .gauge-ring-wrap svg {
@@ -456,7 +456,7 @@
 
         .gauge-center-value {
             font-family: var(--font-mono);
-            font-size: var(--fs-stat);
+            font-size: clamp(17px, 1.3vw, 22px);
             font-weight: 600;
             color: var(--text);
             letter-spacing: -0.01em;
@@ -465,18 +465,225 @@
 
         .gauge-sublabel {
             font-family: var(--font-mono);
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-muted);
             text-align: center;
             line-height: 1.5;
             margin-top: 2px;
         }
 
+        /* ── OVERVIEW: CLIENTS CARD (row 1, right) ── */
+        .ov-clients {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ov-clients .stat-rows {
+            flex: 1;
+            justify-content: center;
+        }
+
+        /* ── OVERVIEW: NETWORK TRAFFIC CHART ── */
+        .chart-card {
+            display: flex;
+            flex-direction: column;
+            padding: 18px 20px 12px;
+            animation: cardIn 0.4s ease backwards;
+        }
+
+        .chart-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            padding-bottom: var(--sp-3);
+            margin-bottom: var(--sp-3);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .chart-title {
+            font-family: var(--font-sans);
+            font-size: var(--fs-heading);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: var(--sp-2);
+        }
+
+        .chart-sub {
+            font-size: var(--fs-label);
+            font-weight: 400;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        .chart-legend {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .chart-legend .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+
+        .chart-body {
+            position: relative;
+            flex: 1;
+            min-height: 260px;
+        }
+
+        .chart-svg {
+            position: absolute;
+            inset: 0;
+        }
+
+        .chart-body svg {
+            display: block;
+        }
+
+        .chart-empty {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .chart-tooltip {
+            position: absolute;
+            display: none;
+            pointer-events: none;
+            z-index: 5;
+            background: rgba(20, 20, 24, 0.95);
+            border: 1px solid var(--border2);
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            line-height: 1.7;
+            white-space: nowrap;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+        }
+
+        /* ── OVERVIEW: SIDE COLUMN (live speed + totals) ── */
+        .ov-side {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        .speed-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 18px 20px;
+            animation: cardIn 0.4s ease backwards;
+        }
+
+        .speed-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 0 10px;
+        }
+
+        /* full-circle gauge: outer ring = download, inner ring = upload */
+        .speed-ring-wrap {
+            position: relative;
+            width: clamp(160px, 13vw, 210px);
+            height: clamp(160px, 13vw, 210px);
+        }
+
+        .speed-ring-wrap svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .speed-ring-track {
+            fill: none;
+            stroke: var(--ring-track);
+            stroke-width: 10;
+        }
+
+        .speed-ring-fill {
+            fill: none;
+            stroke-width: 10;
+            stroke-linecap: round;
+            transition: stroke-dasharray 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .speed-ring-fill.down {
+            stroke: var(--recv-color);
+            filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.5));
+        }
+
+        .speed-ring-fill.up {
+            stroke: var(--sent-color);
+            filter: drop-shadow(0 0 4px rgba(148, 163, 184, 0.4));
+        }
+
+        .speed-center {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            text-align: center;
+        }
+
+        .speed-center-down {
+            font-family: var(--font-mono);
+            font-size: 17px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--recv-color);
+        }
+
+        .speed-center-up {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--sent-color);
+        }
+
+        .speed-caption {
+            text-align: center;
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            color: var(--text-muted);
+            padding-top: 4px;
+        }
+
         /* ── OVERVIEW: INFO GRID ── */
         .info-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(4, 1fr);
             gap: 14px;
+        }
+
+        @media (max-width: 1500px) {
+            .info-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         .info-card {
@@ -564,6 +771,29 @@
 
         .info-row-value.val-down {
             color: var(--recv-color);
+        }
+
+        /* stacked variant: label left, value right — for longer text values */
+        .info-rows.vertical {
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .info-rows.vertical .info-row {
+            flex-direction: row;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 0;
+        }
+
+        .info-rows.vertical .info-row+.info-row {
+            border-left: none;
+        }
+
+        .info-rows.vertical .info-row-value {
+            font-size: 14px;
+            text-align: right;
         }
 
         /* Click-to-copy IP */
@@ -1399,6 +1629,44 @@
         }
 
         /* ── RESPONSIVE ── */
+
+        /* overview rows: collapse to one column */
+        @media (max-width: 1250px) {
+            .ov-row {
+                grid-template-columns: 1fr;
+            }
+
+            /* speed gauge + totals sit side by side once they leave the narrow column */
+            .ov-side {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                align-items: stretch;
+            }
+        }
+
+        /* resources gauges: wrap to 2×2 before they get cramped */
+        @media (max-width: 900px) {
+            .resources-card {
+                flex-wrap: wrap;
+            }
+
+            .gauge-item {
+                flex: 0 0 50%;
+            }
+
+            .gauge-item+.gauge-item {
+                border-left: none;
+            }
+
+            .gauge-item:nth-child(even) {
+                border-left: 1px solid var(--border);
+            }
+
+            .gauge-item:nth-child(n+3) {
+                border-top: 1px solid var(--border);
+            }
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
@@ -1422,31 +1690,23 @@
                 padding: 18px;
             }
 
-            .status-bar {
-                margin-bottom: 16px;
+            .ov-row {
+                gap: 12px;
+                margin-bottom: 12px;
             }
 
-            /* status bar: 2×2 — fluid rings so they stay roomy, not cramped */
-            .status-bar>.glass-card {
-                flex-wrap: wrap;
+            .ov-side {
+                grid-template-columns: 1fr;
+                gap: 12px;
             }
 
             .gauge-item {
-                flex: 0 0 50%;
                 padding: 18px 14px;
                 gap: 6px;
             }
 
-            .gauge-item+.gauge-item {
-                border-left: none;
-            }
-
-            .gauge-item:nth-child(even) {
-                border-left: 1px solid var(--border);
-            }
-
-            .gauge-item:nth-child(n+3) {
-                border-top: 1px solid var(--border);
+            .chart-body {
+                min-height: 220px;
             }
 
             /* ring scales with viewport, capped so it never crowds the cell */
@@ -1687,9 +1947,11 @@
         <!-- ── OVERVIEW PAGE ── -->
         <main class="page-area" id="page-overview" style="display:none">
 
-            <!-- Status bar: CPU · RAM · Disk · Swap -->
-            <div class="status-bar">
-                <div class="glass-card" style="display:flex;flex:1;overflow:hidden;">
+            <!-- Row 1: Server Resources (large) + Clients -->
+            <div class="ov-row">
+
+                <!-- Server Resources: CPU · RAM · Swap · Disk -->
+                <div class="glass-card resources-card">
 
                     <!-- CPU -->
                     <div class="gauge-item" id="gauge-cpu" style="--gauge-accent: var(--accent)">
@@ -1752,46 +2014,125 @@
                     </div>
 
                 </div>
+
+                <!-- Clients -->
+                <div class="stat-card glass-card c-clients ov-clients">
+                    <div class="stat-card-title">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                        Clients
+                    </div>
+                    <div class="stat-rows">
+                        <div class="stat-row">
+                            <div class="stat-row-label"><span class="dot" style="background:var(--accent)"></span>Total
+                            </div>
+                            <div class="stat-row-value total" id="ov-cl-total">—</div>
+                        </div>
+                        <div class="stat-row">
+                            <div class="stat-row-label"><span class="dot" style="background:var(--green)"></span>Online
+                            </div>
+                            <div class="stat-row-value online">
+                                <span id="ov-cl-online">—</span>
+                                <span class="pct" id="ov-cl-online-pct"></span>
+                            </div>
+                        </div>
+                        <div class="stat-row">
+                            <div class="stat-row-label"><span class="dot"
+                                    style="background:var(--text-muted)"></span>Offline</div>
+                            <div class="stat-row-value offline">
+                                <span id="ov-cl-offline">—</span>
+                                <span class="pct" id="ov-cl-offline-pct"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ratio-bar">
+                        <div class="ratio-bar-fill" id="ov-ratio-fill" style="width:0%"></div>
+                    </div>
+                    <div class="ratio-bar-label">
+                        <span id="ov-ratio-online">Online 0%</span>
+                        <span id="ov-ratio-offline">Offline 100%</span>
+                    </div>
+                </div>
+
             </div>
 
-            <!-- 4 info cards (2×2 grid) -->
+            <!-- Row 2: 24h traffic chart + live speed / total data -->
+            <div class="ov-row">
+
+                <!-- Network Traffic chart -->
+                <div class="glass-card chart-card">
+                    <div class="chart-head">
+                        <span class="chart-title"><span class="info-card-title-dot"
+                                style="background:var(--accent)"></span>Network Traffic<span class="chart-sub">Last 24
+                                hours</span></span>
+                        <div class="chart-legend">
+                            <span><span class="dot" style="background:var(--recv-color)"></span>Download</span>
+                            <span><span class="dot" style="background:var(--sent-color)"></span>Upload</span>
+                        </div>
+                    </div>
+                    <div class="chart-body" id="chart-body">
+                        <div class="chart-empty" id="chart-empty">Collecting traffic history…</div>
+                        <div class="chart-svg" id="chart-svg"></div>
+                        <div class="chart-tooltip" id="chart-tooltip"></div>
+                    </div>
+                </div>
+
+                <!-- Live speed gauge + total data -->
+                <div class="ov-side">
+
+                    <div class="glass-card speed-card">
+                        <div class="info-card-title"><span class="info-card-title-dot"
+                                style="background:var(--recv-color)"></span>Live Speed</div>
+                        <div class="speed-body">
+                            <div class="speed-ring-wrap">
+                                <svg viewBox="0 0 140 140">
+                                    <circle class="speed-ring-track" cx="70" cy="70" r="62" />
+                                    <circle class="speed-ring-fill down" id="speed-ring-down" cx="70" cy="70" r="62"
+                                        stroke-dasharray="0 389.56" />
+                                    <circle class="speed-ring-track" cx="70" cy="70" r="46" />
+                                    <circle class="speed-ring-fill up" id="speed-ring-up" cx="70" cy="70" r="46"
+                                        stroke-dasharray="0 289.03" />
+                                </svg>
+                                <div class="speed-center">
+                                    <span class="speed-center-down" id="speed-down">↓ —</span>
+                                    <span class="speed-center-up" id="speed-up">↑ —</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="speed-caption">Scaled to today's peak · <span id="speed-peak">—</span></div>
+                    </div>
+
+                    <!-- Total Data -->
+                    <div class="info-card glass-card">
+                        <div class="info-card-title"><span class="info-card-title-dot"
+                                style="background:var(--recv-color)"></span>Total Data</div>
+                        <div class="info-rows">
+                            <div class="info-row">
+                                <span class="info-row-label">Total</span>
+                                <span class="info-row-value" id="net-total">—</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-row-label">Received</span>
+                                <span class="info-row-value val-down" id="net-recv">—</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-row-label">Sent</span>
+                                <span class="info-row-value val-up" id="net-sent">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Bottom row: IP · Uptime · Connections · System Info -->
             <div class="info-grid">
-
-                <!-- Overall Speed -->
-                <div class="info-card glass-card">
-                    <div class="info-card-title"><span class="info-card-title-dot"
-                            style="background:var(--sent-color)"></span>Overall Speed</div>
-                    <div class="info-rows">
-                        <div class="info-row">
-                            <span class="info-row-label">↑ Upload</span>
-                            <span class="info-row-value val-up" id="ov-up">—</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-row-label">↓ Download</span>
-                            <span class="info-row-value val-down" id="ov-down">—</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Total Data -->
-                <div class="info-card glass-card">
-                    <div class="info-card-title"><span class="info-card-title-dot"
-                            style="background:var(--recv-color)"></span>Total Data</div>
-                    <div class="info-rows">
-                        <div class="info-row">
-                            <span class="info-row-label">Total</span>
-                            <span class="info-row-value" id="net-total">—</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-row-label">Received</span>
-                            <span class="info-row-value val-down" id="net-recv">—</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-row-label">Sent</span>
-                            <span class="info-row-value val-up" id="net-sent">—</span>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- IP Addresses -->
                 <div class="info-card glass-card">
@@ -1805,6 +2146,21 @@
                         <div class="info-row">
                             <span class="info-row-label">IPv6</span>
                             <span class="info-row-value copyable" id="ip-v6" title="Click to copy">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Uptime -->
+                <div class="info-card glass-card">
+                    <div class="info-card-title"><span class="info-card-title-dot"></span>Uptime</div>
+                    <div class="info-rows">
+                        <div class="info-row">
+                            <span class="info-row-label" id="uptime-os-label">OS</span>
+                            <span class="info-row-value" id="uptime-os">—</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-row-label">OpenVPN Service</span>
+                            <span class="info-row-value" id="uptime-vpn">—</span>
                         </div>
                     </div>
                 </div>
@@ -1825,37 +2181,22 @@
                     </div>
                 </div>
 
-                <!-- Uptime -->
-                <div class="info-card glass-card">
-                    <div class="info-card-title"><span class="info-card-title-dot"></span>Uptime</div>
-                    <div class="info-rows">
-                        <div class="info-row">
-                            <span class="info-row-label" id="uptime-os-label">OS</span>
-                            <span class="info-row-value" id="uptime-os">—</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-row-label">OpenVPN Service</span>
-                            <span class="info-row-value" id="uptime-vpn">—</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Client Status -->
+                <!-- System Info -->
                 <div class="info-card glass-card">
                     <div class="info-card-title"><span class="info-card-title-dot"
-                            style="background:var(--green)"></span>Client Status</div>
-                    <div class="info-rows">
+                            style="background:var(--amber)"></span>System Info</div>
+                    <div class="info-rows vertical">
                         <div class="info-row">
-                            <span class="info-row-label">Online</span>
-                            <span class="info-row-value" id="cs-online" style="color:var(--green)">—</span>
+                            <span class="info-row-label">Kernel</span>
+                            <span class="info-row-value" id="sys-kernel">—</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-row-label">Offline</span>
-                            <span class="info-row-value muted" id="cs-offline">—</span>
+                            <span class="info-row-label">Time Zone</span>
+                            <span class="info-row-value" id="sys-tz">—</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-row-label">Total</span>
-                            <span class="info-row-value" id="cs-total">—</span>
+                            <span class="info-row-label">Load Avg</span>
+                            <span class="info-row-value" id="sys-load">—</span>
                         </div>
                     </div>
                 </div>
@@ -2242,6 +2583,20 @@
                     return privateRanges.some(function (r) { return r.test(ip); });
                 }
 
+                // ── Live speed gauge (two concentric full-circle rings) ────────
+                var RING_DOWN_C = 2 * Math.PI * 62; // outer ring circumference
+                var RING_UP_C = 2 * Math.PI * 46;   // inner ring circumference
+                // Rings fill relative to the highest speed seen today — the max of
+                // the server-reported peak and anything observed this session.
+                var speedScale = 0;
+
+                function setSpeedRing(id, ratio, circumference) {
+                    var el = document.getElementById(id);
+                    if (!el) return;
+                    var fill = circumference * Math.min(1, Math.max(0, ratio));
+                    el.style.strokeDasharray = fill + ' ' + circumference;
+                }
+
                 function updateDashboard(stats) {
                     // CPU
                     var cpuPct = stats.cpu_percent || 0;
@@ -2283,9 +2638,15 @@
                     setRing('swap-ring', swapRatio);
                     setGaugeSeverity('gauge-swap', swapRatio);
 
-                    // Overall speed
-                    document.getElementById('ov-up').textContent = fmtSpeed(stats.net_up_speed || 0);
-                    document.getElementById('ov-down').textContent = fmtSpeed(stats.net_down_speed || 0);
+                    // Live speed gauge: outer ring = download, inner ring = upload
+                    var downSpeed = stats.net_down_speed || 0;
+                    var upSpeed = stats.net_up_speed || 0;
+                    speedScale = Math.max(speedScale, stats.peak_speed_today || 0, downSpeed, upSpeed);
+                    setSpeedRing('speed-ring-down', speedScale ? downSpeed / speedScale : 0, RING_DOWN_C);
+                    setSpeedRing('speed-ring-up', speedScale ? upSpeed / speedScale : 0, RING_UP_C);
+                    document.getElementById('speed-down').textContent = '↓ ' + fmtSpeed(downSpeed);
+                    document.getElementById('speed-up').textContent = '↑ ' + fmtSpeed(upSpeed);
+                    document.getElementById('speed-peak').textContent = fmtSpeed(speedScale);
 
                     // Total VPN traffic
                     var vpnSent = stats.vpn_total_sent || 0;
@@ -2326,15 +2687,236 @@
                         vpnUptimeEl.className = 'info-row-value muted';
                     }
 
-                    // Client Status
+                    // Clients card
                     var csOnline = stats.client_online != null ? stats.client_online : 0;
                     var csTotal = stats.client_total != null ? stats.client_total : 0;
-                    document.getElementById('cs-online').textContent = csOnline;
-                    document.getElementById('cs-offline').textContent = csTotal - csOnline;
-                    document.getElementById('cs-total').textContent = csTotal;
+                    var csOffline = Math.max(0, csTotal - csOnline);
+                    var pctOn = csTotal ? Math.round(csOnline / csTotal * 100) : 0;
+                    var pctOff = csTotal ? Math.round(csOffline / csTotal * 100) : 0;
+                    document.getElementById('ov-cl-total').textContent = csTotal;
+                    document.getElementById('ov-cl-online').textContent = csOnline;
+                    document.getElementById('ov-cl-offline').textContent = csOffline;
+                    document.getElementById('ov-cl-online-pct').textContent = '(' + pctOn + '%)';
+                    document.getElementById('ov-cl-offline-pct').textContent = '(' + pctOff + '%)';
+                    document.getElementById('ov-ratio-fill').style.width = pctOn + '%';
+                    document.getElementById('ov-ratio-online').textContent = 'Online ' + pctOn + '%';
+                    document.getElementById('ov-ratio-offline').textContent = 'Offline ' + pctOff + '%';
+
+                    // System info
+                    document.getElementById('sys-kernel').textContent = stats.kernel_version || '—';
+                    document.getElementById('sys-tz').textContent = stats.timezone || '—';
+                    var loadAvg = stats.load_avg;
+                    document.getElementById('sys-load').textContent =
+                        (loadAvg && loadAvg.length === 3)
+                            ? loadAvg.map(function (v) { return v.toFixed(2); }).join(' · ')
+                            : '—';
 
                     updateTimestamp();
                 }
+
+                // ── Network Traffic chart (last 24h from /api/network-history) ──
+                var historyData = [];
+                var chartState = null;
+                var chartBody = document.getElementById('chart-body');
+                var chartSvgWrap = document.getElementById('chart-svg');
+                var chartTooltip = document.getElementById('chart-tooltip');
+                var chartEmpty = document.getElementById('chart-empty');
+
+                function fetchHistory() {
+                    fetch('/api/network-history').then(function (res) {
+                        if (!res.ok) {
+                            if (res.status === 401) { location.href = '/panel/login'; }
+                            return null;
+                        }
+                        return res.json();
+                    }).then(function (data) {
+                        if (data) { historyData = data; renderChart(); }
+                    }).catch(function (e) {
+                        console.error('network-history error:', e);
+                    });
+                }
+
+                // short speed labels for the y axis
+                function fmtSpeedShort(n) {
+                    if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + ' MB/s';
+                    if (n >= 1e3) return Math.round(n / 1e3) + ' KB/s';
+                    return Math.round(n) + ' B/s';
+                }
+
+                function fmtClock(ts) {
+                    var d = new Date(ts * 1000);
+                    return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+                }
+
+                function renderChart() {
+                    var pts = historyData;
+                    if (!pts || pts.length < 2) {
+                        chartEmpty.style.display = 'flex';
+                        chartSvgWrap.innerHTML = '';
+                        chartState = null;
+                        return;
+                    }
+                    chartEmpty.style.display = 'none';
+
+                    var W = chartBody.clientWidth, H = chartBody.clientHeight;
+                    if (W < 60 || H < 60) return;
+                    var padL = 58, padR = 10, padT = 10, padB = 22;
+                    var iw = W - padL - padR, ih = H - padT - padB;
+
+                    var t0 = pts[0].timestamp;
+                    var t1 = pts[pts.length - 1].timestamp;
+                    if (t1 <= t0) t1 = t0 + 60;
+                    var maxV = 1024; // floor so a flat line doesn't fill the chart
+                    pts.forEach(function (p) {
+                        if (p.download_bps > maxV) maxV = p.download_bps;
+                        if (p.upload_bps > maxV) maxV = p.upload_bps;
+                    });
+                    maxV *= 1.15; // headroom above the peak
+
+                    function x(t) { return padL + (t - t0) / (t1 - t0) * iw; }
+                    function y(v) { return padT + (1 - v / maxV) * ih; }
+
+                    // samples more than 3 minutes apart mean the server was down:
+                    // break the line instead of drawing through the gap
+                    var GAP = 180;
+
+                    function linePath(key) {
+                        var d = '';
+                        for (var i = 0; i < pts.length; i++) {
+                            var cmd = (i === 0 || pts[i].timestamp - pts[i - 1].timestamp > GAP) ? 'M' : 'L';
+                            d += cmd + x(pts[i].timestamp).toFixed(1) + ',' + y(pts[i][key]).toFixed(1);
+                        }
+                        return d;
+                    }
+
+                    function areaPath(key) {
+                        var d = '', segStartX = null, lastX = null;
+                        var baseY = (padT + ih).toFixed(1);
+                        for (var i = 0; i < pts.length; i++) {
+                            var px = x(pts[i].timestamp).toFixed(1);
+                            var py = y(pts[i][key]).toFixed(1);
+                            if (i === 0 || pts[i].timestamp - pts[i - 1].timestamp > GAP) {
+                                if (segStartX !== null) d += 'L' + lastX + ',' + baseY + 'L' + segStartX + ',' + baseY + 'Z';
+                                d += 'M' + px + ',' + py;
+                                segStartX = px;
+                            } else {
+                                d += 'L' + px + ',' + py;
+                            }
+                            lastX = px;
+                        }
+                        if (segStartX !== null) d += 'L' + lastX + ',' + baseY + 'L' + segStartX + ',' + baseY + 'Z';
+                        return d;
+                    }
+
+                    var svg = '<defs>' +
+                        '<linearGradient id="grad-down" x1="0" y1="0" x2="0" y2="1">' +
+                        '<stop offset="0%" stop-color="#3b82f6" stop-opacity="0.28"/>' +
+                        '<stop offset="100%" stop-color="#3b82f6" stop-opacity="0.02"/>' +
+                        '</linearGradient>' +
+                        '<linearGradient id="grad-up" x1="0" y1="0" x2="0" y2="1">' +
+                        '<stop offset="0%" stop-color="#94a3b8" stop-opacity="0.2"/>' +
+                        '<stop offset="100%" stop-color="#94a3b8" stop-opacity="0.02"/>' +
+                        '</linearGradient>' +
+                        '</defs>';
+
+                    // horizontal gridlines + y labels
+                    var steps = 4;
+                    for (var g = 0; g <= steps; g++) {
+                        var gy = (padT + ih * g / steps).toFixed(1);
+                        svg += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy +
+                            '" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>';
+                        svg += '<text x="' + (padL - 8) + '" y="' + (+gy + 3.5) + '" text-anchor="end" fill="#6b6b73"' +
+                            ' font-size="10" font-family="JetBrains Mono, monospace">' +
+                            fmtSpeedShort(maxV * (1 - g / steps)) + '</text>';
+                    }
+
+                    // x-axis time ticks at a "nice" interval for the covered span
+                    var span = t1 - t0;
+                    var intervals = [300, 600, 900, 1800, 3600, 7200, 10800, 14400, 21600];
+                    var stepS = intervals[intervals.length - 1];
+                    for (var ii = 0; ii < intervals.length; ii++) {
+                        if (span / intervals[ii] <= 7) { stepS = intervals[ii]; break; }
+                    }
+                    for (var tt = Math.ceil(t0 / stepS) * stepS; tt <= t1; tt += stepS) {
+                        svg += '<text x="' + x(tt).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" fill="#6b6b73"' +
+                            ' font-size="10" font-family="JetBrains Mono, monospace">' + fmtClock(tt) + '</text>';
+                    }
+
+                    svg += '<path d="' + areaPath('download_bps') + '" fill="url(#grad-down)"/>';
+                    svg += '<path d="' + linePath('download_bps') + '" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linejoin="round"/>';
+                    svg += '<path d="' + areaPath('upload_bps') + '" fill="url(#grad-up)"/>';
+                    svg += '<path d="' + linePath('upload_bps') + '" fill="none" stroke="#94a3b8" stroke-width="1.6" stroke-linejoin="round"/>';
+
+                    // hover crosshair + markers (positioned on mousemove)
+                    svg += '<line id="chart-cursor" y1="' + padT + '" y2="' + (padT + ih) +
+                        '" stroke="rgba(255,255,255,0.18)" stroke-width="1" style="display:none"/>';
+                    svg += '<circle id="chart-dot-down" r="3.5" fill="#3b82f6" stroke="#141414" stroke-width="1.5" style="display:none"/>';
+                    svg += '<circle id="chart-dot-up" r="3" fill="#94a3b8" stroke="#141414" stroke-width="1.5" style="display:none"/>';
+
+                    chartSvgWrap.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' + svg + '</svg>';
+                    chartState = { pts: pts, x: x, y: y, padL: padL, padR: padR, W: W };
+                }
+
+                function hideChartHover() {
+                    chartTooltip.style.display = 'none';
+                    ['chart-cursor', 'chart-dot-down', 'chart-dot-up'].forEach(function (id) {
+                        var el = document.getElementById(id);
+                        if (el) el.style.display = 'none';
+                    });
+                }
+
+                chartBody.addEventListener('mousemove', function (e) {
+                    var st = chartState;
+                    if (!st) return;
+                    var rect = chartBody.getBoundingClientRect();
+                    var mx = e.clientX - rect.left;
+                    if (mx < st.padL || mx > st.W - st.padR) { hideChartHover(); return; }
+
+                    // nearest sample to the cursor (binary search on timestamps)
+                    var pts = st.pts, lo = 0, hi = pts.length - 1;
+                    var t = pts[0].timestamp +
+                        (mx - st.padL) / (st.x(pts[hi].timestamp) - st.padL || 1) *
+                        (pts[hi].timestamp - pts[0].timestamp);
+                    while (hi - lo > 1) {
+                        var mid = (lo + hi) >> 1;
+                        if (pts[mid].timestamp < t) lo = mid; else hi = mid;
+                    }
+                    var p = (Math.abs(pts[lo].timestamp - t) <= Math.abs(pts[hi].timestamp - t)) ? pts[lo] : pts[hi];
+                    var px = st.x(p.timestamp);
+
+                    var cursor = document.getElementById('chart-cursor');
+                    var dotDown = document.getElementById('chart-dot-down');
+                    var dotUp = document.getElementById('chart-dot-up');
+                    if (cursor) {
+                        cursor.setAttribute('x1', px); cursor.setAttribute('x2', px);
+                        cursor.style.display = '';
+                    }
+                    if (dotDown) {
+                        dotDown.setAttribute('cx', px); dotDown.setAttribute('cy', st.y(p.download_bps));
+                        dotDown.style.display = '';
+                    }
+                    if (dotUp) {
+                        dotUp.setAttribute('cx', px); dotUp.setAttribute('cy', st.y(p.upload_bps));
+                        dotUp.style.display = '';
+                    }
+
+                    chartTooltip.innerHTML =
+                        '<div style="color:var(--text-dim)">' + fmtClock(p.timestamp) + '</div>' +
+                        '<div style="color:var(--recv-color)">↓ ' + fmtSpeed(p.download_bps) + '</div>' +
+                        '<div style="color:var(--sent-color)">↑ ' + fmtSpeed(p.upload_bps) + '</div>';
+                    chartTooltip.style.display = 'block';
+                    var flip = px > st.W - 130;
+                    chartTooltip.style.left = flip ? (px - chartTooltip.offsetWidth - 12) + 'px' : (px + 12) + 'px';
+                    chartTooltip.style.top = Math.max(0, e.clientY - rect.top - 30) + 'px';
+                });
+
+                chartBody.addEventListener('mouseleave', hideChartHover);
+
+                var chartResizeTimer = null;
+                window.addEventListener('resize', function () {
+                    if (chartResizeTimer) clearTimeout(chartResizeTimer);
+                    chartResizeTimer = setTimeout(renderChart, 150);
+                });
 
                 // REST polling fallback
                 var pollTimer = null;
@@ -2388,6 +2970,8 @@
 
                 startPolling();
                 connectWS();
+                fetchHistory();
+                setInterval(fetchHistory, 120000); // chart refresh every 2 minutes
             }
 
             // ── CLIENTS PAGE ───────────────────────────────────────────────────
