@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Aldrich&family=Geist:ital,wght@0,100..900;1,100..900&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Aldrich&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Livvic:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,900&display=swap"
         rel="stylesheet">
     <style>
         *,
@@ -50,7 +50,7 @@
             --card-radius: 14px;
 
             /* ── DESIGN-SYSTEM TOKENS ── */
-            --font-sans: "Geist", "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --font-sans: "Livvic", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
             --font-brand: "Aldrich", sans-serif;
             --fs-title: 21px;
@@ -522,7 +522,7 @@
 
         .clients-total {
             font-family: var(--font-mono);
-            font-size: 32px;
+            font-size: 40px;
             font-weight: 700;
             letter-spacing: -0.02em;
             line-height: 1.1;
@@ -530,14 +530,14 @@
         }
 
         .clients-total-label {
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-muted);
-            margin-top: 3px;
+            margin-top: 4px;
         }
 
         .clients-side {
             display: flex;
-            gap: 24px;
+            gap: 30px;
             flex-shrink: 0;
         }
 
@@ -545,14 +545,15 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 3px;
+            gap: 4px;
         }
 
         .clients-side-value {
             font-family: var(--font-mono);
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 30px;
+            font-weight: 700;
             letter-spacing: -0.01em;
+            line-height: 1.1;
         }
 
         .clients-side-value.online {
@@ -564,16 +565,21 @@
         }
 
         .clients-side-label {
-            font-size: 10px;
+            font-size: 11px;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.06em;
         }
 
         .clients-pct-caption {
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-muted);
-            margin-top: 6px;
+            margin-top: 7px;
+        }
+
+        /* thicker bar to balance the larger numbers (overview card only) */
+        .ov-clients .ratio-bar {
+            height: 6px;
         }
 
         /* ── OVERVIEW: NETWORK TRAFFIC CHART ── */
@@ -728,22 +734,22 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: clamp(16px, 3vw, 36px);
             padding: 14px 0 10px;
         }
 
         /* partial-arc gauge (same 270° sweep as the resource rings):
-           outer ring = download, inner ring = upload */
+           outer ring = download, inner ring = upload, both scaled 0–200 MB/s */
         .speed-ring-wrap {
             position: relative;
-            width: clamp(160px, 13vw, 210px);
-            height: clamp(160px, 13vw, 210px);
-            container-type: inline-size;
+            width: clamp(180px, 15vw, 235px);
+            height: clamp(180px, 15vw, 235px);
+            flex-shrink: 0;
         }
 
         .speed-ring-wrap svg {
             width: 100%;
             height: 100%;
-            transform: rotate(135deg);
         }
 
         .speed-ring-track {
@@ -769,35 +775,51 @@
             filter: drop-shadow(0 0 4px rgba(148, 163, 184, 0.4));
         }
 
-        .speed-center {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 3px;
-            text-align: center;
-            overflow: hidden;
+        /* tick marks + numeric labels around the arc (0–200 MB/s) */
+        .speed-scale text {
+            font-family: var(--font-mono);
+            font-size: 9.5px;
+            fill: var(--text-muted);
         }
 
-        /* Sized against the ring itself (cqw = 1% of .speed-ring-wrap width) so
-           the text stays inside the inner arc at every card width. The px
-           values are the fallback for browsers without container queries. */
-        .speed-center-down {
+        .speed-scale line {
+            stroke: var(--text-muted);
+            stroke-width: 1.5;
+        }
+
+        .speed-scale line.minor {
+            stroke: var(--border2);
+            stroke-width: 1;
+        }
+
+        .speed-unit {
             font-family: var(--font-mono);
-            font-size: 12px;
-            font-size: clamp(10px, 7cqw, 15px);
+            font-size: 10px;
+            font-weight: 500;
+            fill: var(--text-dim);
+            text-anchor: middle;
+            dominant-baseline: central;
+        }
+
+        /* numeric readout to the right of the gauge */
+        .speed-readout {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .speed-readout-down {
+            font-family: var(--font-mono);
+            font-size: 16px;
             font-weight: 600;
             letter-spacing: -0.01em;
             color: var(--recv-color);
             white-space: nowrap;
         }
 
-        .speed-center-up {
+        .speed-readout-up {
             font-family: var(--font-mono);
-            font-size: 10px;
-            font-size: clamp(9px, 6cqw, 13px);
+            font-size: 14px;
             font-weight: 500;
             color: var(--sent-color);
             white-space: nowrap;
@@ -2218,20 +2240,26 @@
                                 style="background:var(--recv-color)"></span>Live Speed</div>
                         <div class="speed-body">
                             <div class="speed-ring-wrap">
-                                <svg viewBox="0 0 140 140">
-                                    <circle class="speed-ring-track" cx="70" cy="70" r="62"
-                                        stroke-dasharray="292.17 97.39" />
-                                    <circle class="speed-ring-fill down" id="speed-ring-down" cx="70" cy="70" r="62"
-                                        stroke-dasharray="0 389.56" />
-                                    <circle class="speed-ring-track" cx="70" cy="70" r="46"
-                                        stroke-dasharray="216.77 72.26" />
-                                    <circle class="speed-ring-fill up" id="speed-ring-up" cx="70" cy="70" r="46"
-                                        stroke-dasharray="0 289.03" />
+                                <svg viewBox="0 0 172 172">
+                                    <!-- arcs live in a rotated group so the scale labels
+                                         (added by JS into #speed-scale) stay upright -->
+                                    <g transform="rotate(135 86 86)">
+                                        <circle class="speed-ring-track" cx="86" cy="86" r="62"
+                                            stroke-dasharray="292.17 97.39" />
+                                        <circle class="speed-ring-fill down" id="speed-ring-down" cx="86" cy="86"
+                                            r="62" stroke-dasharray="0 389.56" />
+                                        <circle class="speed-ring-track" cx="86" cy="86" r="46"
+                                            stroke-dasharray="216.77 72.26" />
+                                        <circle class="speed-ring-fill up" id="speed-ring-up" cx="86" cy="86" r="46"
+                                            stroke-dasharray="0 289.03" />
+                                    </g>
+                                    <g class="speed-scale" id="speed-scale"></g>
+                                    <text class="speed-unit" x="86" y="86">MB/s</text>
                                 </svg>
-                                <div class="speed-center">
-                                    <span class="speed-center-down" id="speed-down">↓ —</span>
-                                    <span class="speed-center-up" id="speed-up">↑ —</span>
-                                </div>
+                            </div>
+                            <div class="speed-readout">
+                                <span class="speed-readout-down" id="speed-down">↓ —</span>
+                                <span class="speed-readout-up" id="speed-up">↑ —</span>
                             </div>
                         </div>
                     </div>
@@ -2717,9 +2745,10 @@
                 var RING_DOWN_C = 2 * Math.PI * 62; // outer ring circumference
                 var RING_UP_C = 2 * Math.PI * 46;   // inner ring circumference
                 var RING_ARC = 0.75;                // visible fraction of the circle
-                // Rings fill relative to the highest speed seen today — the max of
-                // the server-reported peak and anything observed this session.
-                var speedScale = 0;
+                // Fixed gauge scale. The server tops out around 170 MB/s; short
+                // measurement bursts can read higher, so the dial ends at 200 and
+                // anything beyond simply pins the ring at full.
+                var SPEED_SCALE_MAX = 200e6; // bytes/sec (decimal MB, same as fmtSpeed)
 
                 function setSpeedRing(id, ratio, circumference) {
                     var el = document.getElementById(id);
@@ -2727,6 +2756,36 @@
                     var fill = circumference * RING_ARC * Math.min(1, Math.max(0, ratio));
                     el.style.strokeDasharray = fill + ' ' + circumference;
                 }
+
+                // Tick marks + MB/s labels around the outer arc. Geometry matches
+                // the SVG: center (86,86), arc starts at 135° and sweeps 270°
+                // clockwise; the outer ring's outer edge sits at r = 67.
+                (function buildSpeedScale() {
+                    var g = document.getElementById('speed-scale');
+                    if (!g) return;
+                    var NS = 'http://www.w3.org/2000/svg';
+                    var CX = 86, CY = 86;
+                    for (var mbps = 0; mbps <= 200; mbps += 25) {
+                        var theta = (135 + (mbps / 200) * 270) * Math.PI / 180;
+                        var cos = Math.cos(theta), sin = Math.sin(theta);
+                        var major = mbps % 50 === 0;
+                        var tick = document.createElementNS(NS, 'line');
+                        tick.setAttribute('x1', (CX + 68.5 * cos).toFixed(2));
+                        tick.setAttribute('y1', (CY + 68.5 * sin).toFixed(2));
+                        tick.setAttribute('x2', (CX + (major ? 73 : 71.5) * cos).toFixed(2));
+                        tick.setAttribute('y2', (CY + (major ? 73 : 71.5) * sin).toFixed(2));
+                        if (!major) tick.setAttribute('class', 'minor');
+                        g.appendChild(tick);
+                        if (!major) continue;
+                        var label = document.createElementNS(NS, 'text');
+                        label.setAttribute('x', (CX + 80 * cos).toFixed(2));
+                        label.setAttribute('y', (CY + 80 * sin).toFixed(2));
+                        label.setAttribute('text-anchor', 'middle');
+                        label.setAttribute('dominant-baseline', 'central');
+                        label.textContent = mbps;
+                        g.appendChild(label);
+                    }
+                })();
 
                 function updateDashboard(stats) {
                     // CPU
@@ -2772,9 +2831,8 @@
                     // Live speed gauge: outer ring = download, inner ring = upload
                     var downSpeed = stats.net_down_speed || 0;
                     var upSpeed = stats.net_up_speed || 0;
-                    speedScale = Math.max(speedScale, stats.peak_speed_today || 0, downSpeed, upSpeed);
-                    setSpeedRing('speed-ring-down', speedScale ? downSpeed / speedScale : 0, RING_DOWN_C);
-                    setSpeedRing('speed-ring-up', speedScale ? upSpeed / speedScale : 0, RING_UP_C);
+                    setSpeedRing('speed-ring-down', downSpeed / SPEED_SCALE_MAX, RING_DOWN_C);
+                    setSpeedRing('speed-ring-up', upSpeed / SPEED_SCALE_MAX, RING_UP_C);
                     document.getElementById('speed-down').textContent = '↓ ' + fmtSpeed(downSpeed);
                     document.getElementById('speed-up').textContent = '↑ ' + fmtSpeed(upSpeed);
 
