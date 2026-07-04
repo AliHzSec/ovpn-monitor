@@ -177,6 +177,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	go certList.RefreshLoop(ctx, opts.CertsDir, logger)
 	go ippSt.RefreshLoop(ctx, opts.IPPFile, database, logger)
 	go cache.Run(ctx)
+	go purgeVisitedDomainsLoop(ctx, database, logger)
 
 	mux := http.NewServeMux()
 	handler.Register(mux, database, sessions, online, ippSt, tmpl, vpnNet,
@@ -206,6 +207,39 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	w := watcher.Watcher{DB: database, Logger: logger, Certs: certList, Online: online}
 	return w.Watch(ctx, opts.Log)
+}
+
+// visitedDomainRetention is how long aggregated (client, domain) browsing
+// records are kept before the daily cleanup job purges them.
+const visitedDomainRetention = 90 * 24 * time.Hour
+
+// purgeVisitedDomainsLoop runs an immediate purge on startup and then once a day,
+// deleting visited_domains rows whose last_seen is older than the retention
+// window so browsing history storage stays bounded.
+func purgeVisitedDomainsLoop(ctx context.Context, database *db.DB, logger *slog.Logger) {
+	purge := func() {
+		c, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+		n, err := database.PurgeVisitedDomainsOlderThan(c, visitedDomainRetention)
+		if err != nil {
+			logger.Warn("visited-domains purge failed", "err", err)
+			return
+		}
+		if n > 0 {
+			logger.Info("purged stale visited domains", "rows", n)
+		}
+	}
+	purge()
+	ticker := time.NewTicker(24 * time.Hour)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			purge()
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 // parseServerSubnet reads an OpenVPN server config file and extracts the VPN

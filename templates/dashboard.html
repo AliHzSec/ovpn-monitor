@@ -1352,7 +1352,7 @@
             margin-right: 3px;
         }
 
-        /* ── EXPANDABLE ROWS ── */
+        /* ── CLIENT ROWS (navigate to detail page) ── */
         .rel-time {
             font-size: 12px;
             color: var(--text-dim);
@@ -1363,20 +1363,12 @@
             color: var(--text);
         }
 
-        /* clickable summary row */
+        /* whole row links to the client's detail page */
         tbody tr.client-row {
             cursor: pointer;
         }
 
-        tbody tr.client-row.expanded {
-            background: rgba(255, 255, 255, 0.045);
-        }
-
-        tbody tr.client-row.expanded {
-            border-bottom-color: transparent;
-        }
-
-        /* chevron */
+        /* trailing "open detail" affordance */
         .col-expand {
             width: 44px;
             cursor: default;
@@ -1389,77 +1381,12 @@
 
         .chevron {
             display: inline-flex;
-            transition: transform 0.25s ease;
+            transition: transform 0.2s ease, color 0.2s ease;
         }
 
-        tr.client-row.expanded .chevron {
-            transform: rotate(180deg);
+        tbody tr.client-row:hover .chevron {
+            transform: translateX(2px);
             color: var(--accent);
-        }
-
-        /* detail row: animate via grid-template-rows 0fr → 1fr */
-        tr.detail-row > td {
-            padding: 0 22px;
-            background: rgba(0, 0, 0, 0.22);
-            border-bottom: 1px solid rgba(60, 60, 66, 0.55);
-        }
-
-        .detail-wrap {
-            display: grid;
-            grid-template-rows: 0fr;
-            transition: grid-template-rows 0.28s ease;
-        }
-
-        tr.detail-row.open > td {
-            border-left: 2px solid var(--accent);
-        }
-
-        tr.detail-row.open .detail-wrap {
-            grid-template-rows: 1fr;
-        }
-
-        .detail-inner {
-            overflow: hidden;
-            min-height: 0;
-        }
-
-        .detail-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 14px 28px;
-            padding: 18px 4px 20px;
-        }
-
-        .detail-item {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            min-width: 0;
-        }
-
-        .detail-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        .detail-value {
-            font-size: 13px;
-            font-variant-numeric: tabular-nums;
-            color: var(--text);
-            letter-spacing: -0.01em;
-            white-space: normal;
-            word-break: break-word;
-        }
-
-        .detail-value.recv {
-            color: var(--recv-color);
-        }
-
-        .detail-value.sent {
-            color: var(--sent-color);
         }
 
         .empty-state {
@@ -2819,8 +2746,6 @@
                 var sortDir = -1;
                 var userHasSorted = false;
                 var searchQuery = '';
-                // Keyed by common_name so expansion survives the 5s auto-refresh.
-                var expanded = Object.create(null);
 
                 // Update sort arrow classes
                 function updateSortArrows() {
@@ -2942,7 +2867,7 @@
                     }
 
                     tbody.innerHTML = data.map(function (c, i) {
-                        return rowHtml(c, i) + detailHtml(c);
+                        return rowHtml(c, i);
                     }).join('');
                 }
 
@@ -2955,18 +2880,19 @@
                 }
 
                 // Summary row: name, status, total traffic, relative last-connected.
+                // The whole row is a link to the client's dedicated detail page.
                 function rowHtml(c, i) {
                     var online = c.online;
                     var sc = online ? 'online' : 'offline';
-                    var isOpen = !!expanded[c.common_name];
 
                     var epoch = relevantEpoch(c);
                     var rel = formatRelativeTime(epoch);
                     var exact = online ? (c.connected_since || '') : (c.last_seen || c.connected_since || '');
                     var titleAttr = exact ? ' title="' + esc(exact) + '"' : '';
+                    var href = '/panel/clients/' + encodeURIComponent(c.common_name);
 
-                    return '<tr class="client-row ' + (online ? 'row-online ' : '') + (isOpen ? 'expanded' : '') +
-                        '" data-name="' + esc(c.common_name) + '" style="animation-delay:' + (i * 0.025) + 's">' +
+                    return '<tr class="client-row ' + (online ? 'row-online' : '') +
+                        '" data-href="' + esc(href) + '" style="animation-delay:' + (i * 0.025) + 's">' +
                         '<td><div class="cell-name">' +
                         '<span class="status-dot ' + sc + '"></span>' +
                         '<span class="name-text">' + esc(c.common_name) + '</span>' +
@@ -2975,42 +2901,8 @@
                         '<td class="total-text">' + esc(c.total_traffic_readable || fmtBytes(c.total_traffic)) + '</td>' +
                         '<td><span class="rel-time"' + titleAttr + '>' + esc(rel) + '</span></td>' +
                         '<td class="cell-expand"><span class="chevron">' +
-                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>' +
                         '</span></td>' +
-                        '</tr>';
-                }
-
-                // Hidden detail row revealed on expand: IP, up/down traffic, addresses.
-                function detailHtml(c) {
-                    var online = c.online;
-                    var isOpen = !!expanded[c.common_name];
-                    var dash = '—';
-
-                    function item(label, value, cls) {
-                        return '<div class="detail-item">' +
-                            '<span class="detail-label">' + label + '</span>' +
-                            '<span class="detail-value' + (cls ? ' ' + cls : '') + '">' + value + '</span>' +
-                            '</div>';
-                    }
-
-                    var ip = online ? esc(c.real_address || dash) : dash;
-                    var vpn = esc(c.vpn_address || dash);
-                    var recv = esc(c.bytes_received_readable || fmtBytes(c.bytes_received));
-                    var sent = esc(c.bytes_sent_readable || fmtBytes(c.bytes_sent));
-                    var timeLabel = online ? 'Connected Since' : 'Last Seen';
-                    var timeVal = esc((online ? c.connected_since : (c.last_seen || c.connected_since)) || 'Never');
-
-                    var grid =
-                        item('IP Address', ip) +
-                        item('VPN Address', vpn) +
-                        item('Download', recv, 'recv') +
-                        item('Upload', sent, 'sent') +
-                        item(timeLabel, timeVal);
-
-                    return '<tr class="detail-row ' + (isOpen ? 'open' : '') + '" data-detail="' + esc(c.common_name) + '">' +
-                        '<td colspan="5"><div class="detail-wrap"><div class="detail-inner">' +
-                        '<div class="detail-grid">' + grid + '</div>' +
-                        '</div></div></td>' +
                         '</tr>';
                 }
 
@@ -3044,20 +2936,12 @@
                     renderTable();
                 });
 
-                // Row expansion (event delegation — survives re-render). Toggling
-                // classes on the live nodes lets the CSS grid transition animate;
-                // the `expanded` map keeps state across the 5s auto-refresh.
+                // Clicking a row navigates to that client's dedicated detail page
+                // (event delegation — survives the 5s auto-refresh re-render).
                 document.getElementById('client-tbody').addEventListener('click', function (e) {
                     var row = e.target.closest('.client-row');
-                    if (!row) return;
-                    var name = row.dataset.name;
-                    var detail = row.nextElementSibling;
-                    var open = !expanded[name];
-                    if (open) { expanded[name] = true; } else { delete expanded[name]; }
-                    row.classList.toggle('expanded', open);
-                    if (detail && detail.classList.contains('detail-row')) {
-                        detail.classList.toggle('open', open);
-                    }
+                    if (!row || !row.dataset.href) return;
+                    window.location.href = row.dataset.href;
                 });
 
                 // Init + auto-refresh every 5s

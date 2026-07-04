@@ -54,10 +54,27 @@ func (d *DB) Migrate(ctx context.Context) error {
 			key   TEXT PRIMARY KEY,
 			value TEXT NOT NULL DEFAULT ''
 		)`,
+		// Aggregated per-(client, domain) browsing history. One row per unique
+		// (client, root-domain) pair — NOT one row per visit — so storage is bounded
+		// by (clients × distinct domains), independent of traffic volume. Populated by
+		// the standalone domain-sniffer service (see cmd/sniffer) which upserts here.
+		// client_name is the OpenVPN common name or WireGuard peer name (a plain
+		// string, not a clients.id FK, so WireGuard peers with no clients row work too).
+		`CREATE TABLE IF NOT EXISTS visited_domains (
+			id          INTEGER PRIMARY KEY,
+			client_name TEXT NOT NULL,
+			domain      TEXT NOT NULL,
+			first_seen  TEXT NOT NULL,
+			last_seen   TEXT NOT NULL,
+			visit_count INTEGER NOT NULL DEFAULT 1 CHECK (visit_count >= 0),
+			UNIQUE (client_name, domain)
+		)`,
 		`CREATE INDEX IF NOT EXISTS idx_sessions_client_id ON sessions(client_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_sessions_connected_since ON sessions(connected_since)`,
 		`CREATE INDEX IF NOT EXISTS idx_sessions_disconnected_at ON sessions(disconnected_at)`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_one_open_session_per_client ON sessions(client_id) WHERE disconnected_at IS NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_visited_client ON visited_domains(client_name)`,
+		`CREATE INDEX IF NOT EXISTS idx_visited_last_seen ON visited_domains(last_seen)`,
 		`INSERT OR IGNORE INTO settings (key, value) VALUES ('addr', '0.0.0.0:80')`,
 		`INSERT OR IGNORE INTO settings (key, value) VALUES ('admin_user', 'admin')`,
 		`INSERT OR IGNORE INTO settings (key, value) VALUES ('admin_pass', 'admin')`,
@@ -381,6 +398,40 @@ func (d *DB) ClientByVPNAddress(ctx context.Context, vpnAddr string) (*model.Cli
 	return &c, nil
 }
 
+// ClientByName returns a client's all-time aggregate keyed on common name,
+// including the last-known real (public) address. Used by the client detail page.
+func (d *DB) ClientByName(ctx context.Context, commonName string) (*model.Client, error) {
+	const q = `
+		SELECT
+			c.common_name,
+			c.real_address,
+			c.vpn_address,
+			COALESCE(SUM(s.bytes_received), 0),
+			COALESCE(SUM(s.bytes_sent), 0),
+			COALESCE(SUM(s.bytes_received + s.bytes_sent), 0),
+			COALESCE(MAX(s.connected_since), ''),
+			c.last_seen
+		FROM clients c
+		LEFT JOIN sessions s ON s.client_id = c.id
+		WHERE c.common_name = ?
+		GROUP BY c.id`
+	var c model.Client
+	err := d.db.QueryRowContext(ctx, q, commonName).Scan(
+		&c.CommonName, &c.RealAddress, &c.VPNAddress,
+		&c.BytesReceived, &c.BytesSent,
+		&c.TotalTraffic, &c.ConnectedSince, &c.LastSeen,
+	)
+	if err != nil {
+		return nil, err
+	}
+	c.BytesReceivedReadable = formatBytes(c.BytesReceived)
+	c.BytesSentReadable = formatBytes(c.BytesSent)
+	c.TotalTrafficReadable = formatBytes(c.TotalTraffic)
+	c.ConnectedSinceEpoch = parseLocalEpoch(c.ConnectedSince)
+	c.LastSeenEpoch = parseLocalEpoch(c.LastSeen)
+	return &c, nil
+}
+
 func (d *DB) ClientStatsByName(ctx context.Context, commonName, cutoff, kind string) (*model.Client, error) {
 	query := `
 		SELECT
@@ -415,6 +466,47 @@ func (d *DB) ClientStatsByName(ctx context.Context, commonName, cutoff, kind str
 	c.ConnectedSinceEpoch = parseLocalEpoch(c.ConnectedSince)
 	c.LastSeenEpoch = parseLocalEpoch(c.LastSeen)
 	return &c, nil
+}
+
+// QueryVisitedDomains returns every aggregated (domain) row recorded for a
+// client, newest activity first. The result is bounded by the number of distinct
+// domains the client has visited, so callers can safely paginate on the client.
+func (d *DB) QueryVisitedDomains(ctx context.Context, clientName string) ([]model.VisitedDomain, error) {
+	const q = `
+		SELECT domain, first_seen, last_seen, visit_count
+		FROM visited_domains
+		WHERE client_name = ?
+		ORDER BY last_seen DESC`
+	rows, err := d.db.QueryContext(ctx, q, clientName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []model.VisitedDomain
+	for rows.Next() {
+		var v model.VisitedDomain
+		if err := rows.Scan(&v.Domain, &v.FirstSeen, &v.LastSeen, &v.VisitCount); err != nil {
+			return nil, err
+		}
+		v.FirstSeenEpoch = parseLocalEpoch(v.FirstSeen)
+		v.LastSeenEpoch = parseLocalEpoch(v.LastSeen)
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+// PurgeVisitedDomainsOlderThan deletes aggregated domain rows whose last_seen is
+// older than the retention window, returning the number of rows removed. Used by
+// the daily cleanup job so browsing history is kept for a bounded period only.
+func (d *DB) PurgeVisitedDomainsOlderThan(ctx context.Context, retention time.Duration) (int64, error) {
+	cutoff := time.Now().Add(-retention).Format("2006-01-02 15:04:05")
+	res, err := d.db.ExecContext(ctx,
+		`DELETE FROM visited_domains WHERE last_seen < ?`, cutoff)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
 
 func (d *DB) SumAllTraffic(ctx context.Context) (sent, recv uint64, err error) {

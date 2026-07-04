@@ -17,6 +17,18 @@ type Client struct {
 	Online                bool   `json:"online"`
 }
 
+// VisitedDomain is one aggregated (client, root-domain) browsing record. Epoch
+// fields are the local timestamps in Unix seconds so the browser can render
+// timezone-safe relative times, matching how Client timestamps are exposed.
+type VisitedDomain struct {
+	Domain         string `json:"domain"`
+	FirstSeen      string `json:"first_seen"`
+	LastSeen       string `json:"last_seen"`
+	VisitCount     int64  `json:"visit_count"`
+	FirstSeenEpoch int64  `json:"first_seen_epoch"`
+	LastSeenEpoch  int64  `json:"last_seen_epoch"`
+}
+
 type LogEntry struct {
 	CommonName     string
 	RealAddress    string

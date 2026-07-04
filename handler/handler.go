@@ -140,6 +140,40 @@ func Register(
 		json.NewEncoder(w).Encode(clients)
 	})))
 
+	// ── Single client (all-time aggregate) for the detail page ───────────────
+	mux.Handle("GET /api/clients/{name}", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		name := r.PathValue("name")
+		c, err := database.ClientByName(r.Context(), name)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "Not Found", http.StatusNotFound)
+				return
+			}
+			logger.Error("client by name: " + err.Error())
+			http.Error(w, "Internal Error", http.StatusInternalServerError)
+			return
+		}
+		c.Online = online.Get()[c.CommonName]
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(c)
+	})))
+
+	// ── Aggregated visited domains for one client ────────────────────────────
+	mux.Handle("GET /api/clients/{name}/domains", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		name := r.PathValue("name")
+		domains, err := database.QueryVisitedDomains(r.Context(), name)
+		if err != nil {
+			logger.Error("visited domains: " + err.Error())
+			http.Error(w, "Internal Error", http.StatusInternalServerError)
+			return
+		}
+		if domains == nil {
+			domains = []model.VisitedDomain{}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(domains)
+	})))
+
 	// ── WebSocket real-time stats ─────────────────────────────────────────────
 	mux.Handle("/ws", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, rw, err := wsUpgrade(w, r)
@@ -278,6 +312,15 @@ func Register(
 	// ── Clients page ──────────────────────────────────────────────────────────
 	mux.Handle("/panel/clients", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		renderTemplate(w, tmpl, "dashboard.html", nil)
+	})))
+
+	// ── Client detail page ────────────────────────────────────────────────────
+	// Row clicks on the Clients page navigate here; the page fetches the client
+	// aggregate and its visited-domain history over the JSON APIs above.
+	mux.Handle("GET /panel/clients/{name}", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		renderTemplate(w, tmpl, "clientdetail.html", map[string]interface{}{
+			"Name": r.PathValue("name"),
+		})
 	})))
 
 	// ── Settings page (GET + POST) ────────────────────────────────────────────
