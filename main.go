@@ -23,6 +23,7 @@ import (
 	"ovpnmonitor/db"
 	"ovpnmonitor/handler"
 	"ovpnmonitor/ipp"
+	"ovpnmonitor/sniffer"
 	"ovpnmonitor/sysinfo"
 	"ovpnmonitor/tracker"
 	"ovpnmonitor/watcher"
@@ -46,6 +47,11 @@ func main() {
 }
 
 func run(ctx context.Context, logger *slog.Logger) error {
+	// Derived so background subsystems (sniffer, loops) also stop when run
+	// returns early on an error, not only on a signal.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	exe, err := os.Executable()
 	if err != nil {
 		exe = "."
@@ -179,6 +185,28 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	go cache.Run(ctx)
 	go purgeVisitedDomainsLoop(ctx, database, logger)
 
+	// Domain sniffer: runs in-process on the panel's own DB handle, so there is
+	// no separate service and no second database path to keep in sync. It shuts
+	// down with ctx; snifferDone closes once its final flush has committed.
+	snifferDone := sniffer.Start(ctx, sqldb, sniffer.Config{
+		Ifaces:  opts.SnifferIfaces,
+		IPPFile: opts.IPPFile,
+		WGConf:  opts.SnifferWGConf,
+		Snaplen: opts.SnifferSnaplen,
+		Workers: opts.SnifferWorkers,
+		Queue:   opts.SnifferQueue,
+		Flush:   opts.SnifferFlush,
+		Dedup:   opts.SnifferDedup,
+	}, logger)
+	waitSnifferDrain := func() {
+		cancel() // make sure the sniffer sees shutdown even on an early error return
+		select {
+		case <-snifferDone:
+		case <-time.After(20 * time.Second):
+			logger.Warn("sniffer did not finish draining in time")
+		}
+	}
+
 	mux := http.NewServeMux()
 	handler.Register(mux, database, sessions, online, ippSt, tmpl, vpnNet,
 		opts.SessionTTL, logger, templatesDir, cache)
@@ -202,11 +230,14 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	if opts.Log == "" {
 		logger.Warn("watcher disabled: configure openvpn_status_log via /settings and restart")
 		<-ctx.Done()
+		waitSnifferDrain()
 		return ctx.Err()
 	}
 
 	w := watcher.Watcher{DB: database, Logger: logger, Certs: certList, Online: online}
-	return w.Watch(ctx, opts.Log)
+	err = w.Watch(ctx, opts.Log)
+	waitSnifferDrain()
+	return err
 }
 
 // visitedDomainRetention is how long aggregated (client, domain) browsing

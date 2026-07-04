@@ -337,6 +337,8 @@ func Register(
 				"addr", "admin_user",
 				"openvpn_status_log", "openvpn_cert_dir",
 				"openvpn_ipp_file", "openvpn_server_config",
+				"sniffer_ifaces", "sniffer_wg_conf", "sniffer_snaplen",
+				"sniffer_workers", "sniffer_queue", "sniffer_flush", "sniffer_dedup",
 			}
 			addrChanged := r.FormValue("addr") != current["addr"]
 			for _, key := range keys {

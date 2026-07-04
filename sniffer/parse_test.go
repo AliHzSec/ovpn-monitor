@@ -1,4 +1,4 @@
-package main
+package sniffer
 
 import (
 	"encoding/binary"
@@ -18,13 +18,13 @@ func buildClientHello(host string) []byte {
 	ext = append(ext, list...)
 
 	var body []byte
-	body = append(body, 0x03, 0x03)                 // client_version TLS 1.2
-	body = append(body, make([]byte, 32)...)        // random
-	body = append(body, 0x00)                        // session_id length 0
-	body = append(body, u16(2)...)                   // cipher_suites length
-	body = append(body, 0x00, 0x2f)                  // one cipher suite
-	body = append(body, 0x01, 0x00)                  // compression: len 1, null
-	body = append(body, u16(len(ext))...)            // extensions length
+	body = append(body, 0x03, 0x03)          // client_version TLS 1.2
+	body = append(body, make([]byte, 32)...) // random
+	body = append(body, 0x00)                // session_id length 0
+	body = append(body, u16(2)...)           // cipher_suites length
+	body = append(body, 0x00, 0x2f)          // one cipher suite
+	body = append(body, 0x01, 0x00)          // compression: len 1, null
+	body = append(body, u16(len(ext))...)    // extensions length
 	body = append(body, ext...)
 
 	hs := []byte{0x01, byte(len(body) >> 16), byte(len(body) >> 8), byte(len(body))}
@@ -64,9 +64,9 @@ func TestParseTLSServerName(t *testing.T) {
 
 func TestParseHTTPHost(t *testing.T) {
 	cases := map[string]string{
-		"GET / HTTP/1.1\r\nHost: www.Example.com\r\n\r\n":          "www.example.com",
+		"GET / HTTP/1.1\r\nHost: www.Example.com\r\n\r\n":            "www.example.com",
 		"POST /x HTTP/1.1\r\nHost: api.foo.com:8080\r\nA: b\r\n\r\n": "api.foo.com",
-		"GET / HTTP/1.1\r\nUser-Agent: z\r\nHost: bar.org\r\n\r\n":  "bar.org",
+		"GET / HTTP/1.1\r\nUser-Agent: z\r\nHost: bar.org\r\n\r\n":   "bar.org",
 	}
 	for req, want := range cases {
 		got, ok := parseHTTPHost([]byte(req))
@@ -84,14 +84,14 @@ func TestRootDomain(t *testing.T) {
 		want string
 		ok   bool
 	}{
-		"www.youtube.com":     {"youtube.com", true},
-		"i.ytimg.com":         {"ytimg.com", true},
-		"foo.bar.bbc.co.uk":   {"bbc.co.uk", true},
-		"youtube.com":         {"youtube.com", true},
-		"GOOGLE.COM.":         {"google.com", true},
-		"10.0.0.1":            {"", false},
-		"localhost":           {"", false},
-		"":                    {"", false},
+		"www.youtube.com":   {"youtube.com", true},
+		"i.ytimg.com":       {"ytimg.com", true},
+		"foo.bar.bbc.co.uk": {"bbc.co.uk", true},
+		"youtube.com":       {"youtube.com", true},
+		"GOOGLE.COM.":       {"google.com", true},
+		"10.0.0.1":          {"", false},
+		"localhost":         {"", false},
+		"":                  {"", false},
 	}
 	for host, exp := range cases {
 		got, ok := rootDomain(host)

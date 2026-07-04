@@ -1,4 +1,4 @@
-package main
+package sniffer
 
 import (
 	"context"
@@ -19,7 +19,19 @@ func testDB(t *testing.T) *sql.DB {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { db.Close() })
-	if err := ensureTable(db); err != nil {
+	// Mirrors the visited_domains schema created by the panel's db.Migrate,
+	// which owns the table in production.
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS visited_domains (
+			id          INTEGER PRIMARY KEY,
+			client_name TEXT NOT NULL,
+			domain      TEXT NOT NULL,
+			first_seen  TEXT NOT NULL,
+			last_seen   TEXT NOT NULL,
+			visit_count INTEGER NOT NULL DEFAULT 1 CHECK (visit_count >= 0),
+			UNIQUE (client_name, domain)
+		)`)
+	if err != nil {
 		t.Fatal(err)
 	}
 	return db
@@ -41,7 +53,7 @@ func TestAggregatorDedupAndFlush(t *testing.T) {
 	agg := NewAggregator(db, time.Minute, logger)
 
 	base := time.Date(2026, 1, 2, 15, 4, 5, 0, time.UTC)
-	agg.Observe("alice", "youtube.com", base)                    // count 1
+	agg.Observe("alice", "youtube.com", base)                     // count 1
 	agg.Observe("alice", "youtube.com", base.Add(10*time.Second)) // within window -> no count, advances last
 	agg.Observe("alice", "youtube.com", base.Add(2*time.Minute))  // outside window -> count 2
 

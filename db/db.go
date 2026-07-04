@@ -57,7 +57,7 @@ func (d *DB) Migrate(ctx context.Context) error {
 		// Aggregated per-(client, domain) browsing history. One row per unique
 		// (client, root-domain) pair — NOT one row per visit — so storage is bounded
 		// by (clients × distinct domains), independent of traffic volume. Populated by
-		// the standalone domain-sniffer service (see cmd/sniffer) which upserts here.
+		// the in-process domain sniffer (see the sniffer package) which upserts here.
 		// client_name is the OpenVPN common name or WireGuard peer name (a plain
 		// string, not a clients.id FK, so WireGuard peers with no clients row work too).
 		`CREATE TABLE IF NOT EXISTS visited_domains (
@@ -82,6 +82,14 @@ func (d *DB) Migrate(ctx context.Context) error {
 		`INSERT OR IGNORE INTO settings (key, value) VALUES ('openvpn_cert_dir', '/etc/openvpn/server/easy-rsa/pki/issued')`,
 		`INSERT OR IGNORE INTO settings (key, value) VALUES ('openvpn_ipp_file', '/etc/openvpn/server/ipp.txt')`,
 		`INSERT OR IGNORE INTO settings (key, value) VALUES ('openvpn_server_config', '/etc/openvpn/server/server.conf')`,
+		// Domain sniffer tunables (see the sniffer package). '0' means "auto".
+		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_ifaces', 'tun0,wg0')`,
+		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_wg_conf', '/etc/wireguard/wg0.conf')`,
+		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_snaplen', '1600')`,
+		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_workers', '0')`,
+		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_queue', '4096')`,
+		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_flush', '2m')`,
+		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_dedup', '60s')`,
 	}
 	for _, s := range stmts {
 		if _, err := d.db.ExecContext(ctx, s); err != nil {

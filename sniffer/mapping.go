@@ -1,4 +1,4 @@
-package main
+package sniffer
 
 import (
 	"bufio"
@@ -23,12 +23,12 @@ import (
 // The table is rebuilt atomically on each refresh so lookups never see a
 // partial map.
 type Mapper struct {
-	db       *sql.DB
-	ippPath  string
-	wgConf   string
-	logger   *slog.Logger
+	db      *sql.DB
+	ippPath string
+	wgConf  string
+	logger  *slog.Logger
 
-	mu    sync.RWMutex
+	mu       sync.RWMutex
 	ipToName map[string]string
 }
 
