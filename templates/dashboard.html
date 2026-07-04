@@ -481,11 +481,99 @@
         .ov-clients {
             display: flex;
             flex-direction: column;
+            justify-content: flex-end;
         }
 
-        .ov-clients .stat-rows {
+        .clients-top {
             flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .clients-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .clients-icon-box {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
             justify-content: center;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .clients-title {
+            font-family: var(--font-sans);
+            font-size: var(--fs-heading);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--text);
+        }
+
+        .clients-total {
+            font-family: var(--font-mono);
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            color: var(--text);
+        }
+
+        .clients-total-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+
+        .clients-side {
+            display: flex;
+            gap: 24px;
+            flex-shrink: 0;
+        }
+
+        .clients-side-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .clients-side-value {
+            font-family: var(--font-mono);
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .clients-side-value.online {
+            color: var(--green);
+        }
+
+        .clients-side-value.offline {
+            color: var(--text-muted);
+        }
+
+        .clients-side-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .clients-pct-caption {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
         }
 
         /* ── OVERVIEW: NETWORK TRAFFIC CHART ── */
@@ -649,6 +737,7 @@
             position: relative;
             width: clamp(160px, 13vw, 210px);
             height: clamp(160px, 13vw, 210px);
+            container-type: inline-size;
         }
 
         .speed-ring-wrap svg {
@@ -687,23 +776,31 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 3px;
             text-align: center;
+            overflow: hidden;
         }
 
+        /* Sized against the ring itself (cqw = 1% of .speed-ring-wrap width) so
+           the text stays inside the inner arc at every card width. The px
+           values are the fallback for browsers without container queries. */
         .speed-center-down {
             font-family: var(--font-mono);
-            font-size: 17px;
+            font-size: 12px;
+            font-size: clamp(10px, 7cqw, 15px);
             font-weight: 600;
             letter-spacing: -0.01em;
             color: var(--recv-color);
+            white-space: nowrap;
         }
 
         .speed-center-up {
             font-family: var(--font-mono);
-            font-size: 13px;
+            font-size: 10px;
+            font-size: clamp(9px, 6cqw, 13px);
             font-weight: 500;
             color: var(--sent-color);
+            white-space: nowrap;
         }
 
         /* ── OVERVIEW: INFO GRID ── */
@@ -2051,46 +2148,38 @@
 
                 <!-- Clients -->
                 <div class="stat-card glass-card c-clients ov-clients">
-                    <div class="stat-card-title">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                            <circle cx="9" cy="7" r="4" />
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                        </svg>
-                        Clients
-                    </div>
-                    <div class="stat-rows">
-                        <div class="stat-row">
-                            <div class="stat-row-label"><span class="dot" style="background:var(--accent)"></span>Total
+                    <div class="clients-top">
+                        <div class="clients-main">
+                            <div class="clients-title-row">
+                                <div class="clients-icon-box">
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                    </svg>
+                                </div>
+                                <span class="clients-title">Clients</span>
                             </div>
-                            <div class="stat-row-value total" id="ov-cl-total">—</div>
+                            <div class="clients-total" id="ov-cl-total">—</div>
+                            <div class="clients-total-label">Total Clients</div>
                         </div>
-                        <div class="stat-row">
-                            <div class="stat-row-label"><span class="dot" style="background:var(--green)"></span>Online
+                        <div class="clients-side">
+                            <div class="clients-side-stat">
+                                <span class="clients-side-value online" id="ov-cl-online">—</span>
+                                <span class="clients-side-label">Online</span>
                             </div>
-                            <div class="stat-row-value online">
-                                <span id="ov-cl-online">—</span>
-                                <span class="pct" id="ov-cl-online-pct"></span>
-                            </div>
-                        </div>
-                        <div class="stat-row">
-                            <div class="stat-row-label"><span class="dot"
-                                    style="background:var(--text-muted)"></span>Offline</div>
-                            <div class="stat-row-value offline">
-                                <span id="ov-cl-offline">—</span>
-                                <span class="pct" id="ov-cl-offline-pct"></span>
+                            <div class="clients-side-stat">
+                                <span class="clients-side-value offline" id="ov-cl-offline">—</span>
+                                <span class="clients-side-label">Offline</span>
                             </div>
                         </div>
                     </div>
                     <div class="ratio-bar">
                         <div class="ratio-bar-fill" id="ov-ratio-fill" style="width:0%"></div>
                     </div>
-                    <div class="ratio-bar-label">
-                        <span id="ov-ratio-online">Online 0%</span>
-                        <span id="ov-ratio-offline">Offline 100%</span>
-                    </div>
+                    <div class="clients-pct-caption" id="ov-ratio-caption">0% Online</div>
                 </div>
 
             </div>
@@ -2235,8 +2324,8 @@
                             <span class="info-row-value" id="sys-tz">—</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-row-label">Load Avg</span>
-                            <span class="info-row-value" id="sys-load">—</span>
+                            <span class="info-row-label">Virtualization</span>
+                            <span class="info-row-value" id="sys-virt">—</span>
                         </div>
                     </div>
                 </div>
@@ -2735,25 +2824,18 @@
                     var csOnline = stats.client_online != null ? stats.client_online : 0;
                     var csTotal = stats.client_total != null ? stats.client_total : 0;
                     var csOffline = Math.max(0, csTotal - csOnline);
-                    var pctOn = csTotal ? Math.round(csOnline / csTotal * 100) : 0;
-                    var pctOff = csTotal ? Math.round(csOffline / csTotal * 100) : 0;
+                    var pctOn = csTotal ? csOnline / csTotal * 100 : 0;
                     document.getElementById('ov-cl-total').textContent = csTotal;
                     document.getElementById('ov-cl-online').textContent = csOnline;
                     document.getElementById('ov-cl-offline').textContent = csOffline;
-                    document.getElementById('ov-cl-online-pct').textContent = '(' + pctOn + '%)';
-                    document.getElementById('ov-cl-offline-pct').textContent = '(' + pctOff + '%)';
                     document.getElementById('ov-ratio-fill').style.width = pctOn + '%';
-                    document.getElementById('ov-ratio-online').textContent = 'Online ' + pctOn + '%';
-                    document.getElementById('ov-ratio-offline').textContent = 'Offline ' + pctOff + '%';
+                    document.getElementById('ov-ratio-caption').textContent =
+                        (pctOn % 1 === 0 ? pctOn : pctOn.toFixed(1)) + '% Online';
 
                     // System info
                     document.getElementById('sys-kernel').textContent = stats.kernel_version || '—';
                     document.getElementById('sys-tz').textContent = stats.timezone || '—';
-                    var loadAvg = stats.load_avg;
-                    document.getElementById('sys-load').textContent =
-                        (loadAvg && loadAvg.length === 3)
-                            ? loadAvg.map(function (v) { return v.toFixed(2); }).join(' · ')
-                            : '—';
+                    document.getElementById('sys-virt').textContent = stats.virtualization || '—';
 
                     updateTimestamp();
                 }

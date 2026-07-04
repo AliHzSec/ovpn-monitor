@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -42,10 +43,10 @@ type SystemStats struct {
 	ClientOnline int      `json:"client_online"` // currently connected VPN clients
 	ClientTotal  int      `json:"client_total"`  // total registered VPN clients
 
-	KernelVersion  string    `json:"kernel_version"`   // output of uname -r
-	Timezone       string    `json:"timezone"`         // system time zone, e.g. Europe/Berlin
-	LoadAvg        []float64 `json:"load_avg"`         // 1/5/15 minute load averages
-	PeakSpeedToday uint64    `json:"peak_speed_today"` // bytes/sec, highest up/down speed since local midnight (set by StatsCache)
+	KernelVersion  string `json:"kernel_version"`   // output of uname -r
+	Timezone       string `json:"timezone"`         // system time zone, e.g. Europe/Berlin
+	Virtualization string `json:"virtualization"`   // e.g. KVM, OpenVZ, LXC, None / Bare Metal
+	PeakSpeedToday uint64 `json:"peak_speed_today"` // bytes/sec, highest up/down speed since local midnight (set by StatsCache)
 }
 
 type cpuSample struct {
@@ -384,58 +385,114 @@ func readOSName() string {
 	return ""
 }
 
-// Kernel version and time zone never change while the process runs, so they
-// are resolved once and reused on every collection cycle.
+// Kernel version, time zone and virtualization type never change while the
+// process runs, so they are resolved once and reused on every collection cycle.
 var (
 	hostInfoOnce  sync.Once
 	kernelVersion string
 	timezoneName  string
+	virtName      string
 )
 
-func hostInfo() (kernel, timezone string) {
+func hostInfo() (kernel, timezone, virtualization string) {
 	hostInfoOnce.Do(func() {
 		if out, err := exec.Command("uname", "-r").Output(); err == nil {
 			kernelVersion = strings.TrimSpace(string(out))
 		}
 		timezoneName = readTimezone()
+		virtName = detectVirtualization()
 	})
-	return kernelVersion, timezoneName
+	return kernelVersion, timezoneName, virtName
 }
 
 func readTimezone() string {
+	// /etc/localtime is a symlink into the zoneinfo database and always
+	// reflects the active zone. /etc/timezone can go stale (e.g. left at
+	// "Etc/UTC" after the zone was changed with timedatectl), so it is only
+	// consulted as a fallback.
+	if target, err := filepath.EvalSymlinks("/etc/localtime"); err == nil {
+		if i := strings.Index(target, "zoneinfo/"); i >= 0 {
+			if tz := target[i+len("zoneinfo/"):]; tz != "" {
+				return tz
+			}
+		}
+	}
+	if out, err := exec.Command("timedatectl", "show", "--property=Timezone", "--value").Output(); err == nil {
+		if tz := strings.TrimSpace(string(out)); tz != "" {
+			return tz
+		}
+	}
 	if b, err := os.ReadFile("/etc/timezone"); err == nil {
 		if tz := strings.TrimSpace(string(b)); tz != "" {
 			return tz
 		}
 	}
-	// /etc/localtime is usually a symlink into the zoneinfo database.
-	if target, err := os.Readlink("/etc/localtime"); err == nil {
-		if i := strings.Index(target, "zoneinfo/"); i >= 0 {
-			return target[i+len("zoneinfo/"):]
-		}
-	}
-	name, _ := time.Now().Zone()
-	return name
+	return "UTC"
 }
 
-func readLoadAvg() []float64 {
-	b, err := os.ReadFile("/proc/loadavg")
-	if err != nil {
-		return nil
+// detectVirtualization identifies the virtualization technology the host runs
+// under (KVM, OpenVZ, LXC, Docker, …) or reports bare metal.
+func detectVirtualization() string {
+	// systemd-detect-virt prints the technology name and exits non-zero for
+	// "none", so the output is meaningful even when err != nil.
+	out, _ := exec.Command("systemd-detect-virt").Output()
+	if v := strings.TrimSpace(string(out)); v != "" {
+		return prettyVirtName(v)
 	}
-	fields := strings.Fields(string(b))
-	if len(fields) < 3 {
-		return nil
+	// Fallbacks for systems without systemd-detect-virt.
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		return "Docker"
 	}
-	loads := make([]float64, 0, 3)
-	for _, s := range fields[:3] {
-		v, err := strconv.ParseFloat(s, 64)
-		if err != nil {
-			return nil
+	if _, err := os.Stat("/proc/vz"); err == nil {
+		// /proc/bc exists only on the OpenVZ host node, not inside containers.
+		if _, err := os.Stat("/proc/bc"); os.IsNotExist(err) {
+			return "OpenVZ"
 		}
-		loads = append(loads, v)
 	}
-	return loads
+	if b, err := os.ReadFile("/sys/hypervisor/type"); err == nil {
+		if v := strings.TrimSpace(string(b)); v != "" {
+			return prettyVirtName(v)
+		}
+	}
+	if b, err := os.ReadFile("/proc/cpuinfo"); err == nil && strings.Contains(string(b), "hypervisor") {
+		return "VM (unknown)"
+	}
+	return "None / Bare Metal"
+}
+
+func prettyVirtName(v string) string {
+	switch strings.ToLower(v) {
+	case "none":
+		return "None / Bare Metal"
+	case "kvm":
+		return "KVM"
+	case "qemu":
+		return "QEMU"
+	case "vmware":
+		return "VMware"
+	case "microsoft":
+		return "Hyper-V"
+	case "oracle":
+		return "VirtualBox"
+	case "xen":
+		return "Xen"
+	case "openvz":
+		return "OpenVZ"
+	case "lxc":
+		return "LXC"
+	case "lxc-libvirt":
+		return "LXC (libvirt)"
+	case "docker":
+		return "Docker"
+	case "podman":
+		return "Podman"
+	case "systemd-nspawn":
+		return "systemd-nspawn"
+	case "wsl":
+		return "WSL"
+	default:
+		return v
+	}
 }
 
 // Collect gathers all metrics and returns a SystemStats snapshot.
@@ -514,7 +571,7 @@ func Collect() (*SystemStats, error) {
 	osUptime, _ := readOSUptime()
 	ovpnUptime := getOVPNUptime(osUptime)
 	osName := readOSName()
-	kernel, timezone := hostInfo()
+	kernel, timezone, virtualization := hostInfo()
 
 	return &SystemStats{
 		CPUPercent:   cpuPct,
@@ -539,8 +596,8 @@ func Collect() (*SystemStats, error) {
 		OVPNUptime:   ovpnUptime,
 		OSName:       osName,
 
-		KernelVersion: kernel,
-		Timezone:      timezone,
-		LoadAvg:       readLoadAvg(),
+		KernelVersion:  kernel,
+		Timezone:       timezone,
+		Virtualization: virtualization,
 	}, nil
 }
