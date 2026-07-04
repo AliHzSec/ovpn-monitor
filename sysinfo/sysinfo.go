@@ -37,16 +37,16 @@ type SystemStats struct {
 	IPv6s        []string `json:"ipv6s"`
 	TCPCount     int      `json:"tcp_count"`
 	UDPCount     int      `json:"udp_count"`
-	OSUptime     uint64   `json:"os_uptime"`     // seconds since system boot
-	OVPNUptime   uint64   `json:"ovpn_uptime"`   // seconds since openvpn service started
-	OSName       string   `json:"os_name"`       // PRETTY_NAME from /etc/os-release
-	ClientOnline int      `json:"client_online"` // currently connected VPN clients
-	ClientTotal  int      `json:"client_total"`  // total registered VPN clients
+	OSUptime     uint64   `json:"os_uptime"`        // seconds since system boot
+	OVPNUptime   uint64   `json:"ovpn_uptime"`      // seconds since openvpn service started
+	WGUptime     uint64   `json:"wireguard_uptime"` // seconds since wg-quick@wg0 went active
+	OSName       string   `json:"os_name"`          // PRETTY_NAME from /etc/os-release
+	ClientOnline int      `json:"client_online"`    // currently connected VPN clients
+	ClientTotal  int      `json:"client_total"`     // total registered VPN clients
 
-	KernelVersion  string `json:"kernel_version"`   // output of uname -r
-	Timezone       string `json:"timezone"`         // system time zone, e.g. Europe/Berlin
-	Virtualization string `json:"virtualization"`   // e.g. KVM, OpenVZ, LXC, None / Bare Metal
-	PeakSpeedToday uint64 `json:"peak_speed_today"` // bytes/sec, highest up/down speed since local midnight (set by StatsCache)
+	KernelVersion  string `json:"kernel_version"` // output of uname -r
+	Timezone       string `json:"timezone"`       // system time zone, e.g. Europe/Berlin
+	Virtualization string `json:"virtualization"` // e.g. KVM, OpenVZ, LXC, None / Bare Metal
 }
 
 type cpuSample struct {
@@ -333,17 +333,26 @@ func readOSUptime() (uint64, error) {
 }
 
 func getServiceUptime(osUptimeSec uint64, serviceName string) (uint64, error) {
+	// ActiveEnterTimestampMonotonic alone is not enough: systemd keeps the
+	// timestamp of the *last* activation even after a unit is stopped, so the
+	// current ActiveState must be checked as well.
 	out, err := exec.Command("systemctl", "show", serviceName,
-		"--property=ActiveEnterTimestampMonotonic", "--no-pager").Output()
+		"--property=ActiveState", "--property=ActiveEnterTimestampMonotonic", "--no-pager").Output()
 	if err != nil {
 		return 0, err
 	}
-	line := strings.TrimSpace(string(out))
-	idx := strings.IndexByte(line, '=')
-	if idx < 0 {
-		return 0, fmt.Errorf("unexpected systemctl output: %q", line)
+	props := make(map[string]string, 2)
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if k, v, ok := strings.Cut(line, "="); ok {
+			props[k] = strings.TrimSpace(v)
+		}
 	}
-	microseconds, err := strconv.ParseUint(strings.TrimSpace(line[idx+1:]), 10, 64)
+	// oneshot units (e.g. wg-quick@wg0) report "active (exited)"; ActiveState
+	// is still "active" for them.
+	if props["ActiveState"] != "active" {
+		return 0, fmt.Errorf("service %q not active", serviceName)
+	}
+	microseconds, err := strconv.ParseUint(props["ActiveEnterTimestampMonotonic"], 10, 64)
 	if err != nil {
 		return 0, err
 	}
@@ -357,14 +366,47 @@ func getServiceUptime(osUptimeSec uint64, serviceName string) (uint64, error) {
 	return osUptimeSec - startedAtSec, nil
 }
 
+// WGUnit is the systemd unit that manages the WireGuard interface.
+const WGUnit = "wg-quick@wg0"
+
+// openVPNUnitCandidates are the unit names OpenVPN servers commonly run under,
+// in preference order.
+var openVPNUnitCandidates = []string{"openvpn-server@server", "openvpn@server"}
+
 func getOVPNUptime(osUptimeSec uint64) uint64 {
-	candidates := []string{"openvpn-server@server", "openvpn@server"}
-	for _, name := range candidates {
+	for _, name := range openVPNUnitCandidates {
 		if uptime, err := getServiceUptime(osUptimeSec, name); err == nil {
 			return uptime
 		}
 	}
 	return 0
+}
+
+func getWGUptime(osUptimeSec uint64) uint64 {
+	uptime, err := getServiceUptime(osUptimeSec, WGUnit)
+	if err != nil {
+		return 0
+	}
+	return uptime
+}
+
+// OpenVPNUnit resolves which of the candidate OpenVPN units this host actually
+// has, falling back to the primary candidate if none is loaded.
+func OpenVPNUnit() string {
+	for _, name := range openVPNUnitCandidates {
+		out, err := exec.Command("systemctl", "show", name,
+			"--property=LoadState", "--no-pager").Output()
+		if err == nil && strings.TrimSpace(string(out)) == "LoadState=loaded" {
+			return name
+		}
+	}
+	return openVPNUnitCandidates[0]
+}
+
+// ServiceActive reports whether the given systemd unit is currently active.
+func ServiceActive(unit string) bool {
+	out, _ := exec.Command("systemctl", "is-active", unit).Output()
+	return strings.TrimSpace(string(out)) == "active"
 }
 
 func readOSName() string {
@@ -570,6 +612,7 @@ func Collect() (*SystemStats, error) {
 
 	osUptime, _ := readOSUptime()
 	ovpnUptime := getOVPNUptime(osUptime)
+	wgUptime := getWGUptime(osUptime)
 	osName := readOSName()
 	kernel, timezone, virtualization := hostInfo()
 
@@ -594,6 +637,7 @@ func Collect() (*SystemStats, error) {
 		UDPCount:     udpCount,
 		OSUptime:     osUptime,
 		OVPNUptime:   ovpnUptime,
+		WGUptime:     wgUptime,
 		OSName:       osName,
 
 		KernelVersion:  kernel,

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -11,7 +12,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -86,9 +89,39 @@ func Register(
 		w.Write(data)
 	})))
 
-	mux.Handle("/api/network-history", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// ── Service control (OpenVPN / WireGuard) ────────────────────────────────
+	// Only these fixed keys may be acted on; the unit names are resolved
+	// server-side and the frontend never supplies a unit string.
+	serviceUnits := map[string]string{
+		"openvpn":   sysinfo.OpenVPNUnit(),
+		"wireguard": sysinfo.WGUnit,
+	}
+	mux.Handle("POST /api/service/{name}/{action}", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		unit, known := serviceUnits[r.PathValue("name")]
+		action := r.PathValue("action")
+		if !known || (action != "stop" && action != "restart") {
+			http.Error(w, "Unknown service or action", http.StatusBadRequest)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+		defer cancel()
+		out, err := exec.CommandContext(ctx, "systemctl", action, unit).CombinedOutput()
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(cache.HistoryJSON(r.URL.Query().Get("range")))
+		if err != nil {
+			logger.Error("service control failed",
+				"unit", unit, "action", action, "err", err, "output", strings.TrimSpace(string(out)))
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"ok":     false,
+				"active": sysinfo.ServiceActive(unit),
+				"error":  "systemctl " + action + " failed",
+			})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok":     true,
+			"active": sysinfo.ServiceActive(unit),
+		})
 	})))
 
 	mux.Handle("/api/clients", auth.AuthMiddleware(sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
