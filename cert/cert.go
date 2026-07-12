@@ -143,7 +143,13 @@ func (c *Whitelist) All() []string {
 	return result
 }
 
-func (c *Whitelist) RefreshLoop(ctx context.Context, dir string, logger *slog.Logger) {
+// RefreshLoop reloads the whitelist from dir every minute. After each SUCCESSFUL
+// reload it invokes onReload (when non-nil); a failed reload keeps the previous
+// whitelist and skips onReload. This lets callers hang work that must only ever
+// see a fresh, fully-read whitelist off the refresh cycle — notably the
+// revoked-client reaper, which deletes data for names no longer present and so
+// must never run against a half-read or stale set.
+func (c *Whitelist) RefreshLoop(ctx context.Context, dir string, logger *slog.Logger, onReload func()) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	for {
@@ -151,8 +157,11 @@ func (c *Whitelist) RefreshLoop(ctx context.Context, dir string, logger *slog.Lo
 		case <-ticker.C:
 			if err := c.Load(dir); err != nil {
 				logger.Warn("Cert refresh failed: " + err.Error())
-			} else {
-				logger.Info("Cert whitelist refreshed")
+				continue
+			}
+			logger.Info("Cert whitelist refreshed")
+			if onReload != nil {
+				onReload()
 			}
 		case <-ctx.Done():
 			return

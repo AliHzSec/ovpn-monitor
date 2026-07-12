@@ -525,11 +525,12 @@ func (d *DB) SumAllTraffic(ctx context.Context) (sent, recv uint64, err error) {
 
 // AllClientNames returns the common_name of every row in the clients table.
 //
-// The clients table is append-only (rows are never deleted, so per-client
-// traffic history survives a revocation), which means it still holds names whose
-// certificate has since been revoked. Callers therefore intersect this list with
-// the active-certificate whitelist (see the cert package) to exclude revoked
-// clients from counts and listings without losing their historical data.
+// Rows are pruned by the revoked-client reaper (see DeleteClientData and
+// main.reapRevokedClients) once a certificate leaves the whitelist, but that runs
+// on an interval — so between a revocation and the next reap pass this list can
+// still hold a just-revoked name. Callers therefore continue to intersect it with
+// the active-certificate whitelist (see the cert package) to exclude such clients
+// from counts and listings; the reaper then removes them entirely on its next tick.
 func (d *DB) AllClientNames(ctx context.Context) ([]string, error) {
 	rows, err := d.db.QueryContext(ctx, `SELECT common_name FROM clients`)
 	if err != nil {
@@ -545,6 +546,52 @@ func (d *DB) AllClientNames(ctx context.Context) ([]string, error) {
 		names = append(names, name)
 	}
 	return names, rows.Err()
+}
+
+// DeleteClientData permanently removes every row belonging to a single client
+// across all per-client tables — sessions, visited_domains and clients — in one
+// transaction, returning the number of rows deleted from each for audit logging.
+// It is the cleanup counterpart to the append-only write path: once a client's
+// certificate is revoked or removed, its owner's data is purged outright rather
+// than kept and filtered at read time, so the database does not grow without bound.
+//
+// sessions is deleted explicitly (rather than left to the clients→sessions
+// ON DELETE CASCADE) for two reasons: the exact per-table count is needed for the
+// audit log, and it removes any dependence on the foreign_keys pragma being enabled
+// on the executing connection. visited_domains is keyed by client_name (a plain
+// string, not a foreign key), so it must always be deleted explicitly.
+func (d *DB) DeleteClientData(ctx context.Context, name string) (sessionRows, domainRows, clientRows int64, err error) {
+	tx, err := d.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	defer tx.Rollback()
+
+	res, err := tx.ExecContext(ctx,
+		`DELETE FROM sessions WHERE client_id IN (SELECT id FROM clients WHERE common_name = ?)`, name)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	sessionRows, _ = res.RowsAffected()
+
+	res, err = tx.ExecContext(ctx,
+		`DELETE FROM visited_domains WHERE client_name = ?`, name)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	domainRows, _ = res.RowsAffected()
+
+	res, err = tx.ExecContext(ctx,
+		`DELETE FROM clients WHERE common_name = ?`, name)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	clientRows, _ = res.RowsAffected()
+
+	if err := tx.Commit(); err != nil {
+		return 0, 0, 0, err
+	}
+	return sessionRows, domainRows, clientRows, nil
 }
 
 // parseLocalEpoch converts a stored "2006-01-02 15:04:05" timestamp (written in

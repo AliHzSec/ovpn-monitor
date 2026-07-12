@@ -192,7 +192,14 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		},
 	)
 
-	go certList.RefreshLoop(ctx, opts.CertsDir, logger)
+	// Reap revoked/removed clients as part of the whitelist-refresh cycle: after
+	// each successful reload of pki/index.txt, purge the DB rows of any client that
+	// is no longer valid (see reapRevokedClients). Tying it to the reload — rather
+	// than an independent ticker — guarantees it only ever runs against a freshly
+	// read, complete whitelist.
+	go certList.RefreshLoop(ctx, opts.CertsDir, logger, func() {
+		reapRevokedClients(ctx, database, certList, logger)
+	})
 	go ippSt.RefreshLoop(ctx, opts.IPPFile, database, logger)
 	go cache.Run(ctx)
 	go purgeVisitedDomainsLoop(ctx, database, logger)
@@ -281,6 +288,56 @@ func purgeVisitedDomainsLoop(ctx context.Context, database *db.DB, logger *slog.
 			purge()
 		case <-ctx.Done():
 			return
+		}
+	}
+}
+
+// reapRevokedClients permanently deletes the database rows of every client whose
+// certificate is no longer valid — i.e. whose common name is absent from the
+// active-certificate whitelist because it was revoked or expired (index.txt status
+// flipped away from "V"), or because its .crt was removed from pki/issued/. This
+// turns the panel's write path from append-only into self-pruning, so revoked
+// clients stop accumulating dead traffic history.
+//
+// Safety: it never acts on an empty whitelist. A successful index.txt read that
+// parses to zero valid names is indistinguishable from a transient empty/garbage
+// read, and treating "nobody is valid" as "everybody is revoked" would wipe the
+// entire database. Because RefreshLoop keeps the last-good whitelist on any read
+// error and only calls this after a successful reload, an empty set here means the
+// file genuinely parsed empty — so we skip and log rather than risk mass deletion.
+// (A truly all-revoked server keeps its dead rows until at least one valid cert
+// exists; that is the deliberate, safe trade-off.)
+func reapRevokedClients(ctx context.Context, database *db.DB, certs *cert.Whitelist, logger *slog.Logger) {
+	valid := certs.All()
+	if len(valid) == 0 {
+		logger.Warn("skipping revoked-client cleanup: certificate whitelist is empty; not deleting any client data")
+		return
+	}
+	validSet := make(map[string]bool, len(valid))
+	for _, n := range valid {
+		validSet[n] = true
+	}
+
+	names, err := database.AllClientNames(ctx)
+	if err != nil {
+		logger.Warn("revoked-client cleanup: could not list clients", "err", err)
+		return
+	}
+	for _, name := range names {
+		if validSet[name] {
+			continue
+		}
+		sessionRows, domainRows, clientRows, err := database.DeleteClientData(ctx, name)
+		if err != nil {
+			logger.Error("revoked-client cleanup: delete failed", "client", name, "err", err)
+			continue
+		}
+		if clientRows > 0 || sessionRows > 0 || domainRows > 0 {
+			logger.Info("deleted revoked client data",
+				"client", name,
+				"clients_rows", clientRows,
+				"sessions_rows", sessionRows,
+				"visited_domains_rows", domainRows)
 		}
 	}
 }
