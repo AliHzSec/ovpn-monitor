@@ -19,6 +19,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"ovpnmonitor/auth"
+	"ovpnmonitor/cert"
 	"ovpnmonitor/db"
 	"ovpnmonitor/ipp"
 	"ovpnmonitor/model"
@@ -66,6 +67,7 @@ func Register(
 	database *db.DB,
 	sessions *auth.SessionStore,
 	online *tracker.OnlineTracker,
+	certs *cert.Whitelist,
 	ippSt *ipp.Store,
 	tmpl *template.Template,
 	vpnNet *net.IPNet,
@@ -132,10 +134,21 @@ func Register(
 			http.Error(w, "Internal Error", http.StatusInternalServerError)
 			return
 		}
+		// Exclude clients whose certificate is revoked (or otherwise no longer
+		// valid). Their rows are retained in the DB for history, but certs — sourced
+		// from pki/index.txt — only contains currently-valid common names, so the
+		// list matches the Overview's Total Clients count. Filtered in place; a valid
+		// client that has never connected has no sessions and is simply shown Offline.
 		onlineSet := online.Get()
+		valid := clients[:0]
 		for i := range clients {
+			if !certs.Contains(clients[i].CommonName) {
+				continue
+			}
 			clients[i].Online = onlineSet[clients[i].CommonName]
+			valid = append(valid, clients[i])
 		}
+		clients = valid
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(clients)
 	})))

@@ -171,9 +171,21 @@ func run(ctx context.Context, logger *slog.Logger) error {
 			return database.SumAllTraffic(ctx)
 		},
 		func(ctx context.Context) (int, int, error) {
-			total, err := database.CountClients(ctx)
+			// Total = clients known to the DB whose certificate is still valid.
+			// Revoked clients keep their .crt in pki/issued/ and their history in
+			// the DB, but certList (sourced from pki/index.txt) excludes them, so
+			// they no longer inflate the count. Online is unchanged: it is driven by
+			// the OpenVPN status log, which the watcher already filters by the same
+			// whitelist, so every online client is a subset of the valid total.
+			names, err := database.AllClientNames(ctx)
 			if err != nil {
 				return 0, 0, err
+			}
+			total := 0
+			for _, name := range names {
+				if certList.Contains(name) {
+					total++
+				}
 			}
 			onlineSet := online.Get()
 			return len(onlineSet), total, nil
@@ -208,7 +220,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	mux := http.NewServeMux()
-	handler.Register(mux, database, sessions, online, ippSt, tmpl, vpnNet,
+	handler.Register(mux, database, sessions, online, certList, ippSt, tmpl, vpnNet,
 		opts.SessionTTL, logger, templatesDir, cache)
 
 	srv := &http.Server{Addr: opts.Addr, Handler: mux}

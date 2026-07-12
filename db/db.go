@@ -523,10 +523,28 @@ func (d *DB) SumAllTraffic(ctx context.Context) (sent, recv uint64, err error) {
 	return
 }
 
-func (d *DB) CountClients(ctx context.Context) (int, error) {
-	var count int
-	err := d.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM clients`).Scan(&count)
-	return count, err
+// AllClientNames returns the common_name of every row in the clients table.
+//
+// The clients table is append-only (rows are never deleted, so per-client
+// traffic history survives a revocation), which means it still holds names whose
+// certificate has since been revoked. Callers therefore intersect this list with
+// the active-certificate whitelist (see the cert package) to exclude revoked
+// clients from counts and listings without losing their historical data.
+func (d *DB) AllClientNames(ctx context.Context) ([]string, error) {
+	rows, err := d.db.QueryContext(ctx, `SELECT common_name FROM clients`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var names []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+	}
+	return names, rows.Err()
 }
 
 // parseLocalEpoch converts a stored "2006-01-02 15:04:05" timestamp (written in
