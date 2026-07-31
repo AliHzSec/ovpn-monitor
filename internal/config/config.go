@@ -17,6 +17,20 @@ type Options struct {
 	ServerConfig string
 	SessionTTL   time.Duration
 
+	// PollInterval is the shared refresh cadence for BOTH VPN systems: the
+	// WireGuard poller ticks on it and the OpenVPN watcher uses it as its
+	// guaranteed resync interval (fsnotify events still apply sooner). Zero
+	// (missing or malformed setting) is replaced with the default in main.
+	PollInterval time.Duration
+
+	// WireGuard poller (see the wireguard package). An empty WGConf disables
+	// WireGuard monitoring; a zero duration and an empty interface are replaced
+	// with defaults in main, so a malformed setting degrades to the default
+	// rather than a broken poller.
+	WGConf             string
+	WGIface            string
+	WGHandshakeTimeout time.Duration
+
 	// Domain sniffer tunables (see the sniffer package). Zero/empty values are
 	// replaced with defaults by sniffer.Config.applyDefaults, so a missing or
 	// malformed setting can never disable capture outright.
@@ -55,6 +69,12 @@ func LoadFromDB(ctx context.Context, sqldb *sql.DB) (Options, error) {
 		IPPFile:      vals["openvpn_ipp_file"],
 		ServerConfig: vals["openvpn_server_config"],
 		SessionTTL:   24 * time.Hour,
+
+		PollInterval: durationSetting(vals["poll_interval"]),
+
+		WGConf:             vals["wireguard_conf"],
+		WGIface:            vals["wireguard_interface"],
+		WGHandshakeTimeout: durationSetting(vals["wireguard_handshake_timeout"]),
 
 		SnifferIfaces:  vals["sniffer_ifaces"],
 		SnifferWGConf:  vals["sniffer_wg_conf"],

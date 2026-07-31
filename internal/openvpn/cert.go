@@ -1,4 +1,4 @@
-package cert
+package openvpn
 
 import (
 	"bufio"
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type Whitelist struct {
+type CertWhitelist struct {
 	mu    sync.RWMutex
 	names map[string]bool
 }
@@ -31,7 +31,7 @@ type Whitelist struct {
 // dir is the configured certificate directory (…/pki/issued). When no index.txt
 // is found alongside it (a non-easy-rsa deployment), we fall back to listing dir
 // so such setups keep working — but that fallback cannot detect revocation.
-func (c *Whitelist) Load(dir string) error {
+func (c *CertWhitelist) Load(dir string) error {
 	names, err := loadValidNames(dir)
 	if err != nil {
 		return err
@@ -127,13 +127,13 @@ func loadFromDir(dir string) (map[string]bool, error) {
 	return names, nil
 }
 
-func (c *Whitelist) Contains(name string) bool {
+func (c *CertWhitelist) Contains(name string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.names[name]
 }
 
-func (c *Whitelist) All() []string {
+func (c *CertWhitelist) All() []string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	result := make([]string, 0, len(c.names))
@@ -149,7 +149,7 @@ func (c *Whitelist) All() []string {
 // see a fresh, fully-read whitelist off the refresh cycle — notably the
 // revoked-client reaper, which deletes data for names no longer present and so
 // must never run against a half-read or stale set.
-func (c *Whitelist) RefreshLoop(ctx context.Context, dir string, logger *slog.Logger, onReload func()) {
+func (c *CertWhitelist) RefreshLoop(ctx context.Context, dir string, logger *slog.Logger, onReload func()) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	for {

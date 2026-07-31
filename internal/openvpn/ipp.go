@@ -1,4 +1,4 @@
-package ipp
+package openvpn
 
 import (
 	"bufio"
@@ -10,16 +10,16 @@ import (
 	"sync"
 	"time"
 
-	"ovpnmonitor/db"
+	"ovpnmonitor/internal/db"
 )
 
-type Store struct {
+type IPPStore struct {
 	mu        sync.RWMutex
 	vpnToName map[string]string
 	nameToVPN map[string]string
 }
 
-func (is *Store) Get() (map[string]string, map[string]string) {
+func (is *IPPStore) Get() (map[string]string, map[string]string) {
 	is.mu.RLock()
 	defer is.mu.RUnlock()
 	vpnToName := make(map[string]string, len(is.vpnToName))
@@ -33,7 +33,7 @@ func (is *Store) Get() (map[string]string, map[string]string) {
 	return vpnToName, nameToVPN
 }
 
-func (is *Store) RefreshLoop(ctx context.Context, ippFile string, database *db.DB, logger *slog.Logger) {
+func (is *IPPStore) RefreshLoop(ctx context.Context, ippFile string, database *db.DB, logger *slog.Logger) {
 	if ippFile == "" {
 		return
 	}

@@ -426,6 +426,34 @@
             border: 1px solid rgba(72, 79, 88, 0.15);
         }
 
+        /* Connection-type badge: which system(s) the client is currently
+           connected through. Rendered only while online. */
+        .badge.proto {
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .badge.proto.ovpn {
+            background: rgba(227, 179, 65, 0.08);
+            color: var(--accent);
+            border: 1px solid rgba(227, 179, 65, 0.25);
+        }
+
+        .badge.proto.wg {
+            background: rgba(88, 166, 255, 0.08);
+            color: #58a6ff;
+            border: 1px solid rgba(88, 166, 255, 0.25);
+        }
+
+        .badge-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
         .status-dot {
             width: 8px;
             height: 8px;
@@ -1045,9 +1073,12 @@
                 </div>
                 <div class="client-head-main">
                     <div class="client-name" id="hd-name">…</div>
-                    <span class="badge offline" id="hd-badge">
-                        <span class="status-dot offline"></span><span id="hd-badge-text">—</span>
-                    </span>
+                    <div class="badge-row">
+                        <span class="badge offline" id="hd-badge">
+                            <span class="status-dot offline"></span><span id="hd-badge-text">—</span>
+                        </span>
+                        <span id="hd-proto"></span>
+                    </div>
                 </div>
             </div>
 
@@ -1082,6 +1113,14 @@
                         <div class="kv-row">
                             <span class="kv-label">Upload</span>
                             <span class="kv-value sent" id="cd-sent">—</span>
+                        </div>
+                        <div class="kv-row">
+                            <span class="kv-label">Via OpenVPN</span>
+                            <span class="kv-value muted" id="cd-split-ovpn">—</span>
+                        </div>
+                        <div class="kv-row">
+                            <span class="kv-label">Via WireGuard</span>
+                            <span class="kv-value muted" id="cd-split-wg">—</span>
                         </div>
                     </div>
                 </div>
@@ -1247,6 +1286,15 @@
                 badge.querySelector('.status-dot').className = 'status-dot ' + (online ? 'online' : 'offline');
                 document.getElementById('hd-badge-text').textContent = online ? 'Online' : 'Offline';
 
+                // Connection-type badges: how the client is connected right now
+                // (can be both at once). Hidden while offline.
+                var proto = '';
+                if (online) {
+                    if (c.online_openvpn) proto += '<span class="badge proto ovpn">OVPN</span>';
+                    if (c.online_wireguard) proto += '<span class="badge proto wg">WG</span>';
+                }
+                document.getElementById('hd-proto').innerHTML = proto;
+
                 var ip = online ? (c.real_address || '—') : '—';
                 var vpn = c.vpn_address || '—';
                 document.getElementById('cd-ip').textContent = ip;
@@ -1259,6 +1307,8 @@
                 document.getElementById('cd-total').textContent = c.total_traffic_readable || fmtBytes(c.total_traffic);
                 document.getElementById('cd-recv').textContent = c.bytes_received_readable || fmtBytes(c.bytes_received);
                 document.getElementById('cd-sent').textContent = c.bytes_sent_readable || fmtBytes(c.bytes_sent);
+                document.getElementById('cd-split-ovpn').textContent = c.traffic_openvpn_readable || fmtBytes(c.traffic_openvpn);
+                document.getElementById('cd-split-wg').textContent = c.traffic_wireguard_readable || fmtBytes(c.traffic_wireguard);
 
                 var timeLabel = online ? 'Connected Since' : 'Last Seen';
                 var timeVal = (online ? c.connected_since : (c.last_seen || c.connected_since)) || 'Never';

@@ -47,6 +47,11 @@ AllowedIPs = 10.7.0.2/32,fddd:2c4:2c4:2c4::2/128
 [Peer]
 PublicKey = key2
 AllowedIPs = 10.7.0.3/32
+
+### Client erin
+[Peer]
+PublicKey = key3
+AllowedIPs = 10.7.0.4/32
 `
 	p := writeFile(t, dir, "wg0.conf", conf)
 	out := map[string]string{}
@@ -61,5 +66,11 @@ AllowedIPs = 10.7.0.3/32
 	}
 	if out["10.7.0.3"] != "dave" {
 		t.Errorf("dave = %q", out["10.7.0.3"])
+	}
+	// angristan/wireguard-install convention, parsed by the shared wg parser —
+	// the same name the WireGuard poller's registry produces, so browsing
+	// history and traffic land under one client.
+	if out["10.7.0.4"] != "erin" {
+		t.Errorf("erin = %q", out["10.7.0.4"])
 	}
 }

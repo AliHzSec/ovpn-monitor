@@ -1,21 +1,15 @@
-package watcher
+package openvpn
 
 import (
 	"bufio"
-	"context"
 	"errors"
 	"io"
 	"log/slog"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
-	"ovpnmonitor/cert"
-	"ovpnmonitor/db"
-	"ovpnmonitor/model"
-	"ovpnmonitor/tracker"
+	"ovpnmonitor/internal/model"
 )
 
 // ErrIncompleteLog signals that the status file was read mid-rewrite (no END
@@ -23,103 +17,7 @@ import (
 // entirely rather than act on a partial snapshot.
 var ErrIncompleteLog = errors.New("incomplete status log read: missing END marker")
 
-type Watcher struct {
-	DB     *db.DB
-	Logger *slog.Logger
-	Certs  *cert.Whitelist
-	Online *tracker.OnlineTracker
-}
-
-func (w Watcher) Watch(ctx context.Context, file string) error {
-	fw, err := fsnotify.NewWatcher()
-	if err != nil {
-		return err
-	}
-	defer fw.Close()
-
-	if err := fw.Add(file); err != nil {
-		return err
-	}
-
-	w.ensureKnownClients(ctx)
-	w.processLog(ctx, file)
-
-	ticker := time.NewTicker(60 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case event := <-fw.Events:
-			if event.Op&fsnotify.Write == fsnotify.Write {
-				w.Logger.Info("Log file updated: " + event.Name)
-				w.processLog(ctx, file)
-			}
-		case <-ticker.C:
-			// If OpenVPN stops writing the status file (crash, service stop),
-			// no fsnotify Write events arrive and clients would stay "online"
-			// forever. Detect a stale file and close out their sessions.
-			if fi, err := os.Stat(file); err == nil && time.Since(fi.ModTime()) > 3*time.Minute {
-				w.Logger.Warn("status log not updated recently; assuming OpenVPN is unresponsive",
-					"path", file, "last_modified", fi.ModTime().Format(time.RFC3339))
-				if err := w.DB.CloseAllOpenSessions(ctx); err != nil {
-					w.Logger.Error("Close stale sessions: " + err.Error())
-				}
-				w.Online.Set(map[string]bool{})
-			} else {
-				// File is fresh (or stat failed): resync to catch any missed events.
-				w.processLog(ctx, file)
-			}
-		case err := <-fw.Errors:
-			return err
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-}
-
-func (w Watcher) ensureKnownClients(ctx context.Context) {
-	for _, name := range w.Certs.All() {
-		if err := w.DB.UpsertKnownClient(ctx, name); err != nil {
-			w.Logger.Warn("Could not upsert client " + name + ": " + err.Error())
-		}
-	}
-}
-
-func (w Watcher) processLog(ctx context.Context, name string) {
-	f, err := os.Open(name)
-	if err != nil {
-		w.Logger.Error("Open log: " + err.Error())
-		return
-	}
-	defer f.Close()
-
-	entries, err := parseOpenVPNLog(f, w.Certs, w.Logger)
-	if err != nil {
-		// A partial read (no END marker) is expected when we catch OpenVPN
-		// mid-rewrite. Skip it without touching online state or sessions, so a
-		// torn snapshot can never falsely disconnect clients.
-		if errors.Is(err, ErrIncompleteLog) {
-			w.Logger.Warn("skipping partial status log read; sessions left unchanged")
-			return
-		}
-		w.Logger.Error("Parse log: " + err.Error())
-		return
-	}
-
-	onlineSet := make(map[string]bool, len(entries))
-	for _, e := range entries {
-		onlineSet[e.CommonName] = true
-	}
-	w.Online.Set(onlineSet)
-
-	if err := w.DB.ProcessLogEntries(ctx, entries); err != nil {
-		w.Logger.Error("Update DB: " + err.Error())
-	} else {
-		w.Logger.Info("Database updated", "online_clients", len(entries))
-	}
-}
-
-func parseOpenVPNLog(f io.Reader, certs *cert.Whitelist, logger *slog.Logger) ([]model.LogEntry, error) {
+func parseOpenVPNLog(f io.Reader, certs *CertWhitelist, logger *slog.Logger) ([]model.LogEntry, error) {
 	scanner := bufio.NewScanner(f)
 
 	var entries []model.LogEntry

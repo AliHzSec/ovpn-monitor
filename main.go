@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"database/sql"
 	"errors"
@@ -12,21 +11,19 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"ovpnmonitor/auth"
-	"ovpnmonitor/cert"
-	"ovpnmonitor/config"
-	"ovpnmonitor/db"
-	"ovpnmonitor/handler"
-	"ovpnmonitor/ipp"
-	"ovpnmonitor/sniffer"
-	"ovpnmonitor/sysinfo"
-	"ovpnmonitor/tracker"
-	"ovpnmonitor/watcher"
+	"ovpnmonitor/internal/auth"
+	"ovpnmonitor/internal/config"
+	"ovpnmonitor/internal/db"
+	"ovpnmonitor/internal/handler"
+	"ovpnmonitor/internal/openvpn"
+	"ovpnmonitor/internal/sniffer"
+	"ovpnmonitor/internal/sysinfo"
+	"ovpnmonitor/internal/tracker"
+	"ovpnmonitor/internal/wireguard"
 )
 
 func main() {
@@ -99,10 +96,24 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		logger.Warn("no certs directory configured; set via /settings")
 	}
 
+	// Shared poll cadence for both VPN systems: a missing or malformed setting
+	// degrades to the default rather than broken loops (0s interval would spin).
+	if opts.PollInterval <= 0 {
+		opts.PollInterval = 10 * time.Second
+	}
+
+	// WireGuard defaults, following the same degrade-to-default pattern.
+	if opts.WGIface == "" {
+		opts.WGIface = "wg0"
+	}
+	if opts.WGHandshakeTimeout <= 0 {
+		opts.WGHandshakeTimeout = 180 * time.Second
+	}
+
 	// Step 4: determine VPN subnet from OpenVPN server config, fall back to ipp.txt
 	var vpnNet *net.IPNet
 	if opts.ServerConfig != "" {
-		if cidr, err := parseServerSubnet(opts.ServerConfig); err != nil {
+		if cidr, err := openvpn.ParseServerSubnet(opts.ServerConfig); err != nil {
 			logger.Warn("could not parse subnet from server config", "path", opts.ServerConfig, "err", err)
 		} else if _, parsed, err := net.ParseCIDR(cidr); err != nil {
 			logger.Warn("invalid subnet parsed from server config", "cidr", cidr, "err", err)
@@ -111,7 +122,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		}
 	}
 	if vpnNet == nil && opts.IPPFile != "" {
-		vpnToName, _, loadErr := ipp.LoadIPPFile(opts.IPPFile)
+		vpnToName, _, loadErr := openvpn.LoadIPPFile(opts.IPPFile)
 		if loadErr != nil {
 			logger.Warn("could not load ipp.txt for subnet detection", "err", loadErr)
 		} else {
@@ -149,6 +160,10 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		"vpn_subnet", detectedSubnet,
 		"admin_user", opts.AdminUser,
 		"session_ttl", opts.SessionTTL,
+		"poll_interval", opts.PollInterval,
+		"wireguard_conf", opts.WGConf,
+		"wireguard_interface", opts.WGIface,
+		"wireguard_handshake_timeout", opts.WGHandshakeTimeout,
 	)
 
 	tmpl, err := handler.LoadTemplates(templatesDir)
@@ -156,13 +171,30 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		return err
 	}
 
-	certList := &cert.Whitelist{}
+	certList := &openvpn.CertWhitelist{}
 	if err := certList.Load(opts.CertsDir); err != nil {
 		logger.Warn("Could not load certs directory: " + err.Error())
 	}
 
-	online := &tracker.OnlineTracker{}
-	ippSt := &ipp.Store{}
+	// WireGuard peer registry: the wg-side validity source (analogous to
+	// certList). Loaded once here so handlers and the poller have data
+	// immediately; kept fresh by its RefreshLoop below. A load failure is not
+	// fatal — the panel runs with WireGuard monitoring effectively disabled
+	// until the conf becomes readable.
+	wgReg := &wireguard.Registry{}
+	if opts.WGConf == "" {
+		// Deliberately disabled: mark the registry healthy-empty so the reaper
+		// keeps pruning revoked certificates exactly as the pure-OpenVPN build.
+		wgReg.MarkDisabled()
+		logger.Warn("wireguard monitoring disabled: no wireguard_conf configured; set via /settings")
+	} else if err := wgReg.Load(opts.WGConf); err != nil {
+		logger.Warn("Could not load wireguard conf; wireguard monitoring degraded until it loads",
+			"path", opts.WGConf, "err", err)
+	}
+
+	online := &tracker.OnlineTracker{}   // OpenVPN, fed by the watcher
+	wgOnline := &tracker.OnlineTracker{} // WireGuard, fed by the wg poller
+	ippSt := &openvpn.IPPStore{}
 
 	sessions := auth.NewSessionStore(opts.SessionTTL)
 
@@ -171,38 +203,63 @@ func run(ctx context.Context, logger *slog.Logger) error {
 			return database.SumAllTraffic(ctx)
 		},
 		func(ctx context.Context) (int, int, error) {
-			// Total = clients known to the DB whose certificate is still valid.
-			// Revoked clients keep their .crt in pki/issued/ and their history in
-			// the DB, but certList (sourced from pki/index.txt) excludes them, so
-			// they no longer inflate the count. Online is unchanged: it is driven by
-			// the OpenVPN status log, which the watcher already filters by the same
-			// whitelist, so every online client is a subset of the valid total.
+			// Total = clients known to the DB that are valid in EITHER system:
+			// certificate still valid (certList, sourced from pki/index.txt,
+			// excludes revoked clients) OR currently a WireGuard peer. Online is
+			// the union of both online sets, deduplicated by name — a client on
+			// OpenVPN and WireGuard simultaneously counts once. Both sources
+			// filter their online sets by the same validity lists, so online
+			// stays a subset of total.
 			names, err := database.AllClientNames(ctx)
 			if err != nil {
 				return 0, 0, err
 			}
 			total := 0
 			for _, name := range names {
-				if certList.Contains(name) {
+				if certList.Contains(name) || wgReg.Contains(name) {
 					total++
 				}
 			}
 			onlineSet := online.Get()
+			for name := range wgOnline.Get() {
+				onlineSet[name] = true
+			}
 			return len(onlineSet), total, nil
 		},
 	)
 
-	// Reap revoked/removed clients as part of the whitelist-refresh cycle: after
-	// each successful reload of pki/index.txt, purge the DB rows of any client that
-	// is no longer valid (see reapRevokedClients). Tying it to the reload — rather
-	// than an independent ticker — guarantees it only ever runs against a freshly
-	// read, complete whitelist.
-	go certList.RefreshLoop(ctx, opts.CertsDir, logger, func() {
-		reapRevokedClients(ctx, database, certList, logger)
-	})
+	// Reap revoked/removed clients as part of the refresh cycles of BOTH
+	// validity sources: after each successful reload of pki/index.txt or of
+	// wg0.conf, purge the DB rows of any client that is valid in neither (see
+	// reapRevokedClients). Tying it to the reloads — rather than an independent
+	// ticker — guarantees it only ever runs right after a freshly read,
+	// complete set from the source that triggered it; the guards inside
+	// reapRevokedClients protect against the OTHER source being stale or bad.
+	reap := func() {
+		reapRevokedClients(ctx, database, certList, wgReg, logger)
+	}
+	go certList.RefreshLoop(ctx, opts.CertsDir, logger, reap)
+	go wgReg.RefreshLoop(ctx, opts.WGConf, database, logger, reap)
 	go ippSt.RefreshLoop(ctx, opts.IPPFile, database, logger)
 	go cache.Run(ctx)
 	go purgeVisitedDomainsLoop(ctx, database, logger)
+
+	// WireGuard poller: the wg-side counterpart of the OpenVPN watcher. Safe
+	// to start even when WireGuard is absent — dump failures degrade to a
+	// closed-sessions/offline state and are retried, so bringing WireGuard up
+	// later starts monitoring without a panel restart.
+	if opts.WGConf != "" {
+		wgPoller := &wireguard.Poller{
+			DB:               database,
+			Logger:           logger,
+			Registry:         wgReg,
+			Online:           wgOnline,
+			Iface:            opts.WGIface,
+			Interval:         opts.PollInterval,
+			HandshakeTimeout: opts.WGHandshakeTimeout,
+		}
+		go wgPoller.Run(ctx)
+	}
 
 	// Domain sniffer: runs in-process on the panel's own DB handle, so there is
 	// no separate service and no second database path to keep in sync. It shuts
@@ -227,8 +284,21 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	mux := http.NewServeMux()
-	handler.Register(mux, database, sessions, online, certList, ippSt, tmpl, vpnNet,
-		opts.SessionTTL, logger, templatesDir, cache)
+	handler.Register(mux, handler.Deps{
+		DB:           database,
+		Sessions:     sessions,
+		OVPNOnline:   online,
+		WGOnline:     wgOnline,
+		Certs:        certList,
+		WGRegistry:   wgReg,
+		IPP:          ippSt,
+		Templates:    tmpl,
+		VPNNet:       vpnNet,
+		SessionTTL:   opts.SessionTTL,
+		Logger:       logger,
+		TemplatesDir: templatesDir,
+		Cache:        cache,
+	})
 
 	srv := &http.Server{Addr: opts.Addr, Handler: mux}
 	srvErr := make(chan error, 1)
@@ -253,130 +323,9 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		return ctx.Err()
 	}
 
-	w := watcher.Watcher{DB: database, Logger: logger, Certs: certList, Online: online}
+	w := openvpn.Watcher{DB: database, Logger: logger, Certs: certList, Online: online,
+		PollInterval: opts.PollInterval}
 	err = w.Watch(ctx, opts.Log)
 	waitSnifferDrain()
 	return err
-}
-
-// visitedDomainRetention is how long aggregated (client, domain) browsing
-// records are kept before the daily cleanup job purges them.
-const visitedDomainRetention = 90 * 24 * time.Hour
-
-// purgeVisitedDomainsLoop runs an immediate purge on startup and then once a day,
-// deleting visited_domains rows whose last_seen is older than the retention
-// window so browsing history storage stays bounded.
-func purgeVisitedDomainsLoop(ctx context.Context, database *db.DB, logger *slog.Logger) {
-	purge := func() {
-		c, cancel := context.WithTimeout(ctx, 30*time.Second)
-		defer cancel()
-		n, err := database.PurgeVisitedDomainsOlderThan(c, visitedDomainRetention)
-		if err != nil {
-			logger.Warn("visited-domains purge failed", "err", err)
-			return
-		}
-		if n > 0 {
-			logger.Info("purged stale visited domains", "rows", n)
-		}
-	}
-	purge()
-	ticker := time.NewTicker(24 * time.Hour)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			purge()
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-// reapRevokedClients permanently deletes the database rows of every client whose
-// certificate is no longer valid — i.e. whose common name is absent from the
-// active-certificate whitelist because it was revoked or expired (index.txt status
-// flipped away from "V"), or because its .crt was removed from pki/issued/. This
-// turns the panel's write path from append-only into self-pruning, so revoked
-// clients stop accumulating dead traffic history.
-//
-// Safety: it never acts on an empty whitelist. A successful index.txt read that
-// parses to zero valid names is indistinguishable from a transient empty/garbage
-// read, and treating "nobody is valid" as "everybody is revoked" would wipe the
-// entire database. Because RefreshLoop keeps the last-good whitelist on any read
-// error and only calls this after a successful reload, an empty set here means the
-// file genuinely parsed empty — so we skip and log rather than risk mass deletion.
-// (A truly all-revoked server keeps its dead rows until at least one valid cert
-// exists; that is the deliberate, safe trade-off.)
-func reapRevokedClients(ctx context.Context, database *db.DB, certs *cert.Whitelist, logger *slog.Logger) {
-	valid := certs.All()
-	if len(valid) == 0 {
-		logger.Warn("skipping revoked-client cleanup: certificate whitelist is empty; not deleting any client data")
-		return
-	}
-	validSet := make(map[string]bool, len(valid))
-	for _, n := range valid {
-		validSet[n] = true
-	}
-
-	names, err := database.AllClientNames(ctx)
-	if err != nil {
-		logger.Warn("revoked-client cleanup: could not list clients", "err", err)
-		return
-	}
-	for _, name := range names {
-		if validSet[name] {
-			continue
-		}
-		sessionRows, domainRows, clientRows, err := database.DeleteClientData(ctx, name)
-		if err != nil {
-			logger.Error("revoked-client cleanup: delete failed", "client", name, "err", err)
-			continue
-		}
-		if clientRows > 0 || sessionRows > 0 || domainRows > 0 {
-			logger.Info("deleted revoked client data",
-				"client", name,
-				"clients_rows", clientRows,
-				"sessions_rows", sessionRows,
-				"visited_domains_rows", domainRows)
-		}
-	}
-}
-
-// parseServerSubnet reads an OpenVPN server config file and extracts the VPN
-// subnet from the "server <ip> <mask>" directive, returning it as a CIDR string.
-func parseServerSubnet(configPath string) (string, error) {
-	f, err := os.Open(configPath)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
-		if !strings.HasPrefix(line, "server ") {
-			continue
-		}
-		fields := strings.Fields(line)
-		if len(fields) < 3 {
-			continue
-		}
-		ipStr := fields[1]
-		maskStr := fields[2]
-
-		parsedMask := net.ParseIP(maskStr)
-		if parsedMask == nil {
-			return "", fmt.Errorf("invalid netmask %q in server config", maskStr)
-		}
-		m := net.IPMask(parsedMask.To4())
-		ones, bits := m.Size()
-		if bits == 0 {
-			return "", fmt.Errorf("could not determine prefix length from mask %q", maskStr)
-		}
-		return fmt.Sprintf("%s/%d", ipStr, ones), nil
-	}
-	if err := sc.Err(); err != nil {
-		return "", err
-	}
-	return "", fmt.Errorf("no 'server' directive found in %s", configPath)
 }

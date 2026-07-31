@@ -1308,6 +1308,28 @@
             border: 1px solid rgba(72, 79, 88, 0.15);
         }
 
+        /* Connection-type badge: which system(s) the client is currently
+           connected through. Rendered only for online rows. */
+        .badge.proto {
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-left: 6px;
+        }
+
+        .badge.proto.ovpn {
+            background: rgba(227, 179, 65, 0.08);
+            color: var(--accent);
+            border: 1px solid rgba(227, 179, 65, 0.25);
+        }
+
+        .badge.proto.wg {
+            background: rgba(88, 166, 255, 0.08);
+            color: #58a6ff;
+            border: 1px solid rgba(88, 166, 255, 0.25);
+        }
+
         .ip-text {
             font-size: 12px;
             color: var(--text-muted);
@@ -2917,13 +2939,21 @@
                     var titleAttr = exact ? ' title="' + esc(exact) + '"' : '';
                     var href = '/panel/clients/' + encodeURIComponent(c.common_name);
 
+                    // Connection-type badges: how the client is connected right now
+                    // (can be both at once). Offline rows show no protocol badge.
+                    var proto = '';
+                    if (online) {
+                        if (c.online_openvpn) proto += '<span class="badge proto ovpn">OVPN</span>';
+                        if (c.online_wireguard) proto += '<span class="badge proto wg">WG</span>';
+                    }
+
                     return '<tr class="client-row ' + (online ? 'row-online' : '') +
                         '" data-href="' + esc(href) + '" style="animation-delay:' + (i * 0.025) + 's">' +
                         '<td><div class="cell-name">' +
                         '<span class="status-dot ' + sc + '"></span>' +
                         '<span class="name-text">' + esc(c.common_name) + '</span>' +
                         '</div></td>' +
-                        '<td><span class="badge ' + sc + '">' + (online ? '● Online' : '○ Offline') + '</span></td>' +
+                        '<td><span class="badge ' + sc + '">' + (online ? '● Online' : '○ Offline') + '</span>' + proto + '</td>' +
                         '<td class="total-text">' + esc(c.total_traffic_readable || fmtBytes(c.total_traffic)) + '</td>' +
                         '<td><span class="rel-time"' + titleAttr + '>' + esc(rel) + '</span></td>' +
                         '<td class="cell-expand"><span class="chevron">' +
