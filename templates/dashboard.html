@@ -11,360 +11,42 @@
     <link
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="/static/theme.css?v=2">
+    <script src="/static/sidebar.js?v=2" defer></script>
     <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        :root {
-            --bg: #0d1117;
-            --surface: rgba(22, 27, 34, 0.7);
-            --surface-solid: #161b22;
-            --surface2: rgba(28, 33, 40, 0.8);
-            --surface3: #21262d;
-            --border: rgba(48, 54, 61, 0.6);
-            --border2: rgba(72, 79, 88, 0.9);
-            --accent: #e3b341;
-            --accent-glow: rgba(227, 179, 65, 0.18);
-            --accent-dim: rgba(227, 179, 65, 0.06);
-            --green: #3fb950;
-            --green-dim: rgba(63, 185, 80, 0.1);
-            --amber: #d29922;
-            --amber-dim: rgba(210, 153, 34, 0.1);
-            --danger: #f85149;
-            --danger-dim: rgba(248, 81, 73, 0.1);
-            --text: #e6edf3;
-            --text-dim: #8b949e;
-            --text-muted: #6e7681;
-            --recv-color: #e3b341;
-            --sent-color: #8b949e;
-            --sidebar-bg: rgba(1, 4, 9, 0.95);
-            --sidebar-width: 200px;
-            --ring-track: rgba(48, 54, 61, 0.5);
-            --topbar-h: 52px;
-            --glass-blur: blur(16px);
-            --card-radius: 14px;
-
-            /* ── DESIGN-SYSTEM TOKENS ── */
-            --font-sans: "IBM Plex Sans", -apple-system, system-ui, "Segoe UI", sans-serif;
-            --font-brand: "IBM Plex Mono", ui-monospace, monospace;
-            --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-            --fs-title: 21px;
-            --fs-heading: 14px;
-            --fs-body: 13px;
-            --fs-label: 11px;
-            --fs-stat: 17px;
-            --sp-1: 4px;
-            --sp-2: 8px;
-            --sp-3: 12px;
-            --sp-4: 16px;
-            --sp-5: 20px;
-            --sp-6: 24px;
-            --sp-8: 32px;
-            --radius-ctl: 10px;
-        }
-
-        html {
-            height: 100%;
-            /* safety net: never let any descendant produce a horizontal scrollbar.
-               clip (not hidden) avoids creating a scroll container, so position:
-               sticky on the topbar keeps working. */
-            overflow-x: clip;
-        }
+        /* Page-specific styles only. Colors, typography and shared components
+           live in /static/theme.css. */
 
         body {
-            font-family: var(--font-sans);
-            font-weight: 400;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100dvh;
-            font-size: 15px;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            letter-spacing: -0.006em;
             display: flex;
         }
 
-        /* ── AMBIENT BACKGROUND ── */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            background:
-                radial-gradient(ellipse 80% 50% at 20% 0%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0, 0, 0, 0.28) 0%, transparent 65%);
-            pointer-events: none;
-        }
-
-        /* subtle grid texture */
-        body::after {
-            content: '';
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            background-image:
-                linear-gradient(rgba(255, 255, 255, 0.014) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px);
-            background-size: 32px 32px;
-            pointer-events: none;
-        }
-
-        /* ── SIDEBAR ── */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: var(--sidebar-width);
-            background: var(--sidebar-bg);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            z-index: 200;
-            overflow-y: auto;
-            overflow-x: hidden;
-            backdrop-filter: var(--glass-blur);
-        }
-
-        .sidebar-brand {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 18px 14px;
-            border-bottom: 1px solid var(--border);
-            user-select: none;
-            flex-shrink: 0;
-        }
-
-        .sidebar-brand-text {
-            font-family: var(--font-brand);
-            font-size: 13px;
-            font-weight: 400;
-            letter-spacing: 0.14em;
-            color: var(--text);
-            text-transform: uppercase;
-        }
-
-        .sidebar-brand-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--green);
-            box-shadow: 0 0 8px var(--green);
-            animation: livepulse 2s ease-in-out infinite;
-            flex-shrink: 0;
-        }
-
-        .sidebar-nav {
-            list-style: none;
-            padding: 10px 0;
-            flex: 1;
-        }
-
-        .sidebar-nav a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            color: var(--text-muted);
-            text-decoration: none;
-            font-family: var(--font-sans);
-            font-size: 13px;
-            font-weight: 500;
-            border-left: 2px solid transparent;
-            transition: color 0.15s, background 0.15s, border-color 0.15s;
-            position: relative;
-        }
-
-        .sidebar-nav a:hover {
-            color: var(--text-dim);
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        .sidebar-nav a.active {
-            color: var(--accent);
-            border-left-color: var(--accent);
-            background: rgba(227, 179, 65, 0.07);
-        }
-
-        .sidebar-nav a svg {
-            flex-shrink: 0;
-            opacity: 0.65;
-            transition: opacity 0.15s;
-        }
-
-        .sidebar-nav a:hover svg {
-            opacity: 0.85;
-        }
-
-        .sidebar-nav a.active svg {
-            opacity: 1;
-        }
-
-        .sidebar-bottom {
-            border-top: 1px solid var(--border);
-            padding: 8px 0;
-            flex-shrink: 0;
-        }
-
-        /* ── SIDEBAR OVERLAY (mobile) ── */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 199;
-            backdrop-filter: blur(2px);
-        }
-
-        .sidebar-overlay.visible {
-            display: block;
-        }
-
-        /* ── CONTENT SHELL ── */
-        .content {
-            margin-left: var(--sidebar-width);
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 100dvh;
-            min-width: 0;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* ── TOPBAR ── */
         .topbar {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            height: var(--topbar-h);
-            background: rgba(1, 4, 9, 0.85);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
             justify-content: center;
-            padding: 0 16px;
-            gap: 12px;
-            flex-shrink: 0;
+            padding: 0 var(--sp-4);
         }
 
         .topbar-left {
             position: absolute;
-            left: 16px;
+            left: var(--sp-4);
             display: flex;
             align-items: center;
-        }
-
-        .hamburger {
-            display: none;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 6px;
-            border-radius: 8px;
-            line-height: 0;
-            transition: color 0.15s, background 0.15s;
-        }
-
-        .hamburger:hover {
-            color: var(--text);
-            background: var(--surface2);
-        }
-
-        /* Live badge */
-        .live-badge {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            font-size: 12px;
-            letter-spacing: -0.01em;
-            color: var(--text-muted);
-            background: rgba(22, 27, 34, 0.6);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 5px 14px;
-            white-space: nowrap;
-            backdrop-filter: blur(8px);
-        }
-
-        .live-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--green);
-            box-shadow: 0 0 8px var(--green);
-            animation: livepulse 2s ease-in-out infinite;
-        }
-
-        @keyframes livepulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.35;
-            }
-        }
-
-        /* ── PAGE AREAS ── */
-        .page-area {
-            flex: 1;
-            padding: var(--sp-6);
-            width: 100%;
-        }
-
-        /* ── CARD BASE (glass) ── */
-        .glass-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--card-radius);
-            backdrop-filter: var(--glass-blur);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.22);
-            transition: border-color 0.25s, box-shadow 0.25s;
-        }
-
-        .glass-card:hover {
-            border-color: var(--border2);
-            box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-        }
-
-        /* ── SEVERITY STATES ── */
-        .glass-card.severity-warn {
-            border-color: rgba(210, 153, 34, 0.4) !important;
-            box-shadow: 0 0 20px rgba(210, 153, 34, 0.08) !important;
-        }
-
-        .glass-card.severity-critical {
-            border-color: rgba(248, 81, 73, 0.45) !important;
-            box-shadow: 0 0 20px rgba(248, 81, 73, 0.1) !important;
         }
 
         /* ── OVERVIEW: ROW LAYOUT ── */
         .ov-row {
             display: grid;
             grid-template-columns: minmax(0, 13fr) minmax(300px, 7fr);
-            gap: 16px;
+            gap: var(--sp-4);
             align-items: stretch;
-            margin-bottom: 16px;
+            margin-bottom: var(--sp-4);
         }
 
-        /* stacked card grids (row 2 + bottom row) need the same rhythm as .ov-row */
         .info-grid+.info-grid {
-            margin-top: 16px;
+            margin-top: var(--sp-4);
         }
 
-        /* Server resources: the large gauges card */
+        /* ── SERVER RESOURCE GAUGES ── */
         .resources-card {
             display: flex;
             padding: 0;
@@ -388,10 +70,11 @@
         }
 
         .gauge-item+.gauge-item {
-            border-left: 1px solid var(--border);
+            border-left: 1px solid var(--border-secondary);
         }
 
-        /* gradient top accent per gauge */
+        /* Top accent per gauge. Defaults to primary; JS swaps it to warning or
+           error only when the value crosses a threshold. */
         .gauge-item::before {
             content: '';
             position: absolute;
@@ -400,9 +83,9 @@
             right: 0;
             height: 2px;
             border-radius: 2px;
-            background: var(--gauge-accent, var(--accent));
-            opacity: 0.7;
-            transition: opacity 0.3s;
+            background: var(--gauge-accent, var(--color-primary));
+            opacity: 0.8;
+            transition: opacity 0.3s, background 0.4s;
         }
 
         .gauge-item:hover::before {
@@ -412,18 +95,17 @@
         .gauge-item-label {
             font-family: var(--font-sans);
             font-size: var(--fs-label);
-            font-weight: 500;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-muted);
+            letter-spacing: var(--ls-label);
+            color: var(--text-tertiary);
             align-self: flex-start;
         }
 
-        /* SVG semicircle gauge — fluid: grows with the viewport on the full-width layout */
         .gauge-ring-wrap {
             position: relative;
-            width: clamp(112px, 8.5vw, 170px);
-            height: clamp(112px, 8.5vw, 170px);
+            width: clamp(118px, 8.5vw, 172px);
+            height: clamp(118px, 8.5vw, 172px);
         }
 
         .gauge-ring-wrap svg {
@@ -440,12 +122,11 @@
 
         .ring-fill {
             fill: none;
-            stroke: var(--accent);
+            stroke: var(--color-primary);
             stroke-width: 9;
             stroke-linecap: round;
             stroke-dasharray: 0 314.16;
             transition: stroke-dasharray 0.7s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.4s ease;
-            filter: drop-shadow(0 0 4px currentColor);
         }
 
         .gauge-center {
@@ -459,22 +140,22 @@
         }
 
         .gauge-center-value {
-            font-size: clamp(17px, 1.3vw, 22px);
+            font-size: clamp(22px, 1.7vw, 30px);
             font-weight: 600;
             color: var(--text);
-            letter-spacing: -0.01em;
+            line-height: var(--lh-tight);
             transition: color 0.4s;
         }
 
         .gauge-sublabel {
-            font-size: 12px;
-            color: var(--text-muted);
+            font-size: var(--fs-sm);
+            color: var(--text-secondary);
             text-align: center;
-            line-height: 1.5;
+            line-height: var(--lh-body);
             margin-top: 2px;
         }
 
-        /* ── OVERVIEW: CLIENTS CARD (row 1, right) ── */
+        /* ── OVERVIEW: CLIENTS CARD ── */
         .ov-clients {
             display: flex;
             flex-direction: column;
@@ -486,26 +167,26 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 16px;
+            gap: var(--sp-4);
         }
 
         .clients-title-row {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 16px;
+            margin-bottom: var(--sp-4);
         }
 
         .clients-icon-box {
-            width: 34px;
-            height: 34px;
+            width: 36px;
+            height: 36px;
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(227, 179, 65, 0.12);
-            border: 1px solid rgba(227, 179, 65, 0.25);
-            color: var(--accent);
+            background: var(--primary-soft);
+            border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
+            color: var(--color-primary);
             flex-shrink: 0;
         }
 
@@ -513,21 +194,19 @@
             font-family: var(--font-sans);
             font-size: var(--fs-heading);
             font-weight: 600;
-            letter-spacing: -0.01em;
             color: var(--text);
         }
 
         .clients-total {
-            font-size: 40px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            line-height: 1.1;
+            font-size: var(--fs-hero-lg);
+            font-weight: 600;
+            line-height: var(--lh-tight);
             color: var(--text);
         }
 
         .clients-total-label {
-            font-size: 12px;
-            color: var(--text-muted);
+            font-size: var(--fs-caption);
+            color: var(--text-tertiary);
             margin-top: 4px;
         }
 
@@ -545,39 +224,33 @@
         }
 
         .clients-side-value {
-            font-size: 30px;
-            font-weight: 700;
-            letter-spacing: -0.01em;
-            line-height: 1.1;
+            font-size: var(--fs-hero);
+            font-weight: 600;
+            line-height: var(--lh-tight);
         }
 
         .clients-side-value.online {
-            color: var(--green);
+            color: var(--color-success);
         }
 
         .clients-side-value.offline {
-            color: var(--text-muted);
+            color: var(--text-tertiary);
         }
 
         .clients-side-label {
-            font-size: 11px;
-            color: var(--text-muted);
+            font-size: var(--fs-label);
+            color: var(--text-tertiary);
             text-transform: uppercase;
-            letter-spacing: 0.06em;
+            letter-spacing: var(--ls-label);
         }
 
         .clients-pct-caption {
-            font-size: 12px;
-            color: var(--text-muted);
+            font-size: var(--fs-caption);
+            color: var(--text-tertiary);
             margin-top: 7px;
         }
 
-        /* thicker bar to balance the larger numbers (overview card only) */
-        .ov-clients .ratio-bar {
-            height: 6px;
-        }
-
-        /* ── OVERVIEW: SERVICE CONTROL CARDS (OpenVPN / WireGuard) ── */
+        /* ── OVERVIEW: SERVICE CONTROL CARDS ── */
         .service-card {
             display: flex;
             flex-direction: column;
@@ -592,35 +265,35 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 12px;
+            font-size: var(--fs-caption);
             font-weight: 500;
-            color: var(--text-muted);
+            color: var(--text-tertiary);
         }
 
         .service-status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: var(--text-muted);
+            background: var(--text-tertiary);
             flex-shrink: 0;
         }
 
         .service-status.running .service-status-text {
-            color: var(--green);
+            color: var(--color-success);
         }
 
         .service-status.running .service-status-dot {
-            background: var(--green);
-            box-shadow: 0 0 6px rgba(63, 185, 80, 0.6);
+            background: var(--color-success);
+            box-shadow: 0 0 6px color-mix(in srgb, var(--color-success) 60%, transparent);
         }
 
         .service-status.stopped .service-status-text {
-            color: var(--danger);
+            color: var(--color-error);
         }
 
         .service-status.stopped .service-status-dot {
-            background: var(--danger);
-            box-shadow: 0 0 6px rgba(248, 81, 73, 0.5);
+            background: var(--color-error);
+            box-shadow: 0 0 6px color-mix(in srgb, var(--color-error) 50%, transparent);
         }
 
         .service-actions {
@@ -636,29 +309,29 @@
             align-items: center;
             justify-content: center;
             gap: 7px;
-            padding: 9px 0;
-            background: var(--surface3);
-            border: 1px solid var(--border2);
-            border-radius: 8px;
+            padding: 10px 0;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-secondary);
+            border-radius: var(--radius-ctl);
             color: var(--text);
             font-family: var(--font-sans);
-            font-size: 12.5px;
+            font-size: var(--fs-sm);
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.18s;
+            transition: color 0.18s, border-color 0.18s, background 0.18s;
             white-space: nowrap;
         }
 
         .service-btn:hover:not(:disabled).stop {
-            border-color: var(--danger);
-            color: var(--danger);
-            background: var(--danger-dim);
+            border-color: var(--color-error);
+            color: var(--color-error);
+            background: var(--error-soft);
         }
 
         .service-btn:hover:not(:disabled).restart {
-            border-color: var(--accent);
-            color: var(--accent);
-            background: rgba(227, 179, 65, 0.1);
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            background: var(--primary-soft);
         }
 
         .service-btn:disabled {
@@ -680,7 +353,7 @@
         .info-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 14px;
+            gap: var(--sp-4);
         }
 
         @media (max-width: 1500px) {
@@ -690,7 +363,7 @@
         }
 
         .info-card {
-            padding: 18px 20px;
+            padding: 20px 22px;
             animation: cardIn 0.4s ease backwards;
         }
 
@@ -698,21 +371,20 @@
             font-family: var(--font-sans);
             font-size: var(--fs-heading);
             font-weight: 600;
-            letter-spacing: -0.01em;
             color: var(--text);
             padding-bottom: var(--sp-3);
             margin-bottom: var(--sp-4);
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--border-secondary);
             display: flex;
             align-items: center;
             gap: var(--sp-2);
         }
 
         .info-card-title-dot {
-            width: 5px;
-            height: 5px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
-            background: var(--accent);
+            background: var(--color-primary);
             flex-shrink: 0;
         }
 
@@ -740,31 +412,41 @@
         }
 
         .info-row+.info-row {
-            border-left: 1px solid var(--border);
+            border-left: 1px solid var(--border-secondary);
         }
 
         .info-row-label {
             font-family: var(--font-sans);
-            font-size: 12px;
-            color: var(--text-muted);
+            font-size: var(--fs-sm);
+            color: var(--text-secondary);
+            line-height: var(--lh-body);
         }
 
         .info-row-value {
-            font-size: 16px;
+            font-size: var(--fs-md);
             font-weight: 500;
             color: var(--text);
-            font-variant-numeric: tabular-nums;
-            letter-spacing: -0.01em;
             transition: color 0.3s;
             min-width: 0;
             max-width: 100%;
-            /* long, unbreakable tokens (e.g. an IPv6 address) must wrap instead of
-               forcing the card — and the page — wider than the viewport */
+            /* long, unbreakable tokens (e.g. an IPv6 address) must wrap instead
+               of forcing the card — and the page — wider than the viewport */
             overflow-wrap: anywhere;
         }
 
+        /* Three columns in one card leaves ~85px per value. Tighter gutters and
+           one step down in size keep figures like "14.08 TB" on a single line
+           instead of breaking mid-number. */
+        .info-rows.cols-3 .info-row {
+            padding: 0 10px;
+        }
+
+        .info-rows.cols-3 .info-row-value {
+            font-size: var(--fs-body);
+        }
+
         .info-row-value.muted {
-            color: var(--text-muted);
+            color: var(--text-tertiary);
         }
 
         .info-row-value.val-up {
@@ -778,14 +460,14 @@
         /* stacked variant: label left, value right — for longer text values */
         .info-rows.vertical {
             flex-direction: column;
-            gap: 12px;
+            gap: var(--sp-3);
         }
 
         .info-rows.vertical .info-row {
             flex-direction: row;
             align-items: baseline;
             justify-content: space-between;
-            gap: 12px;
+            gap: var(--sp-3);
             padding: 0;
         }
 
@@ -794,7 +476,7 @@
         }
 
         .info-rows.vertical .info-row-value {
-            font-size: 14px;
+            font-size: var(--fs-body);
             text-align: right;
         }
 
@@ -812,15 +494,15 @@
         }
 
         .copyable:hover {
-            color: var(--accent);
+            color: var(--color-primary);
         }
 
         .copyable::after {
             content: '';
             display: inline-block;
-            width: 12px;
-            height: 12px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2'%3E%3Crect x='9' y='9' width='13' height='13' rx='2'/%3E%3Cpath d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/%3E%3C/svg%3E");
+            width: 13px;
+            height: 13px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Crect x='9' y='9' width='13' height='13' rx='2'/%3E%3Cpath d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/%3E%3C/svg%3E");
             background-size: contain;
             background-repeat: no-repeat;
             opacity: 0;
@@ -832,38 +514,12 @@
             opacity: 1;
         }
 
-        /* Toast */
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%) translateY(16px);
-            background: rgba(63, 185, 80, 0.15);
-            border: 1px solid rgba(63, 185, 80, 0.3);
-            color: var(--green);
-            padding: 8px 18px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-family: var(--font-sans);
-            backdrop-filter: blur(12px);
-            opacity: 0;
-            transition: opacity 0.2s, transform 0.2s;
-            z-index: 9999;
-            pointer-events: none;
-            white-space: nowrap;
-        }
-
-        .toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-
         /* ── CLIENTS PAGE ── */
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            margin-bottom: 24px;
+            gap: var(--sp-4);
+            margin-bottom: var(--sp-6);
         }
 
         .stat-card {
@@ -873,7 +529,6 @@
             animation: cardIn 0.4s ease backwards;
         }
 
-        /* animated gradient border top */
         .stat-card::before {
             content: '';
             position: absolute;
@@ -885,28 +540,26 @@
         }
 
         .stat-card.c-clients::before {
-            background: linear-gradient(90deg, var(--accent), #f2cc60, var(--accent));
+            background: linear-gradient(90deg, var(--color-primary), var(--color-primary-hover), var(--color-primary));
             background-size: 200% 100%;
             animation: gradientShift 4s ease infinite;
         }
 
         .stat-card.c-traffic::before {
-            background: linear-gradient(90deg, var(--green), #56d364, var(--green));
+            background: linear-gradient(90deg, var(--color-success), #73d13d, var(--color-success));
             background-size: 200% 100%;
             animation: gradientShift 4s ease infinite;
         }
 
         @keyframes gradientShift {
-            0% {
+
+            0%,
+            100% {
                 background-position: 0% 0%;
             }
 
             50% {
                 background-position: 100% 0%;
-            }
-
-            100% {
-                background-position: 0% 0%;
             }
         }
 
@@ -914,11 +567,10 @@
             font-family: var(--font-sans);
             font-size: var(--fs-heading);
             font-weight: 600;
-            letter-spacing: -0.01em;
             color: var(--text);
             padding-bottom: var(--sp-3);
             margin-bottom: var(--sp-4);
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--border-secondary);
             display: flex;
             align-items: center;
             gap: var(--sp-2);
@@ -934,20 +586,20 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
+            gap: var(--sp-2);
         }
 
         .stat-row-label {
-            font-size: 12px;
-            color: var(--text-muted);
+            font-size: var(--fs-sm);
+            color: var(--text-secondary);
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
         .stat-row-label .dot {
-            width: 6px;
-            height: 6px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
             flex-shrink: 0;
         }
@@ -955,34 +607,33 @@
         .stat-row-value {
             font-size: var(--fs-stat);
             font-weight: 600;
-            letter-spacing: -0.01em;
             display: flex;
             align-items: baseline;
             gap: 5px;
         }
 
         .stat-row-value .pct {
-            font-size: 11px;
+            font-size: var(--fs-caption);
             font-weight: 500;
-            opacity: 0.7;
+            opacity: 0.75;
         }
 
         .stat-row-value.total {
-            color: var(--accent);
-            font-size: 22px;
+            color: var(--color-primary);
+            font-size: 26px;
         }
 
         .stat-row-value.online {
-            color: var(--green);
+            color: var(--color-success);
         }
 
         .stat-row-value.offline {
-            color: var(--text-muted);
+            color: var(--text-tertiary);
         }
 
         .stat-row-value.traffic-total {
             color: var(--text);
-            font-size: 22px;
+            font-size: 26px;
         }
 
         .stat-row-value.recv {
@@ -993,73 +644,14 @@
             color: var(--sent-color);
         }
 
-        .ratio-bar {
-            height: 4px;
-            background: var(--surface3);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 14px;
-        }
-
-        .ratio-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--green), #56d364);
-            border-radius: 4px;
-            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .ratio-bar-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 10px;
-            color: var(--text-muted);
-            margin-top: 5px;
-        }
-
         /* Controls */
         .controls {
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: var(--sp-3);
             margin-bottom: 18px;
-        }
-
-        .filter-group {
-            display: flex;
-            background: rgba(22, 27, 34, 0.6);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 4px;
-            gap: 2px;
-            flex-wrap: wrap;
-            backdrop-filter: blur(8px);
-        }
-
-        .filter-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding: 6px 16px;
-            font-family: var(--font-sans);
-            font-size: 12px;
-            font-weight: 500;
-            border-radius: 7px;
-            cursor: pointer;
-            transition: all 0.18s;
-            white-space: nowrap;
-        }
-
-        .filter-btn:hover {
-            color: var(--text);
-            background: var(--surface3);
-        }
-
-        .filter-btn.active {
-            background: var(--accent);
-            color: #fff;
-            box-shadow: 0 2px 12px rgba(227, 179, 65, 0.35);
         }
 
         .controls-right {
@@ -1069,190 +661,19 @@
             flex-wrap: wrap;
         }
 
-        .search-wrap {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 12px;
-            color: var(--text-muted);
-            pointer-events: none;
-            display: flex;
-            transition: color 0.2s;
-        }
-
-        .search-input {
-            background: rgba(22, 27, 34, 0.6);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 8px 12px 8px 36px;
-            font-family: var(--font-sans);
-            font-size: 13px;
-            border-radius: 9px;
-            width: 200px;
-            outline: none;
-            transition: all 0.2s;
-            backdrop-filter: blur(8px);
-        }
-
-        .search-input:focus {
-            border-color: var(--accent);
-            background: rgba(28, 33, 40, 0.9);
-            box-shadow: 0 0 0 3px var(--accent-glow);
-            width: 240px;
-        }
-
-        .search-input:focus+.search-icon,
-        .search-wrap:focus-within .search-icon {
-            color: var(--accent);
-        }
-
-        .search-input::placeholder {
-            color: var(--text-muted);
-        }
-
-        /* Table */
-        .table-wrap {
-            background: rgba(22, 27, 34, 0.6);
-            border: 1px solid var(--border);
-            border-radius: var(--card-radius);
-            overflow: hidden;
-            overflow-x: auto;
-            backdrop-filter: var(--glass-blur);
-            transition: border-color 0.25s;
-        }
-
-        .table-wrap:hover {
-            border-color: var(--border2);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 460px;
-        }
-
+        /* ── CLIENT TABLE ── */
         thead th:first-child,
         td:first-child {
             min-width: 180px;
         }
 
-        thead th {
-            padding: 14px 22px;
-            text-align: left;
-            font-family: var(--font-sans);
-            font-size: var(--fs-label);
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border);
-            background: rgba(0, 0, 0, 0.2);
-            white-space: nowrap;
-            cursor: pointer;
-            user-select: none;
-            transition: color 0.15s, background 0.15s;
-        }
-
-        thead th:hover {
-            color: var(--text-dim);
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        thead th.sorted {
-            color: var(--accent);
-        }
-
-        /* sort arrow */
-        .sort-arrow {
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            margin-left: 5px;
-            gap: 1px;
-            vertical-align: middle;
-            opacity: 0.3;
-            transition: opacity 0.15s;
-        }
-
-        .sort-arrow .arr-up,
-        .sort-arrow .arr-dn {
-            width: 0;
-            height: 0;
-            border-left: 3px solid transparent;
-            border-right: 3px solid transparent;
-            transition: border-color 0.2s;
-        }
-
-        .sort-arrow .arr-up {
-            border-bottom: 4px solid currentColor;
-        }
-
-        .sort-arrow .arr-dn {
-            border-top: 4px solid currentColor;
-        }
-
-        thead th.sorted .sort-arrow {
-            opacity: 1;
-        }
-
-        thead th.sorted.asc .sort-arrow .arr-up {
-            border-bottom-color: var(--accent);
-        }
-
-        thead th.sorted.asc .sort-arrow .arr-dn {
-            opacity: 0.2;
-        }
-
-        thead th.sorted.desc .sort-arrow .arr-dn {
-            border-top-color: var(--accent);
-        }
-
-        thead th.sorted.desc .sort-arrow .arr-up {
-            opacity: 0.2;
-        }
-
-        thead th:hover .sort-arrow {
-            opacity: 0.6;
-        }
-
         tbody tr {
-            border-bottom: 1px solid rgba(48, 54, 61, 0.55);
-            transition: background 0.12s;
-            border-left: 2px solid transparent;
             animation: rowIn 0.3s ease backwards;
         }
 
-        /* subtle zebra striping for row-to-row scannability */
-        tbody tr:nth-child(even) {
-            background: rgba(255, 255, 255, 0.018);
-        }
-
-        tbody tr.row-online {
-            border-left-color: var(--green);
-        }
-
-        tbody tr:last-child {
-            border-bottom: none;
-        }
-
-        tbody tr:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        /* fading rows when filter changes */
         tbody.fading tr {
             opacity: 0.3;
             transition: opacity 0.15s;
-        }
-
-        td {
-            padding: 16px 22px;
-            white-space: nowrap;
-            vertical-align: middle;
         }
 
         .cell-name {
@@ -1264,134 +685,65 @@
         .status-dot {
             width: 8px;
             height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .status-dot.online {
-            background: var(--green);
-            box-shadow: 0 0 8px var(--green);
-            animation: livepulse 2s infinite;
-        }
-
-        .status-dot.offline {
-            background: var(--text-muted);
         }
 
         .name-text {
             font-weight: 500;
             color: var(--text);
-            font-size: 13px;
+            font-size: var(--fs-body);
         }
 
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 500;
-            letter-spacing: 0.01em;
-        }
-
-        .badge.online {
-            background: var(--green-dim);
-            color: var(--green);
-            border: 1px solid rgba(63, 185, 80, 0.25);
-            box-shadow: 0 0 8px rgba(63, 185, 80, 0.1);
-        }
-
-        .badge.offline {
-            background: rgba(72, 79, 88, 0.08);
-            color: var(--text-muted);
-            border: 1px solid rgba(72, 79, 88, 0.15);
-        }
-
-        /* Connection-type badge: which system(s) the client is currently
-           connected through. Rendered only for online rows. */
         .badge.proto {
-            padding: 2px 8px;
-            font-size: 10px;
-            font-weight: 600;
-            letter-spacing: 0.05em;
             margin-left: 6px;
         }
 
-        .badge.proto.ovpn {
-            background: rgba(227, 179, 65, 0.08);
-            color: var(--accent);
-            border: 1px solid rgba(227, 179, 65, 0.25);
-        }
-
-        .badge.proto.wg {
-            background: rgba(88, 166, 255, 0.08);
-            color: #58a6ff;
-            border: 1px solid rgba(88, 166, 255, 0.25);
-        }
-
         .ip-text {
-            font-size: 12px;
-            color: var(--text-muted);
-            letter-spacing: -0.01em;
-            font-variant-numeric: tabular-nums;
+            font-size: var(--fs-sm);
+            color: var(--text-tertiary);
         }
 
         .recv-text {
             color: var(--recv-color);
-            font-weight: 400;
-            letter-spacing: -0.01em;
-            font-variant-numeric: tabular-nums;
         }
 
         .sent-text {
             color: var(--sent-color);
-            font-weight: 400;
-            letter-spacing: -0.01em;
-            font-variant-numeric: tabular-nums;
         }
 
         .total-text {
-            color: var(--accent);
+            color: var(--text);
             font-weight: 600;
-            letter-spacing: -0.01em;
-            font-variant-numeric: tabular-nums;
         }
 
         .time-online {
-            font-size: 12px;
-            color: var(--green);
-            font-weight: 400;
+            font-size: var(--fs-sm);
+            color: var(--color-success);
         }
 
         .time-offline {
-            font-size: 12px;
-            color: var(--text-muted);
+            font-size: var(--fs-sm);
+            color: var(--text-tertiary);
         }
 
         .time-label {
-            font-size: 10px;
-            opacity: 0.6;
+            font-size: var(--fs-caption);
+            opacity: 0.7;
             margin-right: 3px;
         }
 
-        /* ── CLIENT ROWS (navigate to detail page) ── */
         .rel-time {
-            font-size: 12px;
-            color: var(--text-dim);
-            font-variant-numeric: tabular-nums;
+            font-size: var(--fs-sm);
+            color: var(--text-secondary);
         }
 
         tbody tr.row-online .rel-time {
             color: var(--text);
         }
 
-        /* whole row links to the client's detail page */
         tbody tr.client-row {
             cursor: pointer;
         }
 
-        /* trailing "open detail" affordance */
         .col-expand {
             width: 44px;
             cursor: default;
@@ -1399,7 +751,7 @@
 
         td.cell-expand {
             text-align: right;
-            color: var(--text-muted);
+            color: var(--text-tertiary);
         }
 
         .chevron {
@@ -1409,69 +761,7 @@
 
         tbody tr.client-row:hover .chevron {
             transform: translateX(2px);
-            color: var(--accent);
-        }
-
-        .empty-state {
-            padding: 64px 20px;
-            text-align: center;
-            color: var(--text-muted);
-        }
-
-        .empty-state h3 {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--border2);
-            margin-bottom: 6px;
-        }
-
-        .empty-state p {
-            font-size: 13px;
-        }
-
-        .skeleton {
-            height: 14px;
-            border-radius: 4px;
-            background: linear-gradient(90deg,
-                    rgba(33, 38, 45, 0.8) 25%,
-                    rgba(48, 54, 61, 0.6) 50%,
-                    rgba(33, 38, 45, 0.8) 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.6s infinite;
-        }
-
-        @keyframes shimmer {
-            from {
-                background-position: 200% 0;
-            }
-
-            to {
-                background-position: -200% 0;
-            }
-        }
-
-        @keyframes rowIn {
-            from {
-                opacity: 0;
-                transform: translateY(6px);
-            }
-
-            to {
-                opacity: 1;
-                transform: none;
-            }
-        }
-
-        @keyframes cardIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: none;
-            }
+            color: var(--color-primary);
         }
 
         .clients-footer {
@@ -1479,15 +769,10 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 8px;
-            font-size: 12px;
-            color: var(--text-muted);
-            padding-top: 14px;
-        }
-
-        /* ── NUMBER COUNTER ANIMATION ── */
-        .count-anim {
-            transition: none;
+            gap: var(--sp-2);
+            font-size: var(--fs-sm);
+            color: var(--text-tertiary);
+            padding-top: var(--sp-4);
         }
 
         /* ── STAGGERED CARD ENTRANCE ── */
@@ -1507,14 +792,6 @@
             animation-delay: 0.20s;
         }
 
-        .info-card:nth-child(5) {
-            animation-delay: 0.25s;
-        }
-
-        .info-card:nth-child(6) {
-            animation-delay: 0.30s;
-        }
-
         .stat-card:nth-child(1) {
             animation-delay: 0.05s;
         }
@@ -1523,63 +800,13 @@
             animation-delay: 0.12s;
         }
 
-        /* ── DESKTOP READABILITY (large screens only) ── */
-        @media (min-width: 1100px) {
-            .page-area {
-                padding: 32px 40px;
-            }
-
-            .info-grid {
-                gap: 16px;
-            }
-
-            .info-card {
-                padding: 20px 24px;
-            }
-
-            .info-row-label {
-                font-size: 13px;
-            }
-
-            .info-row-value {
-                font-size: 17px;
-            }
-
-            /* roomier, more legible client table on desktop */
-            thead th {
-                padding: 15px 26px;
-                font-size: 11.5px;
-            }
-
-            td {
-                padding: 18px 26px;
-            }
-
-            .name-text {
-                font-size: 14px;
-            }
-
-            .ip-text,
-            .recv-text,
-            .sent-text,
-            .total-text,
-            .rel-time,
-            .time-online,
-            .time-offline {
-                font-size: 13px;
-            }
-        }
-
         /* ── RESPONSIVE ── */
-
-        /* overview rows: collapse to one column */
         @media (max-width: 1250px) {
             .ov-row {
                 grid-template-columns: 1fr;
             }
         }
 
-        /* resources gauges: wrap to 2×2 before they get cramped */
         @media (max-width: 900px) {
             .resources-card {
                 flex-wrap: wrap;
@@ -1594,44 +821,26 @@
             }
 
             .gauge-item:nth-child(even) {
-                border-left: 1px solid var(--border);
+                border-left: 1px solid var(--border-secondary);
             }
 
             .gauge-item:nth-child(n+3) {
-                border-top: 1px solid var(--border);
+                border-top: 1px solid var(--border-secondary);
             }
         }
 
         @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-
-            .sidebar.open {
-                transform: translateX(0);
-                box-shadow: 8px 0 32px rgba(0, 0, 0, 0.6);
-            }
-
-            .content {
-                margin-left: 0;
-            }
-
-            .hamburger {
-                display: flex;
-            }
-
-            .page-area {
-                padding: 18px;
+            .topbar-left {
+                left: var(--sp-3);
             }
 
             .ov-row {
-                gap: 12px;
-                margin-bottom: 12px;
+                gap: var(--sp-3);
+                margin-bottom: var(--sp-3);
             }
 
             .info-grid+.info-grid {
-                margin-top: 12px;
+                margin-top: var(--sp-3);
             }
 
             .gauge-item {
@@ -1639,20 +848,14 @@
                 gap: 6px;
             }
 
-            /* ring scales with viewport, capped so it never crowds the cell */
             .gauge-ring-wrap {
-                width: clamp(96px, 30vw, 118px);
-                height: clamp(96px, 30vw, 118px);
+                width: clamp(104px, 30vw, 124px);
+                height: clamp(104px, 30vw, 124px);
             }
 
-            .gauge-sublabel {
-                font-size: 10.5px;
-            }
-
-            /* lower cards: stack to 1 column and tighten to match gauge scale */
             .info-grid {
                 grid-template-columns: 1fr;
-                gap: 12px;
+                gap: var(--sp-3);
             }
 
             .info-card {
@@ -1667,25 +870,21 @@
                 padding: 0 14px;
             }
 
-            .info-row-value {
-                font-size: 15px;
-            }
-
             .stats-grid {
                 grid-template-columns: 1fr;
-                gap: 12px;
+                gap: var(--sp-3);
             }
 
             .stat-card {
                 padding: 18px 20px;
             }
+
+            .clients-side {
+                gap: 20px;
+            }
         }
 
         @media (max-width: 520px) {
-            .page-area {
-                padding: 14px;
-            }
-
             .controls {
                 flex-direction: column;
                 align-items: stretch;
@@ -1695,124 +894,22 @@
                 justify-content: space-between;
             }
 
-            .search-input {
-                width: 100%;
-            }
-
-            .search-input:focus {
-                width: 100%;
-            }
-
-            .search-wrap {
-                flex: 1;
-            }
-
             .filter-btn {
-                padding: 6px 10px;
+                padding: 7px 11px;
             }
 
-            /* keep gauges and cards on one consistent, breathable scale */
             .gauge-item {
                 padding: 16px 10px;
-            }
-
-            .gauge-ring-wrap {
-                width: clamp(92px, 32vw, 112px);
-                height: clamp(92px, 32vw, 112px);
-            }
-
-            .info-card {
-                padding: 14px 16px;
             }
 
             .info-row {
                 padding: 0 12px;
             }
         }
-
-        /* smallest phones (~360px): tighten spacing & type, keep proportions */
-        @media (max-width: 400px) {
-            .page-area {
-                padding: 12px;
-            }
-
-            .gauge-item {
-                padding: 14px 8px;
-            }
-
-            .gauge-ring-wrap {
-                width: clamp(88px, 34vw, 104px);
-                height: clamp(88px, 34vw, 104px);
-            }
-
-            .gauge-center-value {
-                font-size: 15px;
-            }
-
-            .gauge-sublabel {
-                font-size: 10px;
-            }
-
-            .info-row {
-                padding: 0 10px;
-                gap: 4px;
-            }
-
-            .info-row-label {
-                font-size: 11px;
-            }
-
-            .info-row-value {
-                font-size: 14px;
-            }
-        }
-
-        ::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--border2);
-            border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
-        }
-
-        /* ── IBM Plex Mono for numeric / technical data ── */
-        .info-row-value,
-        .stat-row-value,
-        .gauge-center-value,
-        .clients-side-value,
-        .clients-side-stat,
-        .copyable,
-        .hero-ip,
-        .count,
-        .badge,
-        .time-cell,
-        .traffic-total,
-        .service-status-text,
-        .val-up,
-        .val-down,
-        .live-badge,
-        .stat-value,
-        .metric-value,
-        .kpi-value,
-        code,
-        kbd {
-            font-family: var(--font-mono);
-            font-feature-settings: "tnum" 1, "zero" 1;
-        }
     </style>
 </head>
 
-<body>
+<body class="bg-ambient">
 
     <!-- Toast notification -->
     <div class="toast" id="toast"></div>
@@ -1830,7 +927,7 @@
         <ul class="sidebar-nav">
             <li>
                 <a href="/panel" id="nav-overview">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="7" height="7" />
                         <rect x="14" y="3" width="7" height="7" />
                         <rect x="14" y="14" width="7" height="7" />
@@ -1841,7 +938,7 @@
             </li>
             <li>
                 <a href="/panel/clients" id="nav-clients">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                         <circle cx="9" cy="7" r="4" />
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
@@ -1850,15 +947,32 @@
                     Clients
                 </a>
             </li>
-            <li>
-                <a href="/settings" id="nav-settings">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+            <!-- Panel Settings: expands into its sections instead of navigating -->
+            <li class="nav-group" id="nav-settings-group">
+                <button type="button" class="nav-parent" id="nav-settings" aria-expanded="false"
+                    aria-controls="nav-settings-sub">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3" />
                         <path
                             d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
                     </svg>
                     Panel Settings
-                </a>
+                    <span class="nav-chevron">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                    </span>
+                </button>
+                <div class="nav-sub" id="nav-settings-sub">
+                    <ul>
+                        <li><a href="/settings/general">General</a></li>
+                        <li><a href="/settings/openvpn">OpenVPN</a></li>
+                        <li><a href="/settings/wireguard">WireGuard</a></li>
+                        <li><a href="/settings/domains">Domain Tracking</a></li>
+                    </ul>
+                </div>
             </li>
         </ul>
 
@@ -1866,7 +980,7 @@
             <ul class="sidebar-nav">
                 <li>
                     <a href="/panel/logout">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                             <polyline points="16 17 21 12 16 7" />
@@ -1886,7 +1000,7 @@
         <header class="topbar">
             <div class="topbar-left">
                 <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="3" y1="12" x2="21" y2="12" />
                         <line x1="3" y1="6" x2="21" y2="6" />
                         <line x1="3" y1="18" x2="21" y2="18" />
@@ -1909,7 +1023,7 @@
                 <div class="glass-card resources-card">
 
                     <!-- CPU -->
-                    <div class="gauge-item" id="gauge-cpu" style="--gauge-accent: var(--accent)">
+                    <div class="gauge-item" id="gauge-cpu">
                         <div class="gauge-item-label">CPU</div>
                         <div class="gauge-ring-wrap">
                             <svg viewBox="0 0 120 120">
@@ -1924,7 +1038,7 @@
                     </div>
 
                     <!-- RAM -->
-                    <div class="gauge-item" id="gauge-ram" style="--gauge-accent: var(--accent)">
+                    <div class="gauge-item" id="gauge-ram">
                         <div class="gauge-item-label">RAM</div>
                         <div class="gauge-ring-wrap">
                             <svg viewBox="0 0 120 120">
@@ -1939,7 +1053,7 @@
                     </div>
 
                     <!-- Swap -->
-                    <div class="gauge-item" id="gauge-swap" style="--gauge-accent: var(--accent)">
+                    <div class="gauge-item" id="gauge-swap">
                         <div class="gauge-item-label">Swap</div>
                         <div class="gauge-ring-wrap">
                             <svg viewBox="0 0 120 120">
@@ -1954,7 +1068,7 @@
                     </div>
 
                     <!-- Disk -->
-                    <div class="gauge-item" id="gauge-disk" style="--gauge-accent: var(--accent)">
+                    <div class="gauge-item" id="gauge-disk">
                         <div class="gauge-item-label">Disk</div>
                         <div class="gauge-ring-wrap">
                             <svg viewBox="0 0 120 120">
@@ -1976,7 +1090,7 @@
                         <div class="clients-main">
                             <div class="clients-title-row">
                                 <div class="clients-icon-box">
-                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                         stroke-width="2">
                                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                                         <circle cx="9" cy="7" r="4" />
@@ -2001,7 +1115,7 @@
                         </div>
                     </div>
                     <div class="ratio-bar">
-                        <div class="ratio-bar-fill" id="ov-ratio-fill" style="width:0%"></div>
+                        <div class="ratio-bar-fill is-success" id="ov-ratio-fill" style="width:0%"></div>
                     </div>
                     <div class="clients-pct-caption" id="ov-ratio-caption">0% Online</div>
                 </div>
@@ -2013,8 +1127,7 @@
 
                 <!-- Live Speed -->
                 <div class="info-card glass-card">
-                    <div class="info-card-title"><span class="info-card-title-dot"
-                            style="background:var(--recv-color)"></span>Live Speed</div>
+                    <div class="info-card-title"><span class="info-card-title-dot"></span>Live Speed</div>
                     <div class="info-rows">
                         <div class="info-row">
                             <span class="info-row-label">Upload</span>
@@ -2029,9 +1142,8 @@
 
                 <!-- Total Data -->
                 <div class="info-card glass-card">
-                    <div class="info-card-title"><span class="info-card-title-dot"
-                            style="background:var(--recv-color)"></span>Total Data</div>
-                    <div class="info-rows">
+                    <div class="info-card-title"><span class="info-card-title-dot"></span>Total Data</div>
+                    <div class="info-rows cols-3">
                         <div class="info-row">
                             <span class="info-row-label">Total</span>
                             <span class="info-row-value" id="net-total">—</span>
@@ -2050,7 +1162,7 @@
                 <!-- OpenVPN service control -->
                 <div class="info-card glass-card service-card">
                     <div class="info-card-title service-head">
-                        <span class="info-card-title-dot" style="background:var(--accent)"></span>OpenVPN
+                        <span class="info-card-title-dot"></span>OpenVPN
                         <span class="service-status" id="svc-openvpn-status">
                             <span class="service-status-dot"></span>
                             <span class="service-status-text">—</span>
@@ -2058,7 +1170,7 @@
                     </div>
                     <div class="service-actions">
                         <button class="service-btn stop" data-service="openvpn" data-action="stop">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round">
                                 <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
                                 <line x1="12" y1="2" x2="12" y2="12" />
@@ -2066,7 +1178,7 @@
                             Stop
                         </button>
                         <button class="service-btn restart" data-service="openvpn" data-action="restart">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="23 4 23 10 17 10" />
                                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
@@ -2079,7 +1191,7 @@
                 <!-- WireGuard service control -->
                 <div class="info-card glass-card service-card">
                     <div class="info-card-title service-head">
-                        <span class="info-card-title-dot" style="background:var(--accent)"></span>WireGuard
+                        <span class="info-card-title-dot"></span>WireGuard
                         <span class="service-status" id="svc-wireguard-status">
                             <span class="service-status-dot"></span>
                             <span class="service-status-text">—</span>
@@ -2087,7 +1199,7 @@
                     </div>
                     <div class="service-actions">
                         <button class="service-btn stop" data-service="wireguard" data-action="stop">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round">
                                 <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
                                 <line x1="12" y1="2" x2="12" y2="12" />
@@ -2095,7 +1207,7 @@
                             Stop
                         </button>
                         <button class="service-btn restart" data-service="wireguard" data-action="restart">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="23 4 23 10 17 10" />
                                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
@@ -2112,8 +1224,7 @@
 
                 <!-- IP Addresses -->
                 <div class="info-card glass-card">
-                    <div class="info-card-title"><span class="info-card-title-dot"
-                            style="background:var(--accent)"></span>IP Addresses</div>
+                    <div class="info-card-title"><span class="info-card-title-dot"></span>IP Addresses</div>
                     <div class="info-rows">
                         <div class="info-row">
                             <span class="info-row-label">IPv4</span>
@@ -2129,7 +1240,9 @@
                 <!-- Uptime -->
                 <div class="info-card glass-card">
                     <div class="info-card-title"><span class="info-card-title-dot"></span>Uptime</div>
-                    <div class="info-rows">
+                    <!-- Uptime strings run long ("14d 1h 4m 16s"); the stacked
+                         layout gives each one the full card width. -->
+                    <div class="info-rows vertical">
                         <div class="info-row">
                             <span class="info-row-label" id="uptime-os-label">OS</span>
                             <span class="info-row-value" id="uptime-os">—</span>
@@ -2148,7 +1261,7 @@
                 <!-- Connection Stats -->
                 <div class="info-card glass-card">
                     <div class="info-card-title"><span class="info-card-title-dot"
-                            style="background:var(--green)"></span>Connection Stats</div>
+                            style="background:var(--color-success)"></span>Connection Stats</div>
                     <div class="info-rows">
                         <div class="info-row">
                             <span class="info-row-label">TCP</span>
@@ -2164,7 +1277,7 @@
                 <!-- System Info -->
                 <div class="info-card glass-card">
                     <div class="info-card-title"><span class="info-card-title-dot"
-                            style="background:var(--amber)"></span>System Info</div>
+                            style="background:var(--text-tertiary)"></span>System Info</div>
                     <div class="info-rows vertical">
                         <div class="info-row">
                             <span class="info-row-label">Kernel</span>
@@ -2192,7 +1305,7 @@
                 <!-- Clients card -->
                 <div class="stat-card glass-card c-clients">
                     <div class="stat-card-title">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                             <circle cx="9" cy="7" r="4" />
@@ -2203,12 +1316,14 @@
                     </div>
                     <div class="stat-rows">
                         <div class="stat-row">
-                            <div class="stat-row-label"><span class="dot" style="background:var(--accent)"></span>Total
+                            <div class="stat-row-label"><span class="dot"
+                                    style="background:var(--color-primary)"></span>Total
                             </div>
                             <div class="stat-row-value total" id="stat-total">—</div>
                         </div>
                         <div class="stat-row">
-                            <div class="stat-row-label"><span class="dot" style="background:var(--green)"></span>Online
+                            <div class="stat-row-label"><span class="dot"
+                                    style="background:var(--color-success)"></span>Online
                             </div>
                             <div class="stat-row-value online">
                                 <span id="stat-online">—</span>
@@ -2217,7 +1332,7 @@
                         </div>
                         <div class="stat-row">
                             <div class="stat-row-label"><span class="dot"
-                                    style="background:var(--text-muted)"></span>Offline</div>
+                                    style="background:var(--text-tertiary)"></span>Offline</div>
                             <div class="stat-row-value offline">
                                 <span id="stat-offline">—</span>
                                 <span class="pct" id="stat-offline-pct"></span>
@@ -2225,7 +1340,7 @@
                         </div>
                     </div>
                     <div class="ratio-bar">
-                        <div class="ratio-bar-fill" id="ratio-bar-fill" style="width:0%"></div>
+                        <div class="ratio-bar-fill is-success" id="ratio-bar-fill" style="width:0%"></div>
                     </div>
                     <div class="ratio-bar-label">
                         <span id="ratio-label-online">Online 0%</span>
@@ -2236,7 +1351,7 @@
                 <!-- Traffic card -->
                 <div class="stat-card glass-card c-traffic">
                     <div class="stat-card-title">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <polyline points="8 17 12 21 16 17" />
                             <polyline points="16 7 12 3 8 7" />
@@ -2247,7 +1362,7 @@
                     <div class="stat-rows">
                         <div class="stat-row">
                             <div class="stat-row-label"><span class="dot"
-                                    style="background:var(--text-dim)"></span>Total</div>
+                                    style="background:var(--text-secondary)"></span>Total</div>
                             <div class="stat-row-value traffic-total" id="stat-total-traffic">—</div>
                         </div>
                         <div class="stat-row">
@@ -2276,7 +1391,7 @@
                 <div class="controls-right">
                     <div class="search-wrap">
                         <span class="search-icon">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
                                 <circle cx="11" cy="11" r="8" />
                                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -2318,7 +1433,7 @@
             </div>
 
             <div class="clients-footer">
-                <span>OpenVPN Client Monitor</span>
+                <span>VPN Client Monitor</span>
                 <span id="client-count">Loading...</span>
             </div>
 
@@ -2332,14 +1447,7 @@
 
             var path = window.location.pathname;
 
-            // ── Sidebar active link ────────────────────────────────────────────
-            if (path === '/panel') {
-                document.getElementById('nav-overview').classList.add('active');
-            } else if (path === '/panel/clients') {
-                document.getElementById('nav-clients').classList.add('active');
-            } else if (path === '/settings') {
-                document.getElementById('nav-settings').classList.add('active');
-            }
+            /* Sidebar, submenu and active-nav handling live in /static/sidebar.js. */
 
             // ── Show correct page ──────────────────────────────────────────────
             if (path === '/panel') {
@@ -2347,25 +1455,6 @@
             } else if (path === '/panel/clients') {
                 document.getElementById('page-clients').style.display = 'block';
             }
-
-            // ── Hamburger / sidebar toggle ─────────────────────────────────────
-            var sidebar = document.getElementById('sidebar');
-            var overlay = document.getElementById('sidebar-overlay');
-            var hamburger = document.getElementById('hamburger');
-
-            function openSidebar() {
-                sidebar.classList.add('open');
-                overlay.classList.add('visible');
-            }
-            function closeSidebar() {
-                sidebar.classList.remove('open');
-                overlay.classList.remove('visible');
-            }
-
-            hamburger.addEventListener('click', function () {
-                sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
-            });
-            overlay.addEventListener('click', closeSidebar);
 
             // ── Toast ──────────────────────────────────────────────────────────
             var toastEl = document.getElementById('toast');
@@ -2465,30 +1554,35 @@
             }
 
             // ── Gauge color & severity ─────────────────────────────────────────
+            // Blue is the default fill. Amber and red are warning states only, so
+            // the thresholds sit high enough that a normally-loaded server stays
+            // blue rather than glowing amber all day.
+            var WARN_AT = 0.70;
+            var CRITICAL_AT = 0.90;
+
             function gaugeColor(ratio) {
-                if (ratio < 0.50) return 'var(--accent)';
-                if (ratio < 0.85) return 'var(--amber)';
-                return 'var(--danger)';
+                if (ratio < WARN_AT) return 'var(--color-primary)';
+                if (ratio < CRITICAL_AT) return 'var(--color-warning)';
+                return 'var(--color-error)';
             }
 
-            function gaugeAccentColor(ratio) {
-                if (ratio < 0.50) return 'var(--accent)';
-                if (ratio < 0.85) return 'var(--amber)';
-                return 'var(--danger)';
-            }
-
-            // Update gauge container severity class
-            function setGaugeSeverity(gaugeId, ratio) {
+            // Tint one gauge's accent bar to match its own value.
+            function setGaugeAccent(gaugeId, ratio) {
                 var el = document.getElementById(gaugeId);
-                if (!el) return;
-                el.style.setProperty('--gauge-accent', gaugeAccentColor(ratio));
-                // Also update parent card severity
-                var card = el.closest('.glass-card');
-                if (card) {
-                    card.classList.remove('severity-warn', 'severity-critical');
-                    if (ratio >= 0.85) card.classList.add('severity-critical');
-                    else if (ratio >= 0.50) card.classList.add('severity-warn');
-                }
+                if (el) el.style.setProperty('--gauge-accent', gaugeColor(ratio));
+            }
+
+            // All four gauges share one card, so the card outline must reflect the
+            // WORST of them. Setting it per gauge would let whichever gauge is
+            // updated last overwrite the others — a critical disk would look calm
+            // simply because swap is fine.
+            function setCardSeverity(cardSelector, ratios) {
+                var card = document.querySelector(cardSelector);
+                if (!card) return;
+                var worst = Math.max.apply(null, ratios);
+                card.classList.remove('severity-warn', 'severity-critical');
+                if (worst >= CRITICAL_AT) card.classList.add('severity-critical');
+                else if (worst >= WARN_AT) card.classList.add('severity-warn');
             }
 
             // ── Set SVG ring ───────────────────────────────────────────────────
@@ -2499,7 +1593,6 @@
                 var fill = arcLen * Math.min(1, Math.max(0, ratio));
                 el.style.strokeDasharray = fill + ' 314.16';
                 el.style.stroke = gaugeColor(ratio);
-                el.style.filter = 'drop-shadow(0 0 5px ' + gaugeColor(ratio) + ')';
             }
 
             // ── Number counter animation ───────────────────────────────────────
@@ -2615,7 +1708,7 @@
                     animateNumber(cpuEl, cpuPct.toFixed(1) + '%', 500);
                     document.getElementById('cpu-sub').textContent = (stats.cpu_cores || '?') + ' Cores';
                     setRing('cpu-ring', cpuPct / 100);
-                    setGaugeSeverity('gauge-cpu', cpuPct / 100);
+                    setGaugeAccent('gauge-cpu', cpuPct / 100);
 
                     // RAM
                     var ramUsed = stats.mem_used || 0;
@@ -2624,7 +1717,7 @@
                     animateNumber(document.getElementById('ram-val'), (ramRatio * 100).toFixed(1) + '%', 500);
                     document.getElementById('ram-sub').textContent = fmtBytes(ramUsed) + ' / ' + fmtBytes(ramTotal);
                     setRing('ram-ring', ramRatio);
-                    setGaugeSeverity('gauge-ram', ramRatio);
+                    setGaugeAccent('gauge-ram', ramRatio);
 
                     // Disk
                     var diskUsed = stats.disk_used || 0;
@@ -2633,7 +1726,7 @@
                     animateNumber(document.getElementById('disk-val'), (diskRatio * 100).toFixed(1) + '%', 500);
                     document.getElementById('disk-sub').textContent = fmtBytes(diskUsed) + ' / ' + fmtBytes(diskTotal);
                     setRing('disk-ring', diskRatio);
-                    setGaugeSeverity('gauge-disk', diskRatio);
+                    setGaugeAccent('gauge-disk', diskRatio);
 
                     // Swap
                     var swapUsed = stats.swap_used || 0;
@@ -2647,7 +1740,11 @@
                         document.getElementById('swap-sub').textContent = 'No Swap';
                     }
                     setRing('swap-ring', swapRatio);
-                    setGaugeSeverity('gauge-swap', swapRatio);
+                    setGaugeAccent('gauge-swap', swapRatio);
+
+                    // One outline for the shared resources card: worst gauge wins.
+                    setCardSeverity('.resources-card',
+                        [cpuPct / 100, ramRatio, diskRatio, swapRatio]);
 
                     // Live speed
                     var downSpeed = stats.net_down_speed || 0;
@@ -2957,7 +2054,7 @@
                         '<td class="total-text">' + esc(c.total_traffic_readable || fmtBytes(c.total_traffic)) + '</td>' +
                         '<td><span class="rel-time"' + titleAttr + '>' + esc(rel) + '</span></td>' +
                         '<td class="cell-expand"><span class="chevron">' +
-                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>' +
+                        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>' +
                         '</span></td>' +
                         '</tr>';
                 }

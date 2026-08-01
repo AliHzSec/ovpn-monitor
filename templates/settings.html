@@ -4,287 +4,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Settings — Monitoring</title>
+    <title>{{.Title}} Settings — Monitoring</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="/static/theme.css?v=2">
+    <script src="/static/sidebar.js?v=2" defer></script>
     <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        :root {
-            --bg: #0d1117;
-            --surface: rgba(22, 27, 34, 0.7);
-            --surface2: rgba(28, 33, 40, 0.85);
-            --surface3: #21262d;
-            --border: rgba(48, 54, 61, 0.6);
-            --border2: rgba(72, 79, 88, 0.9);
-            --accent: #e3b341;
-            --accent-glow: rgba(227, 179, 65, 0.18);
-            --green: #3fb950;
-            --green-dim: rgba(63, 185, 80, 0.1);
-            --text: #e6edf3;
-            --text-dim: #8b949e;
-            --text-muted: #6e7681;
-            --danger: #f85149;
-            --danger-dim: rgba(248, 81, 73, 0.1);
-            --warn: #d29922;
-            --warn-dim: rgba(210, 153, 34, 0.1);
-            --sidebar-bg: rgba(1, 4, 9, 0.95);
-            --sidebar-width: 200px;
-            --topbar-h: 52px;
-            --glass-blur: blur(16px);
-            --card-radius: 14px;
-
-            /* ── DESIGN-SYSTEM TOKENS ── */
-            --font-sans: "IBM Plex Sans", -apple-system, system-ui, "Segoe UI", sans-serif;
-            --font-brand: "IBM Plex Mono", ui-monospace, monospace;
-            --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-            --fs-title: 21px;
-            --fs-heading: 14px;
-            --fs-body: 13px;
-            --fs-label: 11px;
-            --fs-stat: 17px;
-            --sp-1: 4px;
-            --sp-2: 8px;
-            --sp-3: 12px;
-            --sp-4: 16px;
-            --sp-5: 20px;
-            --sp-6: 24px;
-            --sp-8: 32px;
-            --radius-ctl: 10px;
-        }
-
-        html {
-            height: 100%;
-        }
+        /* Page-specific styles only. Colors, typography and shared components
+           live in /static/theme.css. */
 
         body {
-            font-family: var(--font-sans);
-            font-weight: 400;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100dvh;
-            font-size: 15px;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            letter-spacing: -0.006em;
             display: flex;
         }
 
-        /* ── AMBIENT BACKGROUND ── */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            background:
-                radial-gradient(ellipse 80% 50% at 20% 0%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0, 0, 0, 0.28) 0%, transparent 65%);
-            pointer-events: none;
-        }
-
-        body::after {
-            content: '';
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            background-image:
-                linear-gradient(rgba(255, 255, 255, 0.014) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px);
-            background-size: 32px 32px;
-            pointer-events: none;
-        }
-
-        /* ── SIDEBAR ── */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: var(--sidebar-width);
-            background: var(--sidebar-bg);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            z-index: 200;
-            overflow-y: auto;
-            overflow-x: hidden;
-            backdrop-filter: var(--glass-blur);
-        }
-
-        .sidebar-brand {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 18px 14px;
-            border-bottom: 1px solid var(--border);
-            user-select: none;
-            flex-shrink: 0;
-        }
-
-        .sidebar-brand-text {
-            font-family: var(--font-brand);
-            font-size: 13px;
-            font-weight: 400;
-            letter-spacing: 0.14em;
-            color: var(--text);
-            text-transform: uppercase;
-        }
-
-        .sidebar-brand-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--green);
-            box-shadow: 0 0 8px var(--green);
-            animation: livepulse 2s ease-in-out infinite;
-            flex-shrink: 0;
-        }
-
-        @keyframes livepulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.35;
-            }
-        }
-
-        .sidebar-nav {
-            list-style: none;
-            padding: 10px 0;
-            flex: 1;
-        }
-
-        .sidebar-nav a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            color: var(--text-muted);
-            text-decoration: none;
-            font-family: var(--font-sans);
-            font-size: 13px;
-            font-weight: 500;
-            border-left: 2px solid transparent;
-            transition: color 0.15s, background 0.15s, border-color 0.15s;
-        }
-
-        .sidebar-nav a:hover {
-            color: var(--text-dim);
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        .sidebar-nav a.active {
-            color: var(--accent);
-            border-left-color: var(--accent);
-            background: rgba(227, 179, 65, 0.07);
-        }
-
-        .sidebar-nav a svg {
-            flex-shrink: 0;
-            opacity: 0.65;
-            transition: opacity 0.15s;
-        }
-
-        .sidebar-nav a:hover svg {
-            opacity: 0.85;
-        }
-
-        .sidebar-nav a.active svg {
-            opacity: 1;
-        }
-
-        .sidebar-bottom {
-            border-top: 1px solid var(--border);
-            padding: 8px 0;
-            flex-shrink: 0;
-        }
-
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 199;
-            backdrop-filter: blur(2px);
-        }
-
-        .sidebar-overlay.visible {
-            display: block;
-        }
-
-        /* ── CONTENT ── */
-        .content {
-            margin-left: var(--sidebar-width);
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 100dvh;
-            min-width: 0;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* ── TOPBAR ── */
-        .topbar {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            height: var(--topbar-h);
-            background: rgba(1, 4, 9, 0.85);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            gap: 12px;
-            flex-shrink: 0;
-        }
-
-        .hamburger {
-            display: none;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 6px;
-            border-radius: 8px;
-            line-height: 0;
-            transition: color 0.15s, background 0.15s;
-        }
-
-        .hamburger:hover {
-            color: var(--text);
-            background: var(--surface2);
-        }
-
-        .topbar-title {
-            font-family: var(--font-sans);
-            font-size: var(--fs-heading);
-            font-weight: 600;
-            color: var(--text);
-            letter-spacing: -0.01em;
-        }
-
-        /* ── PAGE AREA ── */
         .page-area {
-            flex: 1;
-            padding: 28px 24px;
-            max-width: 700px;
+            max-width: 760px;
         }
 
         /* ── FLASH MESSAGES ── */
@@ -293,11 +31,10 @@
             align-items: flex-start;
             gap: 10px;
             padding: 13px 16px;
-            border-radius: 11px;
-            font-size: 13px;
-            margin-bottom: 26px;
-            line-height: 1.6;
-            backdrop-filter: blur(8px);
+            border-radius: var(--radius-ctl);
+            font-size: var(--fs-body);
+            line-height: var(--lh-body);
+            margin-bottom: var(--sp-6);
             animation: flashIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
@@ -314,173 +51,76 @@
         }
 
         .flash.success {
-            background: rgba(63, 185, 80, 0.08);
-            border: 1px solid rgba(63, 185, 80, 0.2);
-            border-left: 3px solid var(--green);
-            color: #56d364;
+            background: var(--success-soft);
+            border: 1px solid color-mix(in srgb, var(--color-success) 30%, transparent);
+            border-left: 3px solid var(--color-success);
+            color: var(--color-success);
         }
 
+        /* A pending service restart is a genuine warning state — one of the few
+           places amber is allowed. */
         .flash.warning {
-            background: rgba(210, 153, 34, 0.08);
-            border: 1px solid rgba(210, 153, 34, 0.2);
-            border-left: 3px solid var(--warn);
-            color: #e3b341;
+            background: var(--warning-soft);
+            border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
+            border-left: 3px solid var(--color-warning);
+            color: var(--color-warning);
         }
 
         .flash svg {
             flex-shrink: 0;
-            margin-top: 1px;
+            margin-top: 2px;
         }
 
-        /* ── SETTINGS SECTIONS ── */
-        .settings-section {
-            margin-bottom: 28px;
-            animation: sectionIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+        /* ── SECTION HEAD ── */
+        .section-head {
+            margin-bottom: var(--sp-5);
+            animation: cardIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) backwards;
         }
 
-        .settings-section:nth-child(1) {
-            animation-delay: 0.05s;
-        }
-
-        .settings-section:nth-child(2) {
-            animation-delay: 0.10s;
-        }
-
-        .settings-section:nth-child(3) {
-            animation-delay: 0.15s;
-        }
-
-        .settings-section:nth-child(4) {
-            animation-delay: 0.20s;
-        }
-
-        @keyframes sectionIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: none;
-            }
-        }
-
-        /* Section headers double as accordion toggles: full-width buttons that
-           expand/collapse the card below them. */
-        .settings-section-header {
+        .section-head-title {
             display: flex;
             align-items: center;
             gap: 10px;
-            width: 100%;
-            margin: 0;
-            padding: 0 0 10px;
-            border: none;
-            border-bottom: 1px solid var(--border);
-            background: transparent;
-            cursor: pointer;
-            text-align: left;
-        }
-
-        .settings-section-header:hover .settings-section-title {
-            color: var(--text);
-        }
-
-        .settings-section-header:hover .section-icon {
-            opacity: 1;
-        }
-
-        .section-icon {
-            color: var(--text-muted);
-            opacity: 0.7;
-            flex-shrink: 0;
-            transition: opacity 0.15s;
-        }
-
-        .settings-section-title {
-            font-family: var(--font-sans);
-            font-size: var(--fs-label);
+            font-size: var(--fs-title);
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
-            color: var(--text-dim);
-            transition: color 0.15s;
+            color: var(--text);
+            line-height: var(--lh-tight);
         }
 
-        .section-chevron {
-            margin-left: auto;
-            display: flex;
-            color: var(--text-muted);
-            transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+        .section-head-title svg {
+            color: var(--color-primary);
+            flex-shrink: 0;
         }
 
-        .settings-section.collapsed .section-chevron {
-            transform: rotate(-90deg);
-        }
-
-        /* Collapse VISUALLY only (0fr grid row + clipped overflow): the inputs
-           stay in the DOM inside the single form, so collapsed sections still
-           submit all their fields. */
-        .section-body {
-            display: grid;
-            grid-template-rows: 1fr;
-            transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-
-        .settings-section.collapsed .section-body {
-            grid-template-rows: 0fr;
-        }
-
-        .section-body-inner {
-            overflow: hidden;
-            min-height: 0;
-            opacity: 1;
-            transition: opacity 0.25s ease;
-        }
-
-        .settings-section.collapsed .section-body-inner {
-            opacity: 0;
+        .section-head-note {
+            font-size: var(--fs-caption);
+            color: var(--text-tertiary);
+            margin-top: 6px;
         }
 
         /* ── SETTINGS CARD ── */
         .settings-card {
-            margin-top: 12px;
-            background: var(--surface);
-            border: 1px solid var(--border);
+            background: var(--bg-card);
+            border: 1px solid var(--border-secondary);
             border-radius: var(--card-radius);
             overflow: hidden;
-            backdrop-filter: var(--glass-blur);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.22);
-            transition: border-color 0.25s, box-shadow 0.25s;
-            position: relative;
-        }
-
-        .settings-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg,
-                    transparent 0%,
-                    rgba(227, 179, 65, 0.3) 40%,
-                    rgba(63, 185, 80, 0.2) 70%,
-                    transparent 100%);
+            box-shadow: var(--shadow-card);
+            transition: var(--card-transition);
+            animation: cardIn 0.4s 0.05s cubic-bezier(0.22, 1, 0.36, 1) backwards;
         }
 
         .settings-card:hover {
-            border-color: var(--border2);
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            border-color: var(--border);
+            box-shadow: var(--shadow-card-hover);
         }
 
         /* ── FIELD ROWS ── */
         .field-row {
             display: flex;
             align-items: center;
-            gap: 20px;
-            padding: 15px 18px;
-            border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+            gap: var(--sp-5);
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border-secondary);
             transition: background 0.15s;
         }
 
@@ -489,62 +129,51 @@
         }
 
         .field-row:hover {
-            background: rgba(255, 255, 255, 0.015);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Replaces the old inline-style JS focus highlight. */
+        .field-row:focus-within {
+            background: var(--primary-faint);
         }
 
         .field-label-wrap {
-            flex: 0 0 196px;
+            flex: 0 0 210px;
         }
 
         .field-label {
-            font-size: 13px;
+            font-size: var(--fs-body);
             font-weight: 600;
             color: var(--text);
             display: block;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
+            line-height: var(--lh-body);
         }
 
+        /* "This restarts the service" — a real warning, so amber is correct. */
         .field-note {
-            font-size: 11px;
-            color: var(--warn);
+            font-size: var(--fs-caption);
+            color: var(--color-warning);
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
+            line-height: var(--lh-body);
         }
 
         .field-note::before {
             content: '';
             display: inline-block;
-            width: 4px;
-            height: 4px;
+            width: 5px;
+            height: 5px;
             border-radius: 50%;
-            background: var(--warn);
+            background: var(--color-warning);
             flex-shrink: 0;
         }
 
         .field-desc {
-            font-size: 11px;
-            color: var(--text-muted);
-            line-height: 1.4;
-        }
-
-        /* ── PAGE NOTE ── */
-        .page-note {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            font-size: 12px;
-            color: var(--text-dim);
-            margin-bottom: 22px;
-        }
-
-        .page-note::before {
-            content: '';
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--warn);
-            flex-shrink: 0;
+            font-size: var(--fs-caption);
+            color: var(--text-tertiary);
+            line-height: var(--lh-body);
         }
 
         .field-input-wrap {
@@ -554,133 +183,26 @@
             align-items: center;
         }
 
-        .field-input {
-            width: 100%;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 10px 14px;
-            font-size: 13px;
-            letter-spacing: -0.01em;
-            border-radius: var(--radius-ctl);
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-            backdrop-filter: blur(8px);
-        }
-
-        .field-input:focus {
-            border-color: var(--accent);
-            background: rgba(28, 33, 40, 0.95);
-            box-shadow: 0 0 0 3px var(--accent-glow);
-        }
-
-        .field-input::placeholder {
-            color: var(--text-muted);
-        }
-
         .field-input.password-input {
             padding-right: 42px;
         }
 
-        .eye-btn {
-            position: absolute;
-            right: 10px;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            display: flex;
-            padding: 5px;
-            border-radius: 5px;
-            transition: color 0.15s, background 0.15s;
-        }
-
-        .eye-btn:hover {
-            color: var(--text);
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        /* ── SAVE BUTTON ── */
-        .btn-save {
-            position: relative;
-            overflow: hidden;
-            background: var(--accent);
-            border: none;
-            color: #fff;
-            padding: 12px 28px;
-            font-family: var(--font-sans);
-            font-size: 14px;
-            font-weight: 600;
-            border-radius: var(--radius-ctl);
-            cursor: pointer;
-            letter-spacing: 0.01em;
-            transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
-            box-shadow: 0 4px 18px rgba(227, 179, 65, 0.28);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* shimmer on hover */
-        .btn-save::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 60%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-            transition: left 0.4s ease;
-            pointer-events: none;
-        }
-
-        .btn-save:hover::after {
-            left: 160%;
-        }
-
-        .btn-save:hover {
-            background: #d29922;
-            box-shadow: 0 6px 24px rgba(227, 179, 65, 0.38);
-            transform: translateY(-1px);
-        }
-
-        .btn-save:active {
-            transform: translateY(0);
-        }
-
+        /* ── FOOTER ── */
         .form-footer {
-            margin-top: 24px;
+            margin-top: var(--sp-6);
             display: flex;
             align-items: center;
-            gap: 16px;
-            animation: sectionIn 0.4s 0.22s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+            gap: var(--sp-4);
+            flex-wrap: wrap;
+            animation: cardIn 0.4s 0.1s cubic-bezier(0.22, 1, 0.36, 1) backwards;
         }
 
         .form-footer-note {
-            font-size: 12px;
-            color: var(--text-muted);
+            font-size: var(--fs-caption);
+            color: var(--text-tertiary);
         }
 
-        /* ── RESPONSIVE ── */
         @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-
-            .sidebar.open {
-                transform: translateX(0);
-                box-shadow: 8px 0 32px rgba(0, 0, 0, 0.6);
-            }
-
-            .content {
-                margin-left: 0;
-            }
-
-            .hamburger {
-                display: flex;
-            }
-
             .field-row {
                 flex-direction: column;
                 align-items: flex-start;
@@ -696,59 +218,10 @@
                 width: 100%;
             }
         }
-
-        @media (max-width: 520px) {
-            .page-area {
-                padding: 16px 14px;
-            }
-        }
-
-        ::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--border2);
-            border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
-        }
-
-        /* ── IBM Plex Mono for numeric / technical data ── */
-        .info-row-value,
-        .stat-row-value,
-        .gauge-center-value,
-        .clients-side-value,
-        .clients-side-stat,
-        .copyable,
-        .hero-ip,
-        .count,
-        .badge,
-        .time-cell,
-        .traffic-total,
-        .service-status-text,
-        .val-up,
-        .val-down,
-        .live-badge,
-        .stat-value,
-        .metric-value,
-        .kpi-value,
-        code,
-        kbd {
-            font-family: var(--font-mono);
-            font-feature-settings: "tnum" 1, "zero" 1;
-        }
     </style>
 </head>
 
-<body>
+<body class="bg-ambient">
 
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
@@ -760,8 +233,8 @@
 
         <ul class="sidebar-nav">
             <li>
-                <a href="/panel">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <a href="/panel" id="nav-overview">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="7" height="7" />
                         <rect x="14" y="3" width="7" height="7" />
                         <rect x="14" y="14" width="7" height="7" />
@@ -771,8 +244,8 @@
                 </a>
             </li>
             <li>
-                <a href="/panel/clients">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <a href="/panel/clients" id="nav-clients">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                         <circle cx="9" cy="7" r="4" />
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
@@ -781,15 +254,32 @@
                     Clients
                 </a>
             </li>
-            <li>
-                <a href="/settings" class="active">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+            <!-- Panel Settings: expands into its sections instead of navigating -->
+            <li class="nav-group" id="nav-settings-group">
+                <button type="button" class="nav-parent" id="nav-settings" aria-expanded="false"
+                    aria-controls="nav-settings-sub">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3" />
                         <path
                             d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
                     </svg>
                     Panel Settings
-                </a>
+                    <span class="nav-chevron">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                    </span>
+                </button>
+                <div class="nav-sub" id="nav-settings-sub">
+                    <ul>
+                        <li><a href="/settings/general">General</a></li>
+                        <li><a href="/settings/openvpn">OpenVPN</a></li>
+                        <li><a href="/settings/wireguard">WireGuard</a></li>
+                        <li><a href="/settings/domains">Domain Tracking</a></li>
+                    </ul>
+                </div>
             </li>
         </ul>
 
@@ -797,7 +287,7 @@
             <ul class="sidebar-nav">
                 <li>
                     <a href="/panel/logout">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                             <polyline points="16 17 21 12 16 7" />
@@ -814,20 +304,20 @@
 
         <header class="topbar">
             <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="3" y1="12" x2="21" y2="12" />
                     <line x1="3" y1="6" x2="21" y2="6" />
                     <line x1="3" y1="18" x2="21" y2="18" />
                 </svg>
             </button>
-            <span class="topbar-title">Panel Settings</span>
+            <span class="topbar-title">Panel Settings — {{.Title}}</span>
         </header>
 
         <main class="page-area">
 
             {{if .Restarting}}
             <div class="flash warning">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10" />
                     <line x1="12" y1="8" x2="12" y2="12" />
                     <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -837,330 +327,287 @@
             </div>
             {{else if .Saved}}
             <div class="flash success">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <div>Settings saved successfully.</div>
+                <div>{{.Title}} settings saved successfully.</div>
             </div>
             {{end}}
 
-            <div class="page-note">These settings apply after a service restart.</div>
+            <!-- Each section posts only its own fields; the handler writes only
+                 the keys that section owns, so saving one page can never blank
+                 another page's settings. -->
+            <form method="POST" action="/settings/{{.Section}}">
 
-            <form method="POST" action="/settings">
-
-                <!-- General -->
-                <div class="settings-section">
-                    <button type="button" class="settings-section-header" aria-expanded="true"
-                        aria-controls="section-general">
-                        <span class="section-icon">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <rect x="2" y="2" width="20" height="8" rx="2" />
-                                <rect x="2" y="14" width="20" height="8" rx="2" />
-                                <line x1="6" y1="6" x2="6.01" y2="6" />
-                                <line x1="6" y1="18" x2="6.01" y2="18" />
-                            </svg>
-                        </span>
-                        <span class="settings-section-title">General</span>
-                        <span class="section-chevron">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                        </span>
-                    </button>
-                    <div class="section-body" id="section-general">
-                        <div class="section-body-inner">
-                            <div class="settings-card">
-                                <div class="field-row">
-                                    <div class="field-label-wrap">
-                                        <label class="field-label" for="addr">Listening Address</label>
-                                        <div class="field-note">Changing this restarts the service</div>
-                                    </div>
-                                    <div class="field-input-wrap">
-                                        <input class="field-input" type="text" id="addr" name="addr"
-                                            value="{{index .Settings `addr`}}" placeholder="0.0.0.0:80">
-                                    </div>
-                                </div>
-                                <div class="field-row">
-                                    <div class="field-label-wrap">
-                                        <label class="field-label" for="admin_user">Admin Username</label>
-                                    </div>
-                                    <div class="field-input-wrap">
-                                        <input class="field-input" type="text" id="admin_user" name="admin_user"
-                                            value="{{index .Settings `admin_user`}}" placeholder="admin"
-                                            autocomplete="username">
-                                    </div>
-                                </div>
-                                <div class="field-row">
-                                    <div class="field-label-wrap">
-                                        <label class="field-label" for="admin_pass">Admin Password</label>
-                                    </div>
-                                    <div class="field-input-wrap">
-                                        <input class="field-input password-input" type="password" id="admin_pass"
-                                            name="admin_pass" value=""
-                                            placeholder="Unchanged — type to set a new password"
-                                            autocomplete="new-password">
-                                        <button type="button" class="eye-btn" id="eye-btn"
-                                            aria-label="Toggle password visibility">
-                                            <svg id="eye-open" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>
-                                            <svg id="eye-closed" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2" style="display:none">
-                                                <path
-                                                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                                                <path
-                                                    d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                                                <line x1="1" y1="1" x2="23" y2="23" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="field-row">
-                                    <div class="field-label-wrap">
-                                        <label class="field-label" for="poll_interval">Poll Interval</label>
-                                        <div class="field-desc">Status refresh cadence for OpenVPN and WireGuard</div>
-                                    </div>
-                                    <div class="field-input-wrap">
-                                        <input class="field-input" type="text" id="poll_interval" name="poll_interval"
-                                            value="{{index .Settings `poll_interval`}}" placeholder="10s">
-                                    </div>
-                                </div>
-                            </div>
+                {{if eq .Section "general"}}
+                <div class="section-head">
+                    <div class="section-head-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="2" y="2" width="20" height="8" rx="2" />
+                            <rect x="2" y="14" width="20" height="8" rx="2" />
+                            <line x1="6" y1="6" x2="6.01" y2="6" />
+                            <line x1="6" y1="18" x2="6.01" y2="18" />
+                        </svg>
+                        General
+                    </div>
+                    <div class="section-head-note">Panel address, administrator credentials and refresh cadence.</div>
+                </div>
+                <div class="settings-card">
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="addr">Listening Address</label>
+                            <div class="field-note">Changing this restarts the service</div>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="addr" name="addr"
+                                value="{{index .Settings `addr`}}" placeholder="0.0.0.0:80">
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="admin_user">Admin Username</label>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="admin_user" name="admin_user"
+                                value="{{index .Settings `admin_user`}}" placeholder="admin" autocomplete="username">
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="admin_pass">Admin Password</label>
+                            <div class="field-desc">Leave empty to keep the current password</div>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input password-input" type="password" id="admin_pass" name="admin_pass"
+                                value="" placeholder="Unchanged — type to set a new password"
+                                autocomplete="new-password">
+                            <button type="button" class="eye-btn" id="eye-btn" aria-label="Toggle password visibility">
+                                <svg id="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                                <svg id="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" style="display:none">
+                                    <path
+                                        d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                                    <line x1="1" y1="1" x2="23" y2="23" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="poll_interval">Poll Interval</label>
+                            <div class="field-desc">Status refresh cadence for OpenVPN and WireGuard</div>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="poll_interval" name="poll_interval"
+                                value="{{index .Settings `poll_interval`}}" placeholder="10s">
                         </div>
                     </div>
                 </div>
+                {{end}}
 
-                <!-- OpenVPN -->
-                <div class="settings-section collapsed">
-                    <button type="button" class="settings-section-header" aria-expanded="false"
-                        aria-controls="section-openvpn">
-                        <span class="section-icon">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path
-                                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.39 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                            </svg>
-                        </span>
-                        <span class="settings-section-title">OpenVPN</span>
-                        <span class="section-chevron">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                        </span>
-                    </button>
-                    <div class="section-body" id="section-openvpn">
-                        <div class="section-body-inner">
-                            <div class="settings-card">
-                                <div class="field-row">
-                                    <div class="field-label-wrap">
-                                        <label class="field-label" for="openvpn_status_log">Status Log Path</label>
-                                    </div>
-                                    <div class="field-input-wrap">
-                                        <input class="field-input" type="text" id="openvpn_status_log"
-                                            name="openvpn_status_log" value="{{index .Settings `openvpn_status_log`}}"
-                                            placeholder="/var/log/openvpn/status.log">
-                                    </div>
-                                </div>
-                                <div class="field-row">
-                                    <div class="field-label-wrap">
-                                        <label class="field-label" for="openvpn_cert_dir">Certificate Directory</label>
-                                    </div>
-                                    <div class="field-input-wrap">
-                                        <input class="field-input" type="text" id="openvpn_cert_dir"
-                                            name="openvpn_cert_dir" value="{{index .Settings `openvpn_cert_dir`}}"
-                                            placeholder="/etc/openvpn/server/easy-rsa/pki/issued">
-                                    </div>
-                                </div>
-                                <div class="field-row">
-                                    <div class="field-label-wrap">
-                                        <label class="field-label" for="openvpn_ipp_file">IPP File Path</label>
-                                    </div>
-                                    <div class="field-input-wrap">
-                                        <input class="field-input" type="text" id="openvpn_ipp_file"
-                                            name="openvpn_ipp_file" value="{{index .Settings `openvpn_ipp_file`}}"
-                                            placeholder="/etc/openvpn/server/ipp.txt">
-                                    </div>
-                                </div>
-                                <div class="field-row">
-                                    <div class="field-label-wrap">
-                                        <label class="field-label" for="openvpn_server_config">Server Config
-                                            File</label>
-                                    </div>
-                                    <div class="field-input-wrap">
-                                        <input class="field-input" type="text" id="openvpn_server_config"
-                                            name="openvpn_server_config"
-                                            value="{{index .Settings `openvpn_server_config`}}"
-                                            placeholder="/etc/openvpn/server/server.conf">
-                                    </div>
-                                </div>
-                            </div>
+                {{if eq .Section "openvpn"}}
+                <div class="section-head">
+                    <div class="section-head-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.39 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                        </svg>
+                        OpenVPN
+                    </div>
+                    <div class="section-head-note">Where the panel reads OpenVPN status, certificates and client IPs.
+                    </div>
+                </div>
+                <div class="settings-card">
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="openvpn_status_log">Status Log Path</label>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="openvpn_status_log" name="openvpn_status_log"
+                                value="{{index .Settings `openvpn_status_log`}}"
+                                placeholder="/var/log/openvpn/status.log">
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="openvpn_cert_dir">Certificate Directory</label>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="openvpn_cert_dir" name="openvpn_cert_dir"
+                                value="{{index .Settings `openvpn_cert_dir`}}"
+                                placeholder="/etc/openvpn/server/easy-rsa/pki/issued">
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="openvpn_ipp_file">IPP File Path</label>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="openvpn_ipp_file" name="openvpn_ipp_file"
+                                value="{{index .Settings `openvpn_ipp_file`}}"
+                                placeholder="/etc/openvpn/server/ipp.txt">
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="openvpn_server_config">Server Config File</label>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="openvpn_server_config"
+                                name="openvpn_server_config" value="{{index .Settings `openvpn_server_config`}}"
+                                placeholder="/etc/openvpn/server/server.conf">
                         </div>
                     </div>
                 </div>
+                {{end}}
 
-                <!-- WireGuard -->
-                <div class="settings-section collapsed">
-                    <button type="button" class="settings-section-header" aria-expanded="false"
-                        aria-controls="section-wireguard">
-                        <span class="section-icon">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                            </svg>
-                        </span>
-                        <span class="settings-section-title">WireGuard</span>
-                        <span class="section-chevron">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                        </span>
-                    </button>
-                    <div class="section-body" id="section-wireguard">
-                        <div class="section-body-inner">
-                            <div class="settings-card">
-                                <div class="field-row">
-                                    <div class="field-label-wrap">
-                                        <label class="field-label" for="wireguard_conf">Config File</label>
-                                    </div>
-                                    <div class="field-input-wrap">
-                                        <input class="field-input" type="text" id="wireguard_conf" name="wireguard_conf"
-                                            value="{{index .Settings `wireguard_conf`}}"
-                                            placeholder="/etc/wireguard/wg0.conf">
-                                    </div>
-                                </div>
-                                <div class="field-row">
-                                    <div class="field-label-wrap">
-                                        <label class="field-label" for="wireguard_interface">Interface</label>
-                                    </div>
-                                    <div class="field-input-wrap">
-                                        <input class="field-input" type="text" id="wireguard_interface"
-                                            name="wireguard_interface" value="{{index .Settings `wireguard_interface`}}"
-                                            placeholder="wg0">
-                                    </div>
-                                </div>
-                                <div class="field-row">
-                                    <div class="field-label-wrap">
-                                        <label class="field-label" for="wireguard_handshake_timeout">Handshake
-                                            Timeout</label>
-                                    </div>
-                                    <div class="field-input-wrap">
-                                        <input class="field-input" type="text" id="wireguard_handshake_timeout"
-                                            name="wireguard_handshake_timeout"
-                                            value="{{index .Settings `wireguard_handshake_timeout`}}"
-                                            placeholder="180s">
-                                    </div>
-                                </div>
-                            </div>
+                {{if eq .Section "wireguard"}}
+                <div class="section-head">
+                    <div class="section-head-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                        WireGuard
+                    </div>
+                    <div class="section-head-note">Peer configuration and the interface the poller reads counters from.
+                    </div>
+                </div>
+                <div class="settings-card">
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="wireguard_conf">Config File</label>
+                            <div class="field-desc">Empty disables WireGuard monitoring</div>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="wireguard_conf" name="wireguard_conf"
+                                value="{{index .Settings `wireguard_conf`}}" placeholder="/etc/wireguard/wg0.conf">
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="wireguard_interface">Interface</label>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="wireguard_interface" name="wireguard_interface"
+                                value="{{index .Settings `wireguard_interface`}}" placeholder="wg0">
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="wireguard_handshake_timeout">Handshake Timeout</label>
+                            <div class="field-desc">How long after the last handshake a peer counts as online</div>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="wireguard_handshake_timeout"
+                                name="wireguard_handshake_timeout"
+                                value="{{index .Settings `wireguard_handshake_timeout`}}" placeholder="180s">
                         </div>
                     </div>
                 </div>
+                {{end}}
 
-                <!-- Domain Tracking -->
-                <div class="settings-section collapsed">
-                    <button type="button" class="settings-section-header" aria-expanded="false"
-                        aria-controls="section-sniffer">
-                        <span class="section-icon">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <circle cx="12" cy="12" r="10" />
-                                <line x1="2" y1="12" x2="22" y2="12" />
-                                <path
-                                    d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                            </svg>
-                        </span>
-                        <span class="settings-section-title">Domain Tracking</span>
-                        <span class="section-chevron">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                        </span>
-                    </button>
-                    <div class="section-body" id="section-sniffer">
-                        <div class="section-body-inner">
-                            <div class="settings-card">
-                                <div class="field-row">
-                                    <div class="field-label-wrap">
-                                        <label class="field-label" for="sniffer_ifaces">Capture Interfaces</label>
-                                    </div>
-                                    <div class="field-input-wrap">
-                                        <input class="field-input" type="text" id="sniffer_ifaces" name="sniffer_ifaces"
-                                            value="{{index .Settings `sniffer_ifaces`}}" placeholder="tun0,wg0">
-                                    </div>
-                                </div>
-                        <div class="field-row">
-                            <div class="field-label-wrap">
-                                <label class="field-label" for="sniffer_wg_conf">WireGuard Config File</label>
-                            </div>
-                            <div class="field-input-wrap">
-                                <input class="field-input" type="text" id="sniffer_wg_conf" name="sniffer_wg_conf"
-                                    value="{{index .Settings `sniffer_wg_conf`}}" placeholder="/etc/wireguard/wg0.conf">
-                            </div>
+                {{if eq .Section "domains"}}
+                <div class="section-head">
+                    <div class="section-head-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="2" y1="12" x2="22" y2="12" />
+                            <path
+                                d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                        Domain Tracking
+                    </div>
+                    <div class="section-head-note">Passive capture of TLS SNI and HTTP Host names on the tunnel
+                        interfaces.</div>
+                </div>
+                <div class="settings-card">
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="sniffer_ifaces">Capture Interfaces</label>
+                            <div class="field-desc">Comma-separated</div>
                         </div>
-                        <div class="field-row">
-                            <div class="field-label-wrap">
-                                <label class="field-label" for="sniffer_snaplen">Snap Length (bytes)</label>
-                            </div>
-                            <div class="field-input-wrap">
-                                <input class="field-input" type="text" id="sniffer_snaplen" name="sniffer_snaplen"
-                                    value="{{index .Settings `sniffer_snaplen`}}" placeholder="1600">
-                            </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="sniffer_ifaces" name="sniffer_ifaces"
+                                value="{{index .Settings `sniffer_ifaces`}}" placeholder="tun0,wg0">
                         </div>
-                        <div class="field-row">
-                            <div class="field-label-wrap">
-                                <label class="field-label" for="sniffer_workers">Parse Workers (0 = auto)</label>
-                            </div>
-                            <div class="field-input-wrap">
-                                <input class="field-input" type="text" id="sniffer_workers" name="sniffer_workers"
-                                    value="{{index .Settings `sniffer_workers`}}" placeholder="0">
-                            </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="sniffer_wg_conf">WireGuard Config File</label>
+                            <div class="field-desc">Peer to name mapping source</div>
                         </div>
-                        <div class="field-row">
-                            <div class="field-label-wrap">
-                                <label class="field-label" for="sniffer_queue">Parse Queue Size</label>
-                            </div>
-                            <div class="field-input-wrap">
-                                <input class="field-input" type="text" id="sniffer_queue" name="sniffer_queue"
-                                    value="{{index .Settings `sniffer_queue`}}" placeholder="4096">
-                            </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="sniffer_wg_conf" name="sniffer_wg_conf"
+                                value="{{index .Settings `sniffer_wg_conf`}}" placeholder="/etc/wireguard/wg0.conf">
                         </div>
-                        <div class="field-row">
-                            <div class="field-label-wrap">
-                                <label class="field-label" for="sniffer_flush">Flush Interval</label>
-                            </div>
-                            <div class="field-input-wrap">
-                                <input class="field-input" type="text" id="sniffer_flush" name="sniffer_flush"
-                                    value="{{index .Settings `sniffer_flush`}}" placeholder="2m">
-                            </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="sniffer_snaplen">Snap Length (bytes)</label>
                         </div>
-                        <div class="field-row">
-                            <div class="field-label-wrap">
-                                <label class="field-label" for="sniffer_dedup">Dedup Window</label>
-                            </div>
-                            <div class="field-input-wrap">
-                                <input class="field-input" type="text" id="sniffer_dedup" name="sniffer_dedup"
-                                    value="{{index .Settings `sniffer_dedup`}}" placeholder="60s">
-                            </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="sniffer_snaplen" name="sniffer_snaplen"
+                                value="{{index .Settings `sniffer_snaplen`}}" placeholder="1600">
                         </div>
-                            </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="sniffer_workers">Parse Workers (0 = auto)</label>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="sniffer_workers" name="sniffer_workers"
+                                value="{{index .Settings `sniffer_workers`}}" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="sniffer_queue">Parse Queue Size</label>
+                            <div class="field-desc">Packets beyond this are dropped rather than queued</div>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="sniffer_queue" name="sniffer_queue"
+                                value="{{index .Settings `sniffer_queue`}}" placeholder="4096">
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="sniffer_flush">Flush Interval</label>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="sniffer_flush" name="sniffer_flush"
+                                value="{{index .Settings `sniffer_flush`}}" placeholder="2m">
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label-wrap">
+                            <label class="field-label" for="sniffer_dedup">Dedup Window</label>
+                        </div>
+                        <div class="field-input-wrap">
+                            <input class="field-input" type="text" id="sniffer_dedup" name="sniffer_dedup"
+                                value="{{index .Settings `sniffer_dedup`}}" placeholder="60s">
                         </div>
                     </div>
                 </div>
+                {{end}}
 
                 <div class="form-footer">
-                    <button type="submit" class="btn-save">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    <button type="submit" class="btn-primary">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2.5">
                             <polyline points="20 6 9 17 4 12" />
                         </svg>
                         Save Settings
                     </button>
+                    <span class="form-footer-note">These settings apply after a service restart.</span>
                 </div>
 
             </form>
@@ -1170,24 +617,14 @@
 
     <script>
         (function () {
-            var sidebar = document.getElementById('sidebar');
-            var overlay = document.getElementById('sidebar-overlay');
-            var hamburger = document.getElementById('hamburger');
-
-            hamburger.addEventListener('click', function () {
-                var open = sidebar.classList.toggle('open');
-                overlay.classList.toggle('visible', open);
-            });
-            overlay.addEventListener('click', function () {
-                sidebar.classList.remove('open');
-                overlay.classList.remove('visible');
-            });
+            'use strict';
+            /* Sidebar, submenu and active-nav handling live in /static/sidebar.js. */
 
             var eyeBtn = document.getElementById('eye-btn');
             var passInput = document.getElementById('admin_pass');
             var eyeOpen = document.getElementById('eye-open');
             var eyeClosed = document.getElementById('eye-closed');
-            if (eyeBtn) {
+            if (eyeBtn && passInput) {
                 eyeBtn.addEventListener('click', function () {
                     var isPass = passInput.type === 'password';
                     passInput.type = isPass ? 'text' : 'password';
@@ -1195,35 +632,6 @@
                     eyeClosed.style.display = isPass ? '' : 'none';
                 });
             }
-
-            /* focus highlight for field-row */
-            document.querySelectorAll('.field-input').forEach(function (inp) {
-                inp.addEventListener('focus', function () {
-                    inp.closest('.field-row').style.background = 'rgba(227, 179, 65,0.025)';
-                });
-                inp.addEventListener('blur', function () {
-                    inp.closest('.field-row').style.background = '';
-                });
-            });
-
-            /* collapsible sections: headers toggle their card; the collapse is
-               purely visual (CSS grid 0fr), so hidden inputs still submit. */
-            document.querySelectorAll('.settings-section').forEach(function (sec) {
-                var header = sec.querySelector('.settings-section-header');
-                if (!header) return;
-                header.addEventListener('click', function () {
-                    var collapsed = sec.classList.toggle('collapsed');
-                    header.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-                });
-                /* keyboard focus (Tab) or browser autofocus landing inside a
-                   collapsed section expands it, so focus is never invisible. */
-                sec.addEventListener('focusin', function (e) {
-                    if (e.target !== header && sec.classList.contains('collapsed')) {
-                        sec.classList.remove('collapsed');
-                        header.setAttribute('aria-expanded', 'true');
-                    }
-                });
-            });
         })();
     </script>
 

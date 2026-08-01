@@ -11,62 +11,12 @@
     <link
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="/static/theme.css?v=2">
     <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        :root {
-            --bg: #0d1117;
-            --surface: rgba(22, 27, 34, 0.75);
-            --surface2: rgba(28, 33, 40, 0.85);
-            --border: rgba(48, 54, 61, 0.65);
-            --border2: rgba(72, 79, 88, 0.9);
-            --green: #3fb950;
-            --green-glow: rgba(63, 185, 80, 0.18);
-            --green-dim: rgba(63, 185, 80, 0.08);
-            --text: #e6edf3;
-            --text-muted: #6e7681;
-            --text-dim: #8b949e;
-            --danger: #f85149;
-            --danger-dim: rgba(248, 81, 73, 0.1);
-            --accent: #e3b341;
-            --accent-glow: rgba(227, 179, 65, 0.18);
-            --glass-blur: blur(20px);
-            --card-radius: 16px;
-
-            /* ── DESIGN-SYSTEM TOKENS ── */
-            --font-sans: "IBM Plex Sans", -apple-system, system-ui, "Segoe UI", sans-serif;
-            --font-brand: "IBM Plex Mono", ui-monospace, monospace;
-            --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-            --fs-title: 21px;
-            --fs-heading: 14px;
-            --fs-body: 13px;
-            --fs-label: 11px;
-            --fs-stat: 17px;
-            --sp-1: 4px;
-            --sp-2: 8px;
-            --sp-3: 12px;
-            --sp-4: 16px;
-            --sp-5: 20px;
-            --sp-6: 24px;
-            --sp-8: 32px;
-            --radius-ctl: 10px;
-        }
+        /* Page-specific styles only. Colors, typography and shared components
+           live in /static/theme.css. */
 
         body {
-            font-family: var(--font-sans);
-            font-weight: 400;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100dvh;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            letter-spacing: -0.006em;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -75,68 +25,29 @@
             overflow: hidden;
         }
 
-        /* ── AMBIENT BACKGROUND ── */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background:
-                radial-gradient(ellipse 70% 50% at 50% -5%, rgba(255, 255, 255, 0.025) 0%, transparent 65%),
-                radial-gradient(ellipse 50% 40% at 15% 100%, rgba(0, 0, 0, 0.3) 0%, transparent 55%);
-            pointer-events: none;
-        }
-
-        /* animated grid */
-        body::after {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(255, 255, 255, 0.014) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px);
-            background-size: 40px 40px;
-            pointer-events: none;
-            animation: gridmove 30s linear infinite;
-        }
-
-        @keyframes gridmove {
-            from {
-                background-position: 0 0;
-            }
-
-            to {
-                background-position: 40px 40px;
-            }
-        }
-
         /* ── CARD ── */
         .card {
             position: relative;
             z-index: 1;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--card-radius);
+            background: var(--bg-card);
+            border: 1px solid var(--border-secondary);
+            border-radius: 16px;
             padding: 40px 32px 34px;
             width: 100%;
-            max-width: 390px;
-            backdrop-filter: var(--glass-blur);
+            max-width: 400px;
             box-shadow:
-                0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-                0 28px 72px rgba(0, 0, 0, 0.55),
-                0 0 100px rgba(227, 179, 65, 0.05);
+                inset 0 1px rgba(255, 255, 255, 0.03),
+                0 28px 72px rgba(0, 0, 0, 0.55);
             animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+            transition: box-shadow 0.4s, border-color 0.3s;
         }
 
-        @keyframes cardIn {
-            from {
-                opacity: 0;
-                transform: translateY(28px) scale(0.97);
-            }
-
-            to {
-                opacity: 1;
-                transform: none;
-            }
+        .card:hover {
+            border-color: var(--border);
+            box-shadow:
+                inset 0 1px rgba(255, 255, 255, 0.04),
+                0 28px 72px rgba(0, 0, 0, 0.55),
+                0 0 100px color-mix(in srgb, var(--color-primary) 8%, transparent);
         }
 
         /* gradient top border */
@@ -147,23 +58,13 @@
             left: 0;
             right: 0;
             height: 2px;
-            border-radius: var(--card-radius) var(--card-radius) 0 0;
+            border-radius: 16px 16px 0 0;
             background: linear-gradient(90deg,
                     transparent 0%,
-                    var(--accent) 30%,
-                    var(--green) 70%,
+                    var(--color-primary) 30%,
+                    var(--color-success) 70%,
                     transparent 100%);
-            opacity: 0.8;
-        }
-
-        /* card hover: subtle glow intensify */
-        .card:hover {
-            border-color: var(--border2);
-            box-shadow:
-                0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-                0 28px 72px rgba(0, 0, 0, 0.55),
-                0 0 120px rgba(227, 179, 65, 0.07);
-            transition: box-shadow 0.4s, border-color 0.3s;
+            opacity: 0.85;
         }
 
         /* ── HEADER ── */
@@ -188,60 +89,45 @@
             display: flex;
             align-items: center;
             gap: 7px;
-            margin-bottom: 20px;
+            margin-bottom: var(--sp-5);
         }
 
         .card-brand-dot {
             width: 7px;
             height: 7px;
             border-radius: 50%;
-            background: var(--green);
-            box-shadow: 0 0 8px var(--green);
-            animation: livepulse 2.5s ease-in-out infinite;
-        }
-
-        @keyframes livepulse {
-
-            0%,
-            100% {
-                opacity: 1;
-                box-shadow: 0 0 8px var(--green);
-            }
-
-            50% {
-                opacity: 0.5;
-                box-shadow: 0 0 4px var(--green);
-            }
+            background: var(--color-success);
+            box-shadow: 0 0 8px var(--color-success);
+            animation: livepulse 1.1s ease-in-out infinite;
         }
 
         .card-brand-text {
             font-family: var(--font-brand);
-            font-size: 11px;
-            font-weight: 400;
+            font-size: var(--fs-caption);
+            font-weight: 500;
             letter-spacing: 0.12em;
             text-transform: uppercase;
-            color: var(--text-dim);
+            color: var(--text-secondary);
         }
 
         h1 {
             font-family: var(--font-sans);
             font-size: 30px;
             font-weight: 600;
-            letter-spacing: -0.04em;
+            letter-spacing: -0.03em;
             color: var(--text);
-            line-height: 1.1;
+            line-height: var(--lh-tight);
         }
 
         h1 .hello-dim {
-            color: var(--text-muted);
+            color: var(--text-tertiary);
             font-weight: 300;
         }
 
         .card-subtitle {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 5px;
-            letter-spacing: 0.01em;
+            font-size: var(--fs-sm);
+            color: var(--text-tertiary);
+            margin-top: 6px;
         }
 
         /* ── ERROR BOX ── */
@@ -249,16 +135,15 @@
             display: flex;
             align-items: center;
             gap: 9px;
-            background: var(--danger-dim);
-            border: 1px solid rgba(248, 81, 73, 0.2);
-            border-left: 3px solid var(--danger);
-            color: #ff7b72;
+            background: var(--error-soft);
+            border: 1px solid color-mix(in srgb, var(--color-error) 30%, transparent);
+            border-left: 3px solid var(--color-error);
+            color: var(--color-error);
             padding: 11px 14px;
-            font-size: 12px;
-            border-radius: 9px;
-            margin-bottom: 20px;
+            font-size: var(--fs-sm);
+            border-radius: var(--radius-ctl);
+            margin-bottom: var(--sp-5);
             animation: shake 0.35s ease;
-            backdrop-filter: blur(8px);
         }
 
         @keyframes shake {
@@ -287,12 +172,11 @@
 
         .error svg {
             flex-shrink: 0;
-            color: var(--danger);
         }
 
         /* ── FORM ── */
         .field {
-            margin-bottom: 16px;
+            margin-bottom: var(--sp-4);
             animation: fadeUp 0.4s ease backwards;
         }
 
@@ -310,14 +194,9 @@
             font-size: var(--fs-label);
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.07em;
-            color: var(--text-dim);
-            margin-bottom: 8px;
-            transition: color 0.2s;
-        }
-
-        .field:focus-within label {
-            color: var(--text-dim);
+            letter-spacing: var(--ls-label);
+            color: var(--text-secondary);
+            margin-bottom: var(--sp-2);
         }
 
         .input-wrap {
@@ -329,112 +208,48 @@
         .input-icon {
             position: absolute;
             left: 12px;
-            color: var(--text-muted);
+            color: var(--text-tertiary);
             pointer-events: none;
             display: flex;
             transition: color 0.2s;
         }
 
         .field:focus-within .input-icon {
-            color: var(--green);
+            color: var(--color-primary);
         }
 
         input[type="text"],
         input[type="password"] {
             width: 100%;
-            background: var(--surface2);
-            border: 1px solid var(--border);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-secondary);
             color: var(--text);
-            padding: 11px 12px 11px 38px;
+            padding: 12px 12px 12px 38px;
             font-family: var(--font-sans);
-            font-size: 14px;
-            border-radius: 10px;
+            font-size: var(--fs-body);
+            line-height: var(--lh-body);
+            border-radius: var(--radius-ctl);
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-            backdrop-filter: blur(8px);
         }
 
         input:focus {
-            border-color: var(--green);
-            background: rgba(28, 33, 40, 0.95);
-            box-shadow: 0 0 0 3px var(--green-glow);
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
         input::placeholder {
-            color: var(--text-muted);
-            font-size: 13px;
-        }
-
-        /* eye toggle */
-        .eye-btn {
-            position: absolute;
-            right: 10px;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            display: flex;
-            padding: 5px;
-            border-radius: 5px;
-            transition: color 0.15s, background 0.15s;
-        }
-
-        .eye-btn:hover {
-            color: var(--text);
-            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-tertiary);
+            font-size: var(--fs-body);
         }
 
         /* ── SUBMIT BUTTON ── */
         .btn-submit {
             width: 100%;
-            position: relative;
-            overflow: hidden;
-            background: var(--green);
-            border: none;
-            color: #fff;
-            padding: 13px;
-            font-family: var(--font-sans);
-            font-size: 14px;
-            font-weight: 600;
-            border-radius: var(--radius-ctl);
-            cursor: pointer;
-            letter-spacing: 0.02em;
-            transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
-            box-shadow: 0 4px 18px rgba(63, 185, 80, 0.28);
-            margin-top: 12px;
-            display: flex;
-            align-items: center;
             justify-content: center;
-            gap: 8px;
+            padding: 13px;
+            margin-top: var(--sp-3);
             animation: fadeUp 0.4s 0.25s ease backwards;
-        }
-
-        /* shimmer sweep on hover */
-        .btn-submit::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 60%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
-            transition: left 0.4s ease;
-            pointer-events: none;
-        }
-
-        .btn-submit:hover::after {
-            left: 160%;
-        }
-
-        .btn-submit:hover {
-            background: #2ea043;
-            box-shadow: 0 6px 24px rgba(63, 185, 80, 0.38);
-            transform: translateY(-1px);
-        }
-
-        .btn-submit:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 10px rgba(63, 185, 80, 0.2);
         }
 
         .btn-submit svg {
@@ -445,11 +260,11 @@
         .card-footer {
             margin-top: 22px;
             padding-top: 18px;
-            border-top: 1px solid var(--border);
-            font-size: 11px;
-            color: var(--text-muted);
+            border-top: 1px solid var(--border-secondary);
+            font-size: var(--fs-caption);
+            color: var(--text-tertiary);
             text-align: center;
-            line-height: 1.6;
+            line-height: var(--lh-body);
             animation: fadeUp 0.4s 0.3s ease backwards;
         }
 
@@ -457,42 +272,16 @@
         @media (max-width: 480px) {
             .card {
                 padding: 30px 22px 26px;
-                border-radius: 16px;
             }
 
             h1 {
                 font-size: 26px;
             }
         }
-
-        /* ── IBM Plex Mono for numeric / technical data ── */
-        .info-row-value,
-        .stat-row-value,
-        .gauge-center-value,
-        .clients-side-value,
-        .clients-side-stat,
-        .copyable,
-        .hero-ip,
-        .count,
-        .badge,
-        .time-cell,
-        .traffic-total,
-        .service-status-text,
-        .val-up,
-        .val-down,
-        .live-badge,
-        .stat-value,
-        .metric-value,
-        .kpi-value,
-        code,
-        kbd {
-            font-family: var(--font-mono);
-            font-feature-settings: "tnum" 1, "zero" 1;
-        }
     </style>
 </head>
 
-<body>
+<body class="bg-ambient">
     <div class="card">
 
         <div class="card-header">
@@ -506,7 +295,7 @@
 
         {{if .Error}}
         <div class="error">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -521,7 +310,7 @@
                 <label for="username">Username</label>
                 <div class="input-wrap">
                     <span class="input-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                             <circle cx="12" cy="7" r="4" />
@@ -536,7 +325,7 @@
                 <label for="password">Password</label>
                 <div class="input-wrap">
                     <span class="input-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -545,12 +334,12 @@
                     <input type="password" id="password" name="password" placeholder="••••••••"
                         autocomplete="current-password">
                     <button type="button" class="eye-btn" id="eye-btn" aria-label="Toggle password visibility">
-                        <svg id="eye-open" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg id="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                             <circle cx="12" cy="12" r="3" />
                         </svg>
-                        <svg id="eye-closed" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                        <svg id="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" style="display:none">
                             <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
                             <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
@@ -560,8 +349,8 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn-submit">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <button type="submit" class="btn-primary btn-submit">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
                     <polyline points="10 17 15 12 10 7" />
                     <line x1="15" y1="12" x2="3" y2="12" />
