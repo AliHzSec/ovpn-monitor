@@ -10,10 +10,14 @@ import (
 
 const tsLayout = "2006-01-02 15:04:05"
 
-// aggKey identifies one (client, root-domain) bucket.
+// aggKey identifies one (client, hostname) bucket. root is the hostname's root
+// domain (domain.Root), carried in the key rather than the entry because it is
+// a pure function of host — the same hostname can never produce two buckets —
+// and having it here lets Flush write both columns without a second lookup.
 type aggKey struct {
 	client string
-	domain string
+	host   string
+	root   string
 }
 
 // aggEntry accumulates the pending delta for a bucket SINCE the last flush.
@@ -25,11 +29,13 @@ type aggEntry struct {
 	count int64
 }
 
-// Aggregator keeps a small in-memory map of pending (client, domain) deltas and
-// batch-flushes them to SQLite, so there is at most one DB write per flush
+// Aggregator keeps a small in-memory map of pending (client, hostname) deltas
+// and batch-flushes them to SQLite, so there is at most one DB write per flush
 // interval rather than one per packet. Storage in the DB is bounded to one row
-// per (client, domain); the in-memory map is bounded the same way and is reset
-// every flush.
+// per (client, hostname); the in-memory map is bounded the same way and is reset
+// every flush. The panel's UI collapses those rows to one per root domain at
+// read time, so the full hostname stays available for the per-domain detail
+// page while the top-level list still shows one row per site.
 type Aggregator struct {
 	db          *sql.DB
 	logger      *slog.Logger
@@ -53,12 +59,16 @@ func NewAggregator(db *sql.DB, dedup time.Duration, logger *slog.Logger) *Aggreg
 	}
 }
 
-// Observe records that client visited domain at time now. The visit count is
-// only incremented when the previous counted visit for this bucket is older than
-// the dedup window, so a burst of connections to the same domain doesn't inflate
-// the counter; last_seen is always advanced.
-func (a *Aggregator) Observe(client, domain string, now time.Time) {
-	k := aggKey{client: client, domain: domain}
+// Observe records that client visited host (whose root domain is root) at time
+// now. The visit count is only incremented when the previous counted visit for
+// this bucket is older than the dedup window, so a burst of connections to the
+// same hostname doesn't inflate the counter; last_seen is always advanced.
+//
+// Dedup is per hostname, not per root domain: a page load that touches
+// api.example.com and cdn.example.com is two distinct visits, and the root
+// row's total is their sum.
+func (a *Aggregator) Observe(client, host, root string, now time.Time) {
+	k := aggKey{client: client, host: host, root: root}
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -130,12 +140,13 @@ func (a *Aggregator) Flush(ctx context.Context) {
 	// (lexicographic ordering is correct for the fixed "YYYY-MM-DD HH:MM:SS"
 	// format). A brand-new bucket inserts its window's values directly.
 	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO visited_domains (client_name, domain, first_seen, last_seen, visit_count)
-		VALUES (?, ?, ?, ?, ?)
+		INSERT INTO visited_domains (client_name, domain, root_domain, first_seen, last_seen, visit_count)
+		VALUES (?, ?, ?, ?, ?, ?)
 		ON CONFLICT(client_name, domain) DO UPDATE SET
 			visit_count = visit_count + excluded.visit_count,
 			last_seen   = MAX(last_seen, excluded.last_seen),
-			first_seen  = MIN(first_seen, excluded.first_seen)`)
+			first_seen  = MIN(first_seen, excluded.first_seen),
+			root_domain = excluded.root_domain`)
 	if err != nil {
 		a.logger.Error("flush: prepare", "err", err)
 		tx.Rollback()
@@ -145,9 +156,9 @@ func (a *Aggregator) Flush(ctx context.Context) {
 
 	n := 0
 	for k, e := range snapshot {
-		if _, err := stmt.ExecContext(ctx, k.client, k.domain,
+		if _, err := stmt.ExecContext(ctx, k.client, k.host, k.root,
 			e.first.Format(tsLayout), e.last.Format(tsLayout), e.count); err != nil {
-			a.logger.Error("flush: exec", "client", k.client, "domain", k.domain, "err", err)
+			a.logger.Error("flush: exec", "client", k.client, "domain", k.host, "err", err)
 			continue
 		}
 		n++

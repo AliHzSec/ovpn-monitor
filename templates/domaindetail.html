@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client Detail — Monitoring</title>
+    <title>Domain Detail — Monitoring</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +15,8 @@
     <script src="/static/sidebar.js?v=2" defer></script>
     <style>
         /* Page-specific styles only. Colors, typography and shared components
-           live in /static/theme.css. */
+           live in /static/theme.css. Deliberately mirrors clientdetail.html so
+           the two levels of the Visited Domains view look like one feature. */
 
         body {
             display: flex;
@@ -57,8 +58,8 @@
             margin-bottom: 18px;
         }
 
-        /* ── CLIENT HEADER CARD ── */
-        .client-head {
+        /* ── DOMAIN HEADER CARD ── */
+        .domain-head {
             display: flex;
             align-items: center;
             gap: var(--sp-4);
@@ -68,7 +69,7 @@
             animation: cardIn 0.4s ease backwards;
         }
 
-        .client-avatar {
+        .domain-avatar {
             width: 50px;
             height: 50px;
             border-radius: 12px;
@@ -81,14 +82,14 @@
             flex-shrink: 0;
         }
 
-        .client-head-main {
+        .domain-head-main {
             display: flex;
             flex-direction: column;
             gap: 7px;
             min-width: 0;
         }
 
-        .client-name {
+        .domain-name {
             font-size: var(--fs-title);
             font-weight: 600;
             color: var(--text);
@@ -96,19 +97,13 @@
             overflow-wrap: anywhere;
         }
 
-        .badge-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
+        .domain-sub {
+            font-size: var(--fs-sm);
+            color: var(--text-secondary);
+            overflow-wrap: anywhere;
         }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-        }
-
-        /* ── INFO GRID (connection details) ── */
+        /* ── SUMMARY GRID ── */
         .info-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -193,20 +188,20 @@
             color: var(--text-tertiary);
         }
 
-        .kv-value.recv {
-            color: var(--recv-color);
-        }
-
-        .kv-value.sent {
-            color: var(--sent-color);
-        }
-
         .kv-value.total {
             color: var(--text);
             font-weight: 600;
         }
 
-        /* ── VISITED DOMAINS CARD ── */
+        /* A hostname is far longer than the other summary values, so it gets the
+           table's body size rather than the card's display size — otherwise it
+           wraps across three lines and unbalances the row of cards. */
+        .kv-value.hostname {
+            font-size: var(--fs-sm);
+            line-height: var(--lh-body);
+        }
+
+        /* ── SUBDOMAINS CARD ── */
         .domains-card {
             padding: 20px 22px;
             animation: cardIn 0.4s 0.18s ease backwards;
@@ -250,6 +245,23 @@
             white-space: normal;
         }
 
+        /* The row for the root domain browsed directly, as opposed to one of
+           its subdomains. */
+        .self-tag {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 1px 8px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border-secondary);
+            background: var(--bg-elevated);
+            color: var(--text-tertiary);
+            font-size: var(--fs-label);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: var(--ls-label);
+            vertical-align: middle;
+        }
+
         .time-cell {
             font-size: var(--fs-sm);
             color: var(--text-secondary);
@@ -265,39 +277,6 @@
             font-size: var(--fs-sm);
             font-weight: 600;
             text-align: center;
-        }
-
-        /* Each row is a root domain that drills down to its subdomains, so it
-           carries the same affordance as a client row on the Clients page. */
-        tbody tr.domain-row {
-            cursor: pointer;
-        }
-
-        .sub-count {
-            display: block;
-            font-size: var(--fs-sm);
-            color: var(--text-tertiary);
-            margin-top: 2px;
-        }
-
-        .col-expand {
-            width: 44px;
-            cursor: default;
-        }
-
-        td.cell-expand {
-            text-align: right;
-            color: var(--text-tertiary);
-        }
-
-        .chevron {
-            display: inline-flex;
-            transition: transform 0.2s ease, color 0.2s ease;
-        }
-
-        tbody tr.domain-row:hover .chevron {
-            color: var(--color-primary);
-            transform: translateX(2px);
         }
 
         /* ── PAGINATION ── */
@@ -363,11 +342,10 @@
 
 <body class="bg-ambient">
 
-    <div class="toast" id="toast"></div>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-    <!-- The client common name, safely provided by the server template. -->
-    <span id="client-meta" data-name="{{.Name}}" hidden></span>
+    <!-- The client common name and root domain, safely provided by the server template. -->
+    <span id="domain-meta" data-name="{{.Name}}" data-root="{{.Root}}" hidden></span>
 
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
@@ -457,98 +435,85 @@
             <nav class="breadcrumb">
                 <a href="/panel/clients">Clients</a>
                 <span class="sep">/</span>
-                <span class="current" id="crumb-name">…</span>
+                <a href="#" id="crumb-client">…</a>
+                <span class="sep">/</span>
+                <span class="current" id="crumb-domain">…</span>
             </nav>
         </header>
 
         <main class="page-area">
 
-            <a href="/panel/clients" class="btn-ghost back-btn">
+            <a href="#" class="btn-ghost back-btn" id="back-link">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="19" y1="12" x2="5" y2="12" />
                     <polyline points="12 19 5 12 12 5" />
                 </svg>
-                Back to Clients
+                Back to Client
             </a>
 
-            <!-- Client header -->
-            <div class="glass-card client-head">
-                <div class="client-avatar">
+            <!-- Domain header -->
+            <div class="glass-card domain-head">
+                <div class="domain-avatar">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="2" y1="12" x2="22" y2="12" />
+                        <path
+                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                     </svg>
                 </div>
-                <div class="client-head-main">
-                    <div class="client-name" id="hd-name">…</div>
-                    <div class="badge-row">
-                        <span class="badge offline" id="hd-badge">
-                            <span class="status-dot offline"></span><span id="hd-badge-text">—</span>
-                        </span>
-                        <span id="hd-proto"></span>
-                    </div>
+                <div class="domain-head-main">
+                    <div class="domain-name" id="hd-domain">…</div>
+                    <div class="domain-sub">Visited by <span id="hd-client">…</span></div>
                 </div>
             </div>
 
-            <!-- Connection details -->
+            <!-- Aggregate summary for this root domain -->
             <div class="info-grid">
                 <div class="info-card glass-card">
-                    <div class="info-card-title"><span class="info-card-title-dot"></span>Addresses</div>
+                    <div class="info-card-title"><span class="info-card-title-dot"></span>Activity</div>
                     <div class="kv">
                         <div class="kv-row">
-                            <span class="kv-label">Public IP</span>
-                            <span class="kv-value" id="cd-ip">—</span>
+                            <span class="kv-label">First Seen</span>
+                            <span class="kv-value" id="sm-first">—</span>
                         </div>
                         <div class="kv-row">
-                            <span class="kv-label">VPN Address</span>
-                            <span class="kv-value" id="cd-vpn">—</span>
+                            <span class="kv-label">Last Seen</span>
+                            <span class="kv-value" id="sm-last">—</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="info-card glass-card">
-                    <div class="info-card-title"><span class="info-card-title-dot"></span>Traffic</div>
+                    <div class="info-card-title"><span class="info-card-title-dot"></span>Visits</div>
                     <div class="kv">
                         <div class="kv-row">
                             <span class="kv-label">Total</span>
-                            <span class="kv-value total" id="cd-total">—</span>
+                            <span class="kv-value total" id="sm-visits">—</span>
                         </div>
                         <div class="kv-row">
-                            <span class="kv-label">Download</span>
-                            <span class="kv-value recv" id="cd-recv">—</span>
-                        </div>
-                        <div class="kv-row">
-                            <span class="kv-label">Upload</span>
-                            <span class="kv-value sent" id="cd-sent">—</span>
-                        </div>
-                        <div class="kv-row">
-                            <span class="kv-label">Via OpenVPN</span>
-                            <span class="kv-value muted" id="cd-split-ovpn">—</span>
-                        </div>
-                        <div class="kv-row">
-                            <span class="kv-label">Via WireGuard</span>
-                            <span class="kv-value muted" id="cd-split-wg">—</span>
+                            <span class="kv-label">Root Domain Itself</span>
+                            <span class="kv-value muted" id="sm-direct">—</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="info-card glass-card">
                     <div class="info-card-title"><span class="info-card-title-dot"
-                            style="background:var(--color-success)"></span>Session</div>
+                            style="background:var(--color-success)"></span>Hostnames</div>
                     <div class="kv">
                         <div class="kv-row">
-                            <span class="kv-label" id="cd-time-label">Last Seen</span>
-                            <span class="kv-value" id="cd-time">—</span>
+                            <span class="kv-label">Distinct</span>
+                            <span class="kv-value" id="sm-hosts">—</span>
                         </div>
                         <div class="kv-row">
-                            <span class="kv-label">Relative</span>
-                            <span class="kv-value muted" id="cd-time-rel">—</span>
+                            <span class="kv-label">Most Visited</span>
+                            <span class="kv-value muted hostname" id="sm-top">—</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Visited domains -->
+            <!-- Subdomains -->
             <div class="glass-card domains-card">
                 <div class="domains-head">
                     <div class="domains-title">
@@ -559,7 +524,7 @@
                             <path
                                 d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                         </svg>
-                        Visited Domains
+                        Subdomains
                     </div>
                     <div class="search-wrap">
                         <span class="search-icon">
@@ -585,12 +550,11 @@
                                             class="arr-dn"></span></span></th>
                                 <th data-col="count" class="num">Visits <span class="sort-arrow"><span
                                             class="arr-up"></span><span class="arr-dn"></span></span></th>
-                                <th class="col-expand"></th>
                             </tr>
                         </thead>
                         <tbody id="domains-tbody">
                             <tr>
-                                <td colspan="5">
+                                <td colspan="4">
                                     <div style="padding:24px 0; display:flex; flex-direction:column; gap:12px;">
                                         <div class="skeleton" style="width:55%"></div>
                                         <div class="skeleton" style="width:75%"></div>
@@ -619,35 +583,18 @@
         (function () {
             'use strict';
 
-            var meta = document.getElementById('client-meta');
+            var meta = document.getElementById('domain-meta');
             var clientName = meta ? meta.dataset.name : '';
+            var rootDomain = meta ? meta.dataset.root : '';
 
             /* Sidebar, submenu and active-nav handling live in /static/sidebar.js. */
 
-            // ── Toast ──────────────────────────────────────────────────────────
-            var toastEl = document.getElementById('toast');
-            var toastTimer = null;
-            function showToast(msg) {
-                toastEl.textContent = msg;
-                toastEl.classList.add('show');
-                if (toastTimer) clearTimeout(toastTimer);
-                toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 2000);
-            }
-
-            // ── Helpers ────────────────────────────────────────────────────────
+            // ── Helpers (identical semantics to clientdetail.html, so the two
+            //    levels of the Visited Domains view format values the same way) ──
             function esc(s) {
                 return String(s)
                     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
                     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-            }
-
-            function fmtBytes(n) {
-                n = Number(n) || 0;
-                if (n >= 1e12) return (n / 1e12).toFixed(2) + ' TB';
-                if (n >= 1e9) return (n / 1e9).toFixed(2) + ' GB';
-                if (n >= 1e6) return (n / 1e6).toFixed(2) + ' MB';
-                if (n >= 1e3) return (n / 1e3).toFixed(2) + ' KB';
-                return n + ' B';
             }
 
             function plural(n, unit) { return n + ' ' + unit + (n === 1 ? '' : 's'); }
@@ -668,67 +615,18 @@
                 return parts.join(' ') + ' ago';
             }
 
-            // ── Header / client detail state ───────────────────────────────────
-            // Kept so the domain search can also match on the client's own IPs.
-            var clientIPs = [];
+            // ── Static header wiring ───────────────────────────────────────────
+            var clientHref = '/panel/clients/' + encodeURIComponent(clientName);
+            document.getElementById('back-link').setAttribute('href', clientHref);
+            var crumbClient = document.getElementById('crumb-client');
+            crumbClient.setAttribute('href', clientHref);
+            crumbClient.textContent = clientName;
+            document.getElementById('crumb-domain').textContent = rootDomain;
+            document.getElementById('hd-domain').textContent = rootDomain;
+            document.getElementById('hd-client').textContent = clientName;
+            document.title = rootDomain + ' — Domain Detail';
 
-            // Set the visible name early (before the fetch resolves).
-            document.getElementById('crumb-name').textContent = clientName;
-            document.getElementById('hd-name').textContent = clientName;
-            document.title = clientName + ' — Client Detail';
-
-            function renderClient(c) {
-                var online = !!c.online;
-                var badge = document.getElementById('hd-badge');
-                badge.className = 'badge ' + (online ? 'online' : 'offline');
-                badge.querySelector('.status-dot').className = 'status-dot ' + (online ? 'online' : 'offline');
-                document.getElementById('hd-badge-text').textContent = online ? 'Online' : 'Offline';
-
-                // Connection-type badges: how the client is connected right now
-                // (can be both at once). Hidden while offline.
-                var proto = '';
-                if (online) {
-                    if (c.online_openvpn) proto += '<span class="badge proto ovpn">OVPN</span>';
-                    if (c.online_wireguard) proto += '<span class="badge proto wg">WG</span>';
-                }
-                document.getElementById('hd-proto').innerHTML = proto;
-
-                var ip = online ? (c.real_address || '—') : '—';
-                var vpn = c.vpn_address || '—';
-                document.getElementById('cd-ip').textContent = ip;
-                document.getElementById('cd-vpn').textContent = vpn;
-
-                clientIPs = [];
-                if (c.real_address) clientIPs.push(String(c.real_address).split(':')[0].toLowerCase());
-                if (c.vpn_address) clientIPs.push(String(c.vpn_address).toLowerCase());
-
-                document.getElementById('cd-total').textContent = c.total_traffic_readable || fmtBytes(c.total_traffic);
-                document.getElementById('cd-recv').textContent = c.bytes_received_readable || fmtBytes(c.bytes_received);
-                document.getElementById('cd-sent').textContent = c.bytes_sent_readable || fmtBytes(c.bytes_sent);
-                document.getElementById('cd-split-ovpn').textContent = c.traffic_openvpn_readable || fmtBytes(c.traffic_openvpn);
-                document.getElementById('cd-split-wg').textContent = c.traffic_wireguard_readable || fmtBytes(c.traffic_wireguard);
-
-                var timeLabel = online ? 'Connected Since' : 'Last Seen';
-                var timeVal = (online ? c.connected_since : (c.last_seen || c.connected_since)) || 'Never';
-                var epoch = online
-                    ? (c.connected_since_epoch || c.last_seen_epoch || 0)
-                    : (c.last_seen_epoch || c.connected_since_epoch || 0);
-                document.getElementById('cd-time-label').textContent = timeLabel;
-                document.getElementById('cd-time').textContent = timeVal;
-                document.getElementById('cd-time-rel').textContent = formatRelativeTime(epoch);
-            }
-
-            function fetchClient() {
-                fetch('/api/clients/' + encodeURIComponent(clientName)).then(function (res) {
-                    if (res.status === 401) { location.href = '/panel/login'; return null; }
-                    if (!res.ok) return null;
-                    return res.json();
-                }).then(function (c) {
-                    if (c) renderClient(c);
-                }).catch(function () { });
-            }
-
-            // ── Visited domains: fetch, sort, search, paginate ─────────────────
+            // ── Subdomains: fetch, sort, search, paginate ──────────────────────
             var allDomains = [];
             var sortCol = 'last';
             var sortDir = -1;
@@ -756,20 +654,7 @@
                 var data = allDomains.slice();
                 if (searchQuery) {
                     var q = searchQuery.toLowerCase();
-                    // Domain substring match, OR — if the query matches one of the
-                    // client's own IPs — keep the whole (already per-client) list.
-                    var ipMatch = clientIPs.some(function (ip) { return ip.indexOf(q) !== -1; });
-                    if (!ipMatch) {
-                        // Rows are collapsed to root domains, so a subdomain the row
-                        // does not display would otherwise be unfindable. `hostnames`
-                        // is the space-joined list of every hostname folded into the
-                        // row, which keeps googleapis.com visible for a search of
-                        // "firebaseremoteconfig".
-                        data = data.filter(function (d) {
-                            return d.domain.toLowerCase().indexOf(q) !== -1 ||
-                                (d.hostnames || '').indexOf(q) !== -1;
-                        });
-                    }
+                    data = data.filter(function (d) { return d.domain.toLowerCase().indexOf(q) !== -1; });
                 }
                 var key = keyOf[sortCol];
                 if (key) {
@@ -781,6 +666,28 @@
                     });
                 }
                 return data;
+            }
+
+            // Roll the fetched rows up into the same totals the client page shows
+            // for this root, so the two pages can never disagree.
+            function renderSummary() {
+                var total = 0, first = 0, last = 0, direct = 0, top = null;
+                allDomains.forEach(function (d) {
+                    var count = Number(d.visit_count) || 0;
+                    total += count;
+                    var f = Number(d.first_seen_epoch) || 0;
+                    var l = Number(d.last_seen_epoch) || 0;
+                    if (f && (!first || f < first)) first = f;
+                    if (l && l > last) last = l;
+                    if (d.domain === rootDomain) direct = count;
+                    if (!top || count > (Number(top.visit_count) || 0)) top = d;
+                });
+                document.getElementById('sm-first').textContent = formatRelativeTime(first);
+                document.getElementById('sm-last').textContent = formatRelativeTime(last);
+                document.getElementById('sm-visits').textContent = total;
+                document.getElementById('sm-direct').textContent = direct;
+                document.getElementById('sm-hosts').textContent = allDomains.length;
+                document.getElementById('sm-top').textContent = top ? top.domain : '—';
             }
 
             function render() {
@@ -796,54 +703,52 @@
 
                 if (!total) {
                     tbody.innerHTML =
-                        '<tr><td colspan="5"><div class="empty-state">' +
-                        '<h3>No domains recorded</h3>' +
-                        '<p>' + (searchQuery ? 'No domains match your search.' : 'This client has no visited-domain history yet.') + '</p>' +
+                        '<tr><td colspan="4"><div class="empty-state">' +
+                        '<h3>No subdomains recorded</h3>' +
+                        '<p>' + (searchQuery ? 'No domains match your search.' : 'This client has no recorded history for this domain.') + '</p>' +
                         '</div></td></tr>';
                 } else {
                     tbody.innerHTML = slice.map(function (d) {
-                        // Every row is a root domain; clicking it opens the page
-                        // listing the individual hostnames underneath.
-                        var href = '/panel/clients/' + encodeURIComponent(clientName) +
-                            '/domains/' + encodeURIComponent(d.domain);
-                        var subs = Number(d.subdomain_count) || 0;
-                        var subLine = subs > 1
-                            ? '<span class="sub-count">' + subs + ' subdomains</span>'
+                        // The root domain is stored like any other hostname, so it
+                        // appears here too when it was browsed directly. Tag it so
+                        // it is not mistaken for a subdomain of itself.
+                        var tag = d.domain === rootDomain
+                            ? '<span class="self-tag">Root</span>'
                             : '';
-                        return '<tr class="domain-row" data-href="' + esc(href) + '">' +
-                            '<td><span class="domain-text">' + esc(d.domain) + '</span>' + subLine + '</td>' +
+                        return '<tr>' +
+                            '<td><span class="domain-text">' + esc(d.domain) + '</span>' + tag + '</td>' +
                             '<td class="time-cell" title="' + esc(d.first_seen || '') + '">' + esc(formatRelativeTime(d.first_seen_epoch)) + '</td>' +
                             '<td class="time-cell" title="' + esc(d.last_seen || '') + '">' + esc(formatRelativeTime(d.last_seen_epoch)) + '</td>' +
                             '<td class="num"><span class="count-pill">' + (d.visit_count || 0) + '</span></td>' +
-                            '<td class="cell-expand"><span class="chevron">' +
-                            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>' +
-                            '</span></td>' +
                             '</tr>';
                     }).join('');
                 }
 
                 document.getElementById('domains-count').textContent =
-                    total + ' domain' + (total !== 1 ? 's' : '') +
+                    total + ' hostname' + (total !== 1 ? 's' : '') +
                     (searchQuery ? ' (filtered)' : '');
                 document.getElementById('pg-info').textContent = (page + 1) + ' / ' + pageCount;
                 document.getElementById('pg-prev').disabled = page <= 0;
                 document.getElementById('pg-next').disabled = page >= pageCount - 1;
             }
 
-            function fetchDomains() {
-                fetch('/api/clients/' + encodeURIComponent(clientName) + '/domains').then(function (res) {
-                    if (res.status === 401) { location.href = '/panel/login'; return null; }
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    return res.json();
-                }).then(function (data) {
-                    allDomains = data || [];
-                    render();
-                }).catch(function () {
-                    document.getElementById('domains-tbody').innerHTML =
-                        '<tr><td colspan="5"><div class="empty-state">' +
-                        '<h3>Could not load domains</h3><p>Please try again.</p></div></td></tr>';
-                    document.getElementById('domains-count').textContent = '';
-                });
+            function fetchSubdomains() {
+                fetch('/api/clients/' + encodeURIComponent(clientName) +
+                    '/domains/' + encodeURIComponent(rootDomain)).then(function (res) {
+                        if (res.status === 401) { location.href = '/panel/login'; return null; }
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        return res.json();
+                    }).then(function (data) {
+                        if (data === null) return;
+                        allDomains = data || [];
+                        renderSummary();
+                        render();
+                    }).catch(function () {
+                        document.getElementById('domains-tbody').innerHTML =
+                            '<tr><td colspan="4"><div class="empty-state">' +
+                            '<h3>Could not load domains</h3><p>Please try again.</p></div></td></tr>';
+                        document.getElementById('domains-count').textContent = '';
+                    });
             }
 
             // Sort headers
@@ -865,14 +770,6 @@
                 render();
             });
 
-            // Clicking a root domain opens its subdomain breakdown (event
-            // delegation — survives the 15s auto-refresh re-render).
-            document.getElementById('domains-tbody').addEventListener('click', function (e) {
-                var row = e.target.closest('.domain-row');
-                if (!row || !row.dataset.href) return;
-                window.location.href = row.dataset.href;
-            });
-
             // Pager
             document.getElementById('pg-prev').addEventListener('click', function () {
                 if (page > 0) { page--; render(); }
@@ -883,10 +780,8 @@
 
             // Init
             updateSortArrows();
-            fetchClient();
-            fetchDomains();
-            setInterval(fetchClient, 5000);
-            setInterval(fetchDomains, 15000);
+            fetchSubdomains();
+            setInterval(fetchSubdomains, 15000);
         })();
     </script>
 

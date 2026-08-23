@@ -25,13 +25,3 @@ func FuzzParseHTTPHost(f *testing.F) {
 		parseHTTPHost(b)
 	})
 }
-
-func FuzzRootDomain(f *testing.F) {
-	f.Add("www.youtube.com")
-	f.Add("")
-	f.Add("..")
-	f.Add("xn--%00.\xff\xfe")
-	f.Fuzz(func(t *testing.T, s string) {
-		rootDomain(s)
-	})
-}

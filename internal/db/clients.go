@@ -228,16 +228,65 @@ func (d *DB) ClientStatsByName(ctx context.Context, commonName, cutoff, kind str
 	return &c, nil
 }
 
-// QueryVisitedDomains returns every aggregated (domain) row recorded for a
-// client, newest activity first. The result is bounded by the number of distinct
-// domains the client has visited, so callers can safely paginate on the client.
-func (d *DB) QueryVisitedDomains(ctx context.Context, clientName string) ([]model.VisitedDomain, error) {
-	const q = `
-		SELECT domain, first_seen, last_seen, visit_count
+// rootGroupExpr is the grouping key of the Visited Domains list: a row's stored
+// root_domain, falling back to the hostname itself. The fallback only fires for
+// a row the backfill could not resolve (see ensureVisitedRootDomain); it groups
+// such a row under itself rather than silently dropping it into an empty bucket.
+const rootGroupExpr = `COALESCE(NULLIF(root_domain, ''), domain)`
+
+// QueryVisitedRootDomains returns one row per ROOT domain the client visited,
+// newest activity first. Each row's first_seen is the earliest and last_seen the
+// latest across every hostname under that root, and visit_count is their sum —
+// including the root itself when it was browsed directly.
+//
+// MIN/MAX over the timestamp columns is a lexicographic comparison, which is
+// exactly chronological for the fixed "YYYY-MM-DD HH:MM:SS" format every writer
+// uses (the same property the sniffer's flush upsert relies on).
+//
+// The result is bounded by the number of distinct root domains the client has
+// visited, so callers can safely paginate on the client.
+func (d *DB) QueryVisitedRootDomains(ctx context.Context, clientName string) ([]model.VisitedDomain, error) {
+	q := `
+		SELECT ` + rootGroupExpr + ` AS root,
+		       MIN(first_seen), MAX(last_seen), SUM(visit_count),
+		       COUNT(*), GROUP_CONCAT(domain, ' ')
 		FROM visited_domains
 		WHERE client_name = ?
-		ORDER BY last_seen DESC`
+		GROUP BY root
+		ORDER BY MAX(last_seen) DESC`
 	rows, err := d.db.QueryContext(ctx, q, clientName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []model.VisitedDomain
+	for rows.Next() {
+		var v model.VisitedDomain
+		var hostnames sql.NullString
+		if err := rows.Scan(&v.Domain, &v.FirstSeen, &v.LastSeen, &v.VisitCount,
+			&v.SubdomainCount, &hostnames); err != nil {
+			return nil, err
+		}
+		v.Hostnames = hostnames.String
+		v.FirstSeenEpoch = parseLocalEpoch(v.FirstSeen)
+		v.LastSeenEpoch = parseLocalEpoch(v.LastSeen)
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+// QueryVisitedSubdomains returns the individual hostname rows folded into one
+// root domain of one client, newest activity first — the detail behind a single
+// row of QueryVisitedRootDomains. The root domain itself is included when it was
+// visited directly, since it is stored like any other hostname.
+func (d *DB) QueryVisitedSubdomains(ctx context.Context, clientName, rootDomain string) ([]model.VisitedDomain, error) {
+	q := `
+		SELECT domain, first_seen, last_seen, visit_count
+		FROM visited_domains
+		WHERE client_name = ? AND ` + rootGroupExpr + ` = ?
+		ORDER BY last_seen DESC`
+	rows, err := d.db.QueryContext(ctx, q, clientName, rootDomain)
 	if err != nil {
 		return nil, err
 	}

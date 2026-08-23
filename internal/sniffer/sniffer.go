@@ -2,7 +2,9 @@
 // captures the plaintext SNI field of TLS ClientHellos (tcp/443) and the Host
 // header of HTTP requests (tcp/80) on the OpenVPN and WireGuard tunnel
 // interfaces, maps each source IP to a client, and batch-upserts an aggregated
-// (client, root-domain) history into the panel's visited_domains table.
+// (client, hostname) history into the panel's visited_domains table, each row
+// tagged with the root domain the shared internal/domain package resolves it
+// to so the UI can group hostnames by site.
 //
 // It never decrypts traffic, never terminates TLS, and never writes raw packets
 // to disk — only the already-plaintext server name / Host header is read, using
@@ -29,6 +31,8 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
+
+	"ovpnmonitor/internal/domain"
 )
 
 // bpfFilter is applied in-kernel so only TLS/HTTP client traffic reaches
@@ -54,7 +58,7 @@ type Config struct {
 	Workers int           // packet-parsing workers (0 = auto)
 	Queue   int           // bounded parse queue; packets are dropped when full
 	Flush   time.Duration // how often to batch-upsert aggregates into the DB
-	Dedup   time.Duration // per-domain window in which repeat visits don't re-increment the counter
+	Dedup   time.Duration // per-hostname window in which repeat visits don't re-increment the counter
 }
 
 func (c *Config) applyDefaults() {
@@ -199,7 +203,11 @@ func processJob(j job, mapper *Mapper, agg *Aggregator, parsed, recorded *atomic
 		return
 	}
 	parsed.Add(1)
-	root, ok := rootDomain(host)
+	// Record the full hostname, tagged with the root domain the UI groups it
+	// under. Root also validates: a bare IP, a single-label name or malformed
+	// capture data has no site to attribute the visit to and is dropped.
+	host = domain.Normalize(host)
+	root, ok := domain.Root(host)
 	if !ok {
 		return
 	}
@@ -207,7 +215,7 @@ func processJob(j job, mapper *Mapper, agg *Aggregator, parsed, recorded *atomic
 	if !ok {
 		return // unknown source — not one of our VPN clients
 	}
-	agg.Observe(name, root, time.Now())
+	agg.Observe(name, host, root, time.Now())
 	recorded.Add(1)
 }
 

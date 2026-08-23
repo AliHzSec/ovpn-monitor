@@ -22,7 +22,10 @@ import (
 	"ovpnmonitor/internal/wireguard"
 )
 
-func newTestPanel(t *testing.T) (*http.ServeMux, *db.DB, *http.Cookie) {
+// newTestPanel wires a panel over a fresh migrated database. The raw *sql.DB is
+// returned alongside the db.DB wrapper so tests can seed tables directly, which
+// includes writing rows in an older schema's shape to exercise a migration.
+func newTestPanel(t *testing.T) (*http.ServeMux, *db.DB, *sql.DB, *http.Cookie) {
 	t.Helper()
 	sqldb, err := sql.Open("sqlite3", filepath.Join(t.TempDir(), "t.sqlite"))
 	if err != nil {
@@ -50,14 +53,14 @@ func newTestPanel(t *testing.T) (*http.ServeMux, *db.DB, *http.Cookie) {
 		SessionTTL: time.Hour, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		TemplatesDir: "../../templates",
 	})
-	return mux, database, &http.Cookie{Name: "session", Value: token}
+	return mux, database, sqldb, &http.Cookie{Name: "session", Value: token}
 }
 
 // Saving one settings section must leave every other section's values intact.
 // The form for a section only carries its own fields, so a handler that blindly
 // wrote every known key would blank the rest — disabling whole subsystems.
 func TestSavingOneSectionLeavesOthersIntact(t *testing.T) {
-	mux, database, cookie := newTestPanel(t)
+	mux, database, _, cookie := newTestPanel(t)
 
 	before, _ := database.GetAllSettings(context.Background())
 
@@ -98,7 +101,7 @@ func TestSavingOneSectionLeavesOthersIntact(t *testing.T) {
 // A section POST must not be able to write keys outside its own allow-list,
 // even when the request body smuggles them in.
 func TestSectionCannotWriteForeignKeys(t *testing.T) {
-	mux, database, cookie := newTestPanel(t)
+	mux, database, _, cookie := newTestPanel(t)
 
 	form := url.Values{
 		"wireguard_interface": {"wg1"},
@@ -126,7 +129,7 @@ func TestSectionCannotWriteForeignKeys(t *testing.T) {
 
 // An empty password field means "keep the current password", never "clear it".
 func TestEmptyPasswordKeepsExistingHash(t *testing.T) {
-	mux, database, cookie := newTestPanel(t)
+	mux, database, _, cookie := newTestPanel(t)
 	before, _ := database.GetAllSettings(context.Background())
 
 	form := url.Values{"addr": {"0.0.0.0:80"}, "admin_user": {"admin"}, "poll_interval": {"10s"}, "admin_pass": {""}}
@@ -143,7 +146,7 @@ func TestEmptyPasswordKeepsExistingHash(t *testing.T) {
 
 // /settings redirects to the first section; unknown sections 404.
 func TestSettingsRouting(t *testing.T) {
-	mux, _, cookie := newTestPanel(t)
+	mux, _, _, cookie := newTestPanel(t)
 
 	for _, tc := range []struct {
 		path string
@@ -168,7 +171,7 @@ func TestSettingsRouting(t *testing.T) {
 
 // Settings pages stay behind auth after the route split.
 func TestSettingsRequiresAuth(t *testing.T) {
-	mux, _, _ := newTestPanel(t)
+	mux, _, _, _ := newTestPanel(t)
 	for _, p := range []string{"/settings", "/settings/general", "/settings/wireguard"} {
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, p, nil))
@@ -182,7 +185,7 @@ func TestSettingsRequiresAuth(t *testing.T) {
 // password — a password manager autofilling an unrelated page would otherwise
 // silently rotate the admin credential.
 func TestForeignSectionCannotChangePassword(t *testing.T) {
-	mux, database, cookie := newTestPanel(t)
+	mux, database, _, cookie := newTestPanel(t)
 	before, _ := database.GetAllSettings(context.Background())
 
 	form := url.Values{"wireguard_interface": {"wg1"}, "admin_pass": {"hunter2"}}
@@ -199,7 +202,7 @@ func TestForeignSectionCannotChangePassword(t *testing.T) {
 
 // The General section still applies a real password change, stored hashed.
 func TestGeneralSectionChangesPassword(t *testing.T) {
-	mux, database, cookie := newTestPanel(t)
+	mux, database, _, cookie := newTestPanel(t)
 	before, _ := database.GetAllSettings(context.Background())
 
 	form := url.Values{"admin_user": {"admin"}, "admin_pass": {"a-new-password"}}
@@ -220,7 +223,7 @@ func TestGeneralSectionChangesPassword(t *testing.T) {
 // Changing the listening address from the section that owns it still signals a
 // restart, so the existing behaviour is preserved.
 func TestAddrChangeStillSignalsRestart(t *testing.T) {
-	mux, _, cookie := newTestPanel(t)
+	mux, _, _, cookie := newTestPanel(t)
 
 	form := url.Values{"addr": {"127.0.0.1:8080"}, "admin_user": {"admin"}, "poll_interval": {"10s"}}
 	req := httptest.NewRequest(http.MethodPost, "/settings/general", strings.NewReader(form.Encode()))

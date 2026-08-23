@@ -26,6 +26,7 @@ func testDB(t *testing.T) *sql.DB {
 			id          INTEGER PRIMARY KEY,
 			client_name TEXT NOT NULL,
 			domain      TEXT NOT NULL,
+			root_domain TEXT NOT NULL DEFAULT '',
 			first_seen  TEXT NOT NULL,
 			last_seen   TEXT NOT NULL,
 			visit_count INTEGER NOT NULL DEFAULT 1 CHECK (visit_count >= 0),
@@ -37,14 +38,26 @@ func testDB(t *testing.T) *sql.DB {
 	return db
 }
 
-func rowFor(t *testing.T, db *sql.DB, client, domain string) (first, last string, count int64) {
+func rowFor(t *testing.T, db *sql.DB, client, host string) (first, last string, count int64) {
 	t.Helper()
 	err := db.QueryRow(`SELECT first_seen, last_seen, visit_count FROM visited_domains WHERE client_name=? AND domain=?`,
-		client, domain).Scan(&first, &last, &count)
+		client, host).Scan(&first, &last, &count)
 	if err != nil {
-		t.Fatalf("row(%s,%s): %v", client, domain, err)
+		t.Fatalf("row(%s,%s): %v", client, host, err)
 	}
 	return
+}
+
+// rootFor reads back the root_domain the aggregator stored alongside a hostname.
+func rootFor(t *testing.T, db *sql.DB, client, host string) string {
+	t.Helper()
+	var root string
+	err := db.QueryRow(`SELECT root_domain FROM visited_domains WHERE client_name=? AND domain=?`,
+		client, host).Scan(&root)
+	if err != nil {
+		t.Fatalf("root(%s,%s): %v", client, host, err)
+	}
+	return root
 }
 
 func TestAggregatorDedupAndFlush(t *testing.T) {
@@ -53,13 +66,13 @@ func TestAggregatorDedupAndFlush(t *testing.T) {
 	agg := NewAggregator(db, time.Minute, logger)
 
 	base := time.Date(2026, 1, 2, 15, 4, 5, 0, time.UTC)
-	agg.Observe("alice", "youtube.com", base)                     // count 1
-	agg.Observe("alice", "youtube.com", base.Add(10*time.Second)) // within window -> no count, advances last
-	agg.Observe("alice", "youtube.com", base.Add(2*time.Minute))  // outside window -> count 2
+	agg.Observe("alice", "www.youtube.com", "youtube.com", base)                     // count 1
+	agg.Observe("alice", "www.youtube.com", "youtube.com", base.Add(10*time.Second)) // within window -> no count, advances last
+	agg.Observe("alice", "www.youtube.com", "youtube.com", base.Add(2*time.Minute))  // outside window -> count 2
 
 	agg.Flush(context.Background())
 
-	first, last, count := rowFor(t, db, "alice", "youtube.com")
+	first, last, count := rowFor(t, db, "alice", "www.youtube.com")
 	if count != 2 {
 		t.Errorf("visit_count = %d, want 2", count)
 	}
@@ -69,6 +82,9 @@ func TestAggregatorDedupAndFlush(t *testing.T) {
 	if last != "2026-01-02 15:06:05" {
 		t.Errorf("last_seen = %q", last)
 	}
+	if root := rootFor(t, db, "alice", "www.youtube.com"); root != "youtube.com" {
+		t.Errorf("root_domain = %q, want youtube.com", root)
+	}
 }
 
 func TestAggregatorAccumulatesAcrossFlushes(t *testing.T) {
@@ -77,14 +93,14 @@ func TestAggregatorAccumulatesAcrossFlushes(t *testing.T) {
 	agg := NewAggregator(db, time.Nanosecond, logger) // effectively count every observation
 
 	base := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
-	agg.Observe("bob", "github.com", base.Add(time.Hour))
-	agg.Observe("bob", "github.com", base.Add(2*time.Hour))
+	agg.Observe("bob", "github.com", "github.com", base.Add(time.Hour))
+	agg.Observe("bob", "github.com", "github.com", base.Add(2*time.Hour))
 	agg.Flush(context.Background())
 
 	// A later flush must add to the existing row, keep the earliest first_seen,
 	// and advance last_seen.
-	agg.Observe("bob", "github.com", base) // earlier than stored first_seen
-	agg.Observe("bob", "github.com", base.Add(5*time.Hour))
+	agg.Observe("bob", "github.com", "github.com", base) // earlier than stored first_seen
+	agg.Observe("bob", "github.com", "github.com", base.Add(5*time.Hour))
 	agg.Flush(context.Background())
 
 	first, last, count := rowFor(t, db, "bob", "github.com")

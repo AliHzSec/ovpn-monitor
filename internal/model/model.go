@@ -33,9 +33,17 @@ type Client struct {
 	TrafficWireGuardReadable string `json:"traffic_wireguard_readable"`
 }
 
-// VisitedDomain is one aggregated (client, root-domain) browsing record. Epoch
-// fields are the local timestamps in Unix seconds so the browser can render
-// timezone-safe relative times, matching how Client timestamps are exposed.
+// VisitedDomain is one row of a client's browsing history. It serves both
+// levels of the Visited Domains UI, which share a table layout:
+//
+//   - the top-level list, where Domain is a ROOT domain and the timestamps and
+//     count are rolled up across every hostname under it;
+//   - a root domain's detail page, where Domain is a single hostname and the
+//     values are that hostname's own.
+//
+// Epoch fields are the local timestamps in Unix seconds so the browser can
+// render timezone-safe relative times, matching how Client timestamps are
+// exposed.
 type VisitedDomain struct {
 	Domain         string `json:"domain"`
 	FirstSeen      string `json:"first_seen"`
@@ -43,6 +51,15 @@ type VisitedDomain struct {
 	VisitCount     int64  `json:"visit_count"`
 	FirstSeenEpoch int64  `json:"first_seen_epoch"`
 	LastSeenEpoch  int64  `json:"last_seen_epoch"`
+
+	// Set on top-level rows only. SubdomainCount is how many distinct hostnames
+	// were folded into this row, and Hostnames is those hostnames space-joined
+	// into one lowercase string. Hostnames exists so the client page's search box
+	// can match a subdomain the collapsed row does not display — typing
+	// "firebaseremoteconfig" keeps the googleapis.com row visible — without a
+	// round trip per keystroke. It is a search blob, not a display value.
+	SubdomainCount int64  `json:"subdomain_count,omitempty"`
+	Hostnames      string `json:"hostnames,omitempty"`
 }
 
 // WGPeerState is the persisted raw-counter snapshot for one WireGuard peer

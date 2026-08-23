@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"ovpnmonitor/internal/auth"
+	"ovpnmonitor/internal/domain"
 	"ovpnmonitor/internal/model"
 )
 
@@ -149,6 +150,19 @@ func registerPages(mux *http.ServeMux, d Deps) {
 	mux.Handle("GET /panel/clients/{name}", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		renderTemplate(w, d.Templates, "clientdetail.html", map[string]interface{}{
 			"Name": r.PathValue("name"),
+		})
+	})))
+
+	// ── Domain detail page ────────────────────────────────────────────────────
+	// Reached by clicking a root domain on the client detail page. A separate
+	// route rather than an in-place expander, matching how every other section
+	// of the panel works: the URL is shareable and bookmarkable, the page gets
+	// its own sort/search/pagination state, and the Back link mirrors the
+	// existing "Back to Clients" pattern.
+	mux.Handle("GET /panel/clients/{name}/domains/{root}", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		renderTemplate(w, d.Templates, "domaindetail.html", map[string]interface{}{
+			"Name": r.PathValue("name"),
+			"Root": domain.Normalize(r.PathValue("root")),
 		})
 	})))
 

@@ -78,25 +78,3 @@ func TestParseHTTPHost(t *testing.T) {
 		t.Error("non-HTTP input should fail")
 	}
 }
-
-func TestRootDomain(t *testing.T) {
-	cases := map[string]struct {
-		want string
-		ok   bool
-	}{
-		"www.youtube.com":   {"youtube.com", true},
-		"i.ytimg.com":       {"ytimg.com", true},
-		"foo.bar.bbc.co.uk": {"bbc.co.uk", true},
-		"youtube.com":       {"youtube.com", true},
-		"GOOGLE.COM.":       {"google.com", true},
-		"10.0.0.1":          {"", false},
-		"localhost":         {"", false},
-		"":                  {"", false},
-	}
-	for host, exp := range cases {
-		got, ok := rootDomain(host)
-		if got != exp.want || ok != exp.ok {
-			t.Errorf("rootDomain(%q) = %q,%v want %q,%v", host, got, ok, exp.want, exp.ok)
-		}
-	}
-}
