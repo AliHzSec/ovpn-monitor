@@ -23,6 +23,7 @@ import (
 	"log/slog"
 	"runtime"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -53,7 +54,7 @@ type job struct {
 type Config struct {
 	Ifaces  string        // comma-separated VPN interfaces to monitor
 	IPPFile string        // OpenVPN ipp.txt path (the settings-table value, also used as the Mapper fallback)
-	WGConf  string        // WireGuard config path for peer→name mapping
+	WGConf  string        // WireGuard config path for peer→name mapping (fallback only; the settings table is preferred — see Mapper.wireGuardConfPath)
 	Snaplen int           // capture snap length (bytes) — enough for a ClientHello/Host
 	Workers int           // packet-parsing workers (0 = auto)
 	Queue   int           // bounded parse queue; packets are dropped when full
@@ -386,6 +387,46 @@ func withRecoverRestart(ctx context.Context, logger *slog.Logger, what string, f
 		case <-time.After(5 * time.Second):
 		}
 	}
+}
+
+// Interfaces returns the capture interfaces a Config carrying this raw
+// sniffer_ifaces value will actually listen on, applying the same default and
+// the same parsing Start does. Exported so the panel can compare its own
+// configuration against the real list instead of re-parsing the setting and
+// drifting from it.
+func Interfaces(ifaces string) []string {
+	c := Config{Ifaces: ifaces}
+	c.applyDefaults()
+	return splitList(c.Ifaces)
+}
+
+// CheckWireGuardCapture warns when WireGuard monitoring is enabled but runs on
+// an interface the sniffer does not capture on.
+//
+// That combination is worth its own startup warning because it fails so quietly:
+// WireGuard traffic is still accounted correctly by the poller, so the panel
+// looks healthy, and the only symptom is that Visited Domains stays empty for
+// every WireGuard peer. The two interface settings are independent
+// (wireguard_interface for the poller, sniffer_ifaces for capture), so they can
+// drift apart with no other signal.
+//
+// It reports the mismatch and nothing more — which of the two settings is wrong
+// is the admin's call, so nothing is auto-corrected.
+func CheckWireGuardCapture(logger *slog.Logger, wgConf, wgIface, snifferIfaces string) {
+	if strings.TrimSpace(wgConf) == "" {
+		return // WireGuard monitoring is off; no capture is expected
+	}
+	iface := strings.TrimSpace(wgIface)
+	if iface == "" {
+		return // no interface to check against (callers default this first)
+	}
+	captured := Interfaces(snifferIfaces)
+	if slices.Contains(captured, iface) {
+		return
+	}
+	logger.Warn("wireguard_interface not present in sniffer_ifaces; WireGuard traffic will not be captured",
+		"wireguard_interface", iface,
+		"sniffer_ifaces", strings.Join(captured, ","))
 }
 
 func splitList(s string) []string {

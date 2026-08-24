@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"database/sql"
 	"log/slog"
+	"maps"
 	"os"
 	"strings"
 	"sync"
@@ -16,11 +17,16 @@ import (
 // relies on:
 //
 //   - OpenVPN: the ipp.txt persistence file ("name,ip,..."), the same file the
-//     panel's openvpn package parses (IPPStore). Its path is read from the panel's settings
-//     table when available, else from the -ipp flag.
+//     panel's openvpn package parses (IPPStore).
 //   - WireGuard: the wg config file, associating each [Peer]'s AllowedIPs with a
 //     human name taken from the surrounding comment markers written by the
 //     common install scripts ("# BEGIN_PEER <name>" or "# Name = <name>").
+//
+// BOTH paths are resolved from the settings table on every refresh (see
+// ippFilePath and wireGuardConfPath), never captured once at construction, so
+// moving either file takes effect within one refresh instead of at the next
+// restart. The paths passed to NewMapper are only the fallback for a settings
+// table that cannot be read.
 //
 // The table is rebuilt atomically on each refresh so lookups never see a
 // partial map.
@@ -54,41 +60,89 @@ func (m *Mapper) Lookup(ip string) (string, bool) {
 
 // Refresh rebuilds the IP→name table from both sources.
 func (m *Mapper) Refresh() {
-	next := make(map[string]string)
+	// Each source is loaded into its own table so the refresh log can report
+	// per-source counts. "wireguard=0" is the single symptom that separates a
+	// mis-resolved WireGuard config from a genuinely idle peer set: without it,
+	// unmapped peers look exactly like peers that simply browsed nothing,
+	// because an unmapped packet is dropped silently in processJob.
+	ovpn := map[string]string{}
+	wg := map[string]string{}
 
-	ippPath := m.ippPath
-	if p := m.settingIPPPath(); p != "" {
-		ippPath = p // prefer the panel's configured path
-	}
-	if ippPath != "" {
-		if err := loadIPP(ippPath, next); err != nil && !os.IsNotExist(err) {
-			m.logger.Warn("read ipp.txt failed", "path", ippPath, "err", err)
+	if path := m.ippFilePath(); path != "" {
+		if err := loadIPP(path, ovpn); err != nil && !os.IsNotExist(err) {
+			m.logger.Warn("read ipp.txt failed", "path", path, "err", err)
 		}
 	}
-	if m.wgConf != "" {
-		if err := loadWireGuard(m.wgConf, next); err != nil && !os.IsNotExist(err) {
-			m.logger.Warn("read wireguard conf failed", "path", m.wgConf, "err", err)
+	if path := m.wireGuardConfPath(); path != "" {
+		if err := loadWireGuard(path, wg); err != nil && !os.IsNotExist(err) {
+			m.logger.Warn("read wireguard conf failed", "path", path, "err", err)
 		}
 	}
+
+	// Merged OpenVPN first, then WireGuard, so an address claimed by both
+	// resolves exactly as it did when both loaders shared one map.
+	next := make(map[string]string, len(ovpn)+len(wg))
+	maps.Copy(next, ovpn)
+	maps.Copy(next, wg)
 
 	m.mu.Lock()
 	m.ipToName = next
 	m.mu.Unlock()
-	m.logger.Info("ip→client map refreshed", "entries", len(next))
+	m.logger.Info("ip→client map refreshed",
+		"entries", len(next), "openvpn", len(ovpn), "wireguard", len(wg))
 }
 
-// settingIPPPath reads openvpn_ipp_file from the panel's settings table, so the
-// sniffer follows whatever the admin configured in the panel. Best-effort.
-func (m *Mapper) settingIPPPath() string {
+// ippFilePath resolves the OpenVPN ipp.txt to map from, preferring the panel's
+// openvpn_ipp_file setting so the sniffer follows whatever the admin configured.
+func (m *Mapper) ippFilePath() string {
+	if p, ok := m.setting("openvpn_ipp_file"); ok && p != "" {
+		return p
+	}
+	return m.ippPath
+}
+
+// wireGuardConfPath resolves the WireGuard config the peer→name mapping is built
+// from. sniffer_wg_conf wins when it is set, keeping the Domain Tracking page's
+// override meaningful; otherwise the panel's authoritative wireguard_conf is
+// used.
+//
+// That fallback is the point of this function. The two settings live on
+// DIFFERENT settings pages, and wireguard_conf is the one an admin edits when
+// the config moves. Without the fallback the sniffer kept reading the stale
+// sniffer_wg_conf path and mapped no WireGuard peers at all — and because a
+// missing file is not an error worth logging (os.IsNotExist is ignored above)
+// and an unmapped packet is dropped without a trace, the only symptom was an
+// empty Visited Domains list for every WireGuard client.
+//
+// An empty result means WireGuard is not configured, which is precisely when
+// there are no peers to map.
+func (m *Mapper) wireGuardConfPath() string {
+	if p, ok := m.setting("sniffer_wg_conf"); ok && p != "" {
+		return p
+	}
+	if p, ok := m.setting("wireguard_conf"); ok {
+		return p
+	}
+	// The settings table could not be read (no DB handle, or a failed query):
+	// keep using the path captured at construction rather than dropping
+	// WireGuard mapping until the table comes back.
+	return m.wgConf
+}
+
+// setting reads one key from the panel's settings table. The bool separates
+// "stored, but empty" — a deliberate blank, e.g. WireGuard switched off — from
+// "could not be read", which callers fall back on differently. Best-effort by
+// design: the sniffer must keep mapping against its last-known configuration if
+// the panel's own table is briefly unavailable.
+func (m *Mapper) setting(key string) (string, bool) {
 	if m.db == nil {
-		return ""
+		return "", false
 	}
 	var v string
-	err := m.db.QueryRow(`SELECT value FROM settings WHERE key='openvpn_ipp_file'`).Scan(&v)
-	if err != nil {
-		return ""
+	if err := m.db.QueryRow(`SELECT value FROM settings WHERE key = ?`, key).Scan(&v); err != nil {
+		return "", false
 	}
-	return strings.TrimSpace(v)
+	return strings.TrimSpace(v), true
 }
 
 // loadIPP parses OpenVPN's ipp.txt ("common_name,vpn_ip,..." per line).
