@@ -1,0 +1,247 @@
+/* DomainDetailPage.css — co-located styles for the domain detail page, ported
+   from the page-specific <style> block in templates/domaindetail.html. Every
+   color is a shared token from styles/tokens.css, so the page flips with
+   body.dark / body.light. */
+
+/* ── BREADCRUMB / BACK ─────────────────────────────────────────────────── */
+.dd-breadcrumb {
+  margin-bottom: var(--sp-4, 16px);
+  font-size: var(--fs-body, 14px);
+}
+
+.dd-breadcrumb .dd-crumb-current {
+  color: var(--text);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.dd-back {
+  margin-bottom: 18px;
+}
+
+/* ── DOMAIN HEADER CARD ────────────────────────────────────────────────── */
+.dd-domain-head {
+  margin-bottom: var(--sp-4, 16px);
+}
+
+.dd-domain-head .ant-card-body {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4, 16px);
+  padding: 22px 24px;
+  flex-wrap: wrap;
+}
+
+.dd-domain-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: var(--primary-soft);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.dd-domain-head-main {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.dd-domain-name {
+  font-size: var(--fs-title, 22px);
+  font-weight: 600;
+  color: var(--text);
+  line-height: var(--lh-tight, 1.25);
+  overflow-wrap: anywhere;
+}
+
+.dd-domain-sub {
+  font-size: var(--fs-sm, 13px);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* ── SUMMARY GRID ──────────────────────────────────────────────────────── */
+.dd-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-4, 16px);
+  margin-bottom: var(--sp-4, 16px);
+}
+
+@media (max-width: 900px) {
+  .dd-info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .dd-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dd-info-card-title {
+  font-size: var(--fs-heading, 15px);
+  font-weight: 600;
+  color: var(--text);
+  padding-bottom: var(--sp-3, 12px);
+  margin-bottom: var(--sp-4, 16px);
+  border-bottom: 1px solid var(--border-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2, 8px);
+}
+
+.dd-info-card-title-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.dd-info-card-title-dot.success {
+  background: var(--color-success);
+}
+
+.dd-kv {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3, 12px);
+}
+
+.dd-kv-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3, 12px);
+}
+
+.dd-kv-label {
+  font-size: var(--fs-sm, 13px);
+  color: var(--text-secondary);
+  line-height: var(--lh-body, 1.5);
+}
+
+.dd-kv-value {
+  font-size: var(--fs-lg, 17px);
+  font-weight: 500;
+  color: var(--text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.dd-kv-value.muted {
+  color: var(--text-tertiary);
+}
+
+.dd-kv-value.total {
+  font-weight: 600;
+}
+
+/* A hostname is far longer than the other summary values, so it gets the
+   table's body size rather than the card's display size (same reasoning as
+   the legacy page). */
+.dd-kv-value.hostname {
+  font-size: var(--fs-sm, 13px);
+  line-height: var(--lh-body, 1.5);
+}
+
+/* ── SUBDOMAINS CARD ───────────────────────────────────────────────────── */
+.dd-domains-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-3, 12px);
+  margin-bottom: var(--sp-4, 16px);
+}
+
+.dd-domains-title {
+  font-size: var(--fs-heading, 15px);
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2, 8px);
+}
+
+.dd-search {
+  width: 250px;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .dd-domains-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dd-search {
+    width: 100%;
+  }
+}
+
+/* ── TABLE ─────────────────────────────────────────────────────────────── */
+.dd-table-skeleton {
+  padding: 24px 0;
+}
+
+.dd-domain-text {
+  font-weight: 500;
+  color: var(--text);
+  font-size: var(--fs-body, 14px);
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+/* The row for the root domain browsed directly, as opposed to one of its
+   subdomains. */
+.dd-self-tag {
+  margin-left: 8px;
+  margin-inline-end: 0;
+  background: var(--bg-elevated);
+  border-color: var(--border-secondary);
+  color: var(--text-tertiary);
+  font-size: var(--fs-label, 12px);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-label, 0.06em);
+}
+
+.dd-time-cell {
+  font-size: var(--fs-sm, 13px);
+  color: var(--text-secondary);
+}
+
+.dd-count-pill {
+  display: inline-block;
+  min-width: 36px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--primary-soft);
+  color: var(--color-primary);
+  font-size: var(--fs-sm, 13px);
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ── EMPTY STATES ──────────────────────────────────────────────────────── */
+.dd-empty-title {
+  font-size: var(--fs-body, 14px);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dd-empty-sub {
+  font-size: var(--fs-sm, 13px);
+  color: var(--text-secondary);
+  margin-top: 4px;
+}

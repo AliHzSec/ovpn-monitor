@@ -101,10 +101,12 @@ type LogEntry struct {
 	ConnectedEpoch int64
 }
 
+// The json tags feed the window.OVPN_PORTAL bootstrap the Go server injects
+// into portal.html; the React portal reads exactly these keys.
 type ClientPortalData struct {
-	CommonName     string
-	VPNAddress     string
-	Online         bool
-	ConnectedSince string
-	LastSeen       string
+	CommonName     string `json:"common_name"`
+	VPNAddress     string `json:"vpn_address"`
+	Online         bool   `json:"online"`
+	ConnectedSince string `json:"connected_since"`
+	LastSeen       string `json:"last_seen"`
 }

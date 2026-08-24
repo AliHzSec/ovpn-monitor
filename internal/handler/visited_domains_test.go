@@ -55,7 +55,7 @@ func getJSON(t *testing.T, mux *http.ServeMux, cookie *http.Cookie, path string)
 // The two levels of the Visited Domains view must agree: the root list's
 // rolled-up numbers have to match what the detail route returns for that root.
 func TestVisitedDomainsRoutes(t *testing.T) {
-	mux, database, sqldb, cookie := newTestPanel(t)
+	mux, database, sqldb, cookie, _ := newTestPanel(t)
 	seedVisits(t, database, sqldb, []visit{
 		{"alice", "firebaseremoteconfig.googleapis.com", "2026-01-02 09:00:00", "2026-01-05 18:00:00", 210},
 		{"alice", "www.googleapis.com", "2026-01-01 08:00:00", "2026-01-04 12:00:00", 141},
@@ -94,10 +94,11 @@ func TestVisitedDomainsRoutes(t *testing.T) {
 	}
 }
 
-// The domain detail page must render, be behind the session cookie, and carry
-// the client name and root domain the script reads out of the DOM.
+// The domain detail route must serve the SPA (the React router reads the
+// client name and root domain out of the URL) and stay behind the session
+// cookie.
 func TestDomainDetailPage(t *testing.T) {
-	mux, database, sqldb, cookie := newTestPanel(t)
+	mux, database, sqldb, cookie, _ := newTestPanel(t)
 	seedVisits(t, database, sqldb, []visit{
 		{"alice", "firebaseremoteconfig.googleapis.com", "2026-01-02 09:00:00", "2026-01-05 18:00:00", 210},
 	})
@@ -109,14 +110,8 @@ func TestDomainDetailPage(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("page = %d, want 200", rec.Code)
 	}
-	body := rec.Body.String()
-	if !strings.Contains(body, `data-name="alice"`) || !strings.Contains(body, `data-root="googleapis.com"`) {
-		t.Errorf("page is missing its meta element")
-	}
-	for _, want := range []string{"Back to Client", "First Seen", "Last Seen", "Visits", "Subdomains"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("page is missing %q", want)
-		}
+	if !strings.Contains(rec.Body.String(), `<div id="app">`) {
+		t.Errorf("page did not serve the SPA (index.html)")
 	}
 
 	// Unauthenticated requests must not reach it.
@@ -128,9 +123,9 @@ func TestDomainDetailPage(t *testing.T) {
 }
 
 // A root the client never visited is an empty list, not an error, and the
-// client detail route still works alongside the new nested one.
+// client detail route still works alongside the nested one.
 func TestVisitedDomainsRoutesDoNotShadow(t *testing.T) {
-	mux, database, sqldb, cookie := newTestPanel(t)
+	mux, database, sqldb, cookie, _ := newTestPanel(t)
 	seedVisits(t, database, sqldb, []visit{
 		{"alice", "www.youtube.com", "2026-01-02 00:00:00", "2026-01-02 01:00:00", 5},
 	})
@@ -143,7 +138,7 @@ func TestVisitedDomainsRoutesDoNotShadow(t *testing.T) {
 	req.AddCookie(cookie)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Visited Domains") {
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `<div id="app">`) {
 		t.Errorf("client detail page broke: %d", rec.Code)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"os/exec"
+	"slices"
 	"strings"
 	"time"
 
@@ -22,7 +23,7 @@ import (
 // /api/client-stats used by the client portal.
 func registerAPI(mux *http.ServeMux, d Deps) {
 	// ── Admin API ────────────────────────────────────────────────────────────
-	mux.Handle("/api/server-stats", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/api/server-stats", auth.APIAuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, data := d.Cache.Get()
 		if data == nil {
 			http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
@@ -39,10 +40,10 @@ func registerAPI(mux *http.ServeMux, d Deps) {
 		"openvpn":   sysinfo.OpenVPNUnit(),
 		"wireguard": sysinfo.WGUnit,
 	}
-	mux.Handle("POST /api/service/{name}/{action}", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("POST /api/service/{name}/{action}", auth.APIAuthMiddleware(d.Sessions, auth.CSRFMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		unit, known := serviceUnits[r.PathValue("name")]
 		action := r.PathValue("action")
-		if !known || (action != "stop" && action != "restart") {
+		if !known || (action != "start" && action != "stop" && action != "restart") {
 			http.Error(w, "Unknown service or action", http.StatusBadRequest)
 			return
 		}
@@ -65,9 +66,9 @@ func registerAPI(mux *http.ServeMux, d Deps) {
 			"ok":     true,
 			"active": sysinfo.ServiceActive(unit),
 		})
-	})))
+	}))))
 
-	mux.Handle("/api/clients", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/api/clients", auth.APIAuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		filter := r.URL.Query().Get("filter")
 		clients, err := d.DB.QueryClients(r.Context(), filter)
 		if err != nil {
@@ -97,7 +98,7 @@ func registerAPI(mux *http.ServeMux, d Deps) {
 	})))
 
 	// ── Single client (all-time aggregate) for the detail page ───────────────
-	mux.Handle("GET /api/clients/{name}", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("GET /api/clients/{name}", auth.APIAuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name := r.PathValue("name")
 		c, err := d.DB.ClientByName(r.Context(), name)
 		if err != nil {
@@ -127,7 +128,7 @@ func registerAPI(mux *http.ServeMux, d Deps) {
 	// ── Visited domains for one client, collapsed to root domains ────────────
 	// One row per site, with first/last seen and visits rolled up across every
 	// hostname under it. The per-hostname breakdown lives at the route below.
-	mux.Handle("GET /api/clients/{name}/domains", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("GET /api/clients/{name}/domains", auth.APIAuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name := r.PathValue("name")
 		domains, err := d.DB.QueryVisitedRootDomains(r.Context(), name)
 		if err != nil {
@@ -146,7 +147,7 @@ func registerAPI(mux *http.ServeMux, d Deps) {
 	// The root domain is matched against the stored grouping key, so a value
 	// that is not a root domain (or that this client never visited) simply
 	// yields an empty list rather than an error.
-	mux.Handle("GET /api/clients/{name}/domains/{root}", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("GET /api/clients/{name}/domains/{root}", auth.APIAuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name := r.PathValue("name")
 		root := domain.Normalize(r.PathValue("root"))
 		subdomains, err := d.DB.QueryVisitedSubdomains(r.Context(), name, root)
@@ -162,8 +163,35 @@ func registerAPI(mux *http.ServeMux, d Deps) {
 		json.NewEncoder(w).Encode(subdomains)
 	})))
 
+	// ── Settings sections as JSON ──────────────────────────────────────────
+	// Same section allow-list as the HTML settings pages (see pages.go), for
+	// the React settings page. admin_pass is write-only: the general section
+	// reports it as an empty string, never the stored hash.
+	mux.Handle("GET /api/settings/{section}", auth.APIAuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		section, ok := findSettingsSection(r.PathValue("section"))
+		if !ok {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}
+		settings, err := d.DB.GetAllSettings(r.Context())
+		if err != nil {
+			d.Logger.Error("api settings: read: " + err.Error())
+			http.Error(w, "Internal Error", http.StatusInternalServerError)
+			return
+		}
+		out := make(map[string]string, len(section.Keys)+1)
+		for _, key := range section.Keys {
+			out[key] = settings[key]
+		}
+		if slices.Contains(section.Keys, "admin_user") {
+			out["admin_pass"] = ""
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(out)
+	})))
+
 	// ── WebSocket real-time stats ─────────────────────────────────────────────
-	mux.Handle("/ws", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/ws", auth.APIAuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, rw, err := wsUpgrade(w, r)
 		if err != nil {
 			return

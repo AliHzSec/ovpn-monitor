@@ -7,12 +7,21 @@ binary).
 
 ## Build
 
-The domain-tracking subsystem uses gopacket's libpcap bindings, so building
+The web UI is a React SPA (`frontend/`) that is embedded into the Go binary.
+`./build.sh` builds the frontend (into `internal/web/dist/`) and then the
+binary:
+
+```sh
+./build.sh
+```
+
+The frontend build needs **Node.js ≥ 24 at build time only**. The
+domain-tracking subsystem uses gopacket's libpcap bindings, so the Go build
 requires **cgo and the libpcap headers**:
 
 ```sh
 sudo apt-get install -y libpcap-dev        # Debian/Ubuntu
-CGO_ENABLED=1 go build -o ovpnmonitor .
+CGO_ENABLED=1 go build -o ovpnmonitor .    # when the frontend is already built
 ```
 
 Run it as root (raw packet capture needs `CAP_NET_RAW`, and the panel reads

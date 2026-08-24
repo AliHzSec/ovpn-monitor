@@ -2,30 +2,20 @@ package handler
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"slices"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"ovpnmonitor/internal/auth"
-	"ovpnmonitor/internal/domain"
 	"ovpnmonitor/internal/model"
+	"ovpnmonitor/internal/web"
 )
-
-type settingsPageData struct {
-	Settings   map[string]string
-	Saved      bool
-	Restarting bool
-
-	// Section is the settings section currently being edited (the sidebar
-	// submenu item), and Title its display name. The template renders only
-	// this section's fields.
-	Section string
-	Title   string
-}
 
 // settingsSection is one entry of the settings sidebar submenu: a sub-page
 // showing only its own fields.
@@ -78,8 +68,9 @@ func allSettingsKeys() []string {
 	return keys
 }
 
-// registerPages mounts the HTML routes: admin login/logout, the panel pages,
-// the settings page and the client portal at the root.
+// registerPages mounts the page routes: admin login/logout, the SPA pages
+// (all served from the embedded index.html; the React router reads the URL),
+// the settings POST endpoints, and the client portal at the root.
 func registerPages(mux *http.ServeMux, d Deps) {
 	// ── /login → redirect to /panel/login ────────────────────────────────────
 	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
@@ -91,127 +82,101 @@ func registerPages(mux *http.ServeMux, d Deps) {
 		http.Redirect(w, r, "/panel/logout", http.StatusMovedPermanently)
 	})
 
-	// ── Admin login (GET + POST) ──────────────────────────────────────────────
-	mux.HandleFunc("/panel/login", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			user := r.FormValue("username")
-			pass := r.FormValue("password")
-			// Read credentials from DB on each attempt so changes take effect immediately.
-			settings, err := d.DB.GetAllSettings(r.Context())
-			if err != nil {
-				d.Logger.Error("login: read settings: " + err.Error())
-				http.Error(w, "Internal Error", http.StatusInternalServerError)
-				return
-			}
-			passOK := bcrypt.CompareHashAndPassword([]byte(settings["admin_pass"]), []byte(pass)) == nil
-			if user == settings["admin_user"] && passOK {
-				token := auth.GenerateToken()
-				d.Sessions.Set(token)
-				http.SetCookie(w, &http.Cookie{
-					Name:     "session",
-					Value:    token,
-					Path:     "/",
-					HttpOnly: true,
-					MaxAge:   int(d.SessionTTL.Seconds()),
-				})
-				http.Redirect(w, r, "/panel", http.StatusSeeOther)
-				return
-			}
-			renderTemplate(w, d.Templates, "login.html", map[string]interface{}{
-				"Error": "Invalid username or password",
-			})
+	// ── Admin login ───────────────────────────────────────────────────────────
+	// GET serves the embedded login SPA. The synchronizer-token CSRF check on
+	// the POST needs server-side state pre-auth, so a visitor without a live
+	// session gets a PRE-AUTH one here (see preAuthCSRF): a session cookie
+	// whose record holds the CSRF token injected into the page.
+	mux.Handle("GET /panel/login", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		web.ServePage(w, "login.html", d.preAuthCSRF(w, r))
+	}))
+
+	mux.Handle("POST /panel/login", auth.CSRFMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := r.FormValue("username")
+		pass := r.FormValue("password")
+		// Read credentials from DB on each attempt so changes take effect immediately.
+		settings, err := d.DB.GetAllSettings(r.Context())
+		if err != nil {
+			d.Logger.Error("login: read settings: " + err.Error())
+			http.Error(w, "Internal Error", http.StatusInternalServerError)
 			return
 		}
-		renderTemplate(w, d.Templates, "login.html", nil)
-	})
+		passOK := bcrypt.CompareHashAndPassword([]byte(settings["admin_pass"]), []byte(pass)) == nil
+		if user == settings["admin_user"] && passOK {
+			// Session fixation protection: the pre-auth session dies with the
+			// login and the authenticated session is a brand-new token (with
+			// its own fresh CSRF token).
+			if c, err := r.Cookie("session"); err == nil {
+				d.Sessions.Delete(c.Value)
+			}
+			token, _ := d.Sessions.Create(true)
+			http.SetCookie(w, &http.Cookie{
+				Name:     "session",
+				Value:    token,
+				Path:     "/",
+				HttpOnly: true,
+				MaxAge:   int(d.SessionTTL.Seconds()),
+			})
+			http.Redirect(w, r, "/panel", http.StatusSeeOther)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Invalid username or password",
+		})
+	})))
 
 	// ── Admin logout ──────────────────────────────────────────────────────────
-	mux.HandleFunc("/panel/logout", func(w http.ResponseWriter, r *http.Request) {
+	// Method-specific patterns: an all-method /panel/logout would conflict with
+	// the GET /panel/ SPA subtree in the stdlib mux. GET and POST cover every
+	// real caller (sidebar navigation and form posts alike).
+	logout := func(w http.ResponseWriter, r *http.Request) {
 		if c, err := r.Cookie("session"); err == nil {
 			d.Sessions.Delete(c.Value)
 		}
 		http.SetCookie(w, &http.Cookie{Name: "session", Value: "", Path: "/", MaxAge: -1})
 		http.Redirect(w, r, "/panel/login", http.StatusSeeOther)
-	})
+	}
+	mux.HandleFunc("GET /panel/logout", logout)
+	mux.HandleFunc("POST /panel/logout", logout)
 
-	// ── Admin dashboard ───────────────────────────────────────────────────────
-	mux.Handle("/panel", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		renderTemplate(w, d.Templates, "dashboard.html", nil)
-	})))
+	// ── SPA pages ─────────────────────────────────────────────────────────────
+	// Every authenticated page is the same embedded index.html; the React
+	// router resolves /panel, /panel/clients/{name}/domains/{root}, /settings/*
+	// etc. client-side and fetches its data over the JSON APIs. The subtree
+	// patterns double as the SPA fallback: any unknown GET under /panel/ or
+	// /settings/ still serves the app (never a 404), so refreshes and deep
+	// links work. Method-specific patterns keep POSTs (login, settings saves)
+	// out of the GET-only SPA handlers. The session's stored CSRF token is
+	// injected into the meta for the SPA's http layer.
+	spa := auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// AuthMiddleware has already validated the session cookie, so the
+		// lookup cannot miss.
+		csrf, _ := d.Sessions.CSRFToken(sessionCookie(r))
+		web.ServePage(w, "index.html", csrf)
+	}))
+	mux.Handle("GET /panel", spa)   // exact; "/panel/{$}" would only match "/panel/"
+	mux.Handle("GET /panel/", spa)  // subtree + SPA fallback
+	mux.Handle("GET /settings", spa)
+	mux.Handle("GET /settings/", spa)
 
-	// ── Clients page ──────────────────────────────────────────────────────────
-	mux.Handle("/panel/clients", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		renderTemplate(w, d.Templates, "dashboard.html", nil)
-	})))
-
-	// ── Client detail page ────────────────────────────────────────────────────
-	// Row clicks on the Clients page navigate here; the page fetches the client
-	// aggregate and its visited-domain history over the JSON APIs (see api.go).
-	mux.Handle("GET /panel/clients/{name}", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		renderTemplate(w, d.Templates, "clientdetail.html", map[string]interface{}{
-			"Name": r.PathValue("name"),
-		})
-	})))
-
-	// ── Domain detail page ────────────────────────────────────────────────────
-	// Reached by clicking a root domain on the client detail page. A separate
-	// route rather than an in-place expander, matching how every other section
-	// of the panel works: the URL is shareable and bookmarkable, the page gets
-	// its own sort/search/pagination state, and the Back link mirrors the
-	// existing "Back to Clients" pattern.
-	mux.Handle("GET /panel/clients/{name}/domains/{root}", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		renderTemplate(w, d.Templates, "domaindetail.html", map[string]interface{}{
-			"Name": r.PathValue("name"),
-			"Root": domain.Normalize(r.PathValue("root")),
-		})
-	})))
-
-	// ── Settings ──────────────────────────────────────────────────────────────
-	// The settings form is split into one sub-page per section, reached from
-	// the sidebar submenu. /settings stays a valid entry point (existing links
-	// and bookmarks) and redirects to the first section.
-	defaultSection := "/settings/" + settingsSections[0].Key
-
-	mux.Handle("GET /settings", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, defaultSection, http.StatusSeeOther)
-	})))
-
+	// ── Settings saves ────────────────────────────────────────────────────────
 	// Legacy target for a cached copy of the old single-page form: accepts
 	// every known key. Still presence-checked, so it can only write fields the
 	// submitted form actually carried.
-	mux.Handle("POST /settings", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		d.saveSettings(w, r, allSettingsKeys(), defaultSection)
-	})))
+	mux.Handle("POST /settings", auth.AuthMiddleware(d.Sessions, auth.CSRFMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		d.saveSettings(w, r, allSettingsKeys(), "/settings/"+settingsSections[0].Key)
+	}))))
 
-	mux.Handle("GET /settings/{section}", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		section, ok := findSettingsSection(r.PathValue("section"))
-		if !ok {
-			http.NotFound(w, r)
-			return
-		}
-		settings, err := d.DB.GetAllSettings(r.Context())
-		if err != nil {
-			d.Logger.Error("settings: read: " + err.Error())
-			http.Error(w, "Internal Error", http.StatusInternalServerError)
-			return
-		}
-		renderTemplate(w, d.Templates, "settings.html", settingsPageData{
-			Settings:   settings,
-			Saved:      r.URL.Query().Get("saved") == "1",
-			Restarting: r.URL.Query().Get("restarting") == "1",
-			Section:    section.Key,
-			Title:      section.Title,
-		})
-	})))
-
-	mux.Handle("POST /settings/{section}", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("POST /settings/{section}", auth.AuthMiddleware(d.Sessions, auth.CSRFMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		section, ok := findSettingsSection(r.PathValue("section"))
 		if !ok {
 			http.NotFound(w, r)
 			return
 		}
 		d.saveSettings(w, r, section.Keys, "/settings/"+section.Key)
-	})))
+	}))))
 
 	// ── Client portal (root) ──────────────────────────────────────────────────
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -256,12 +221,44 @@ func registerPages(mux *http.ServeMux, d Deps) {
 			data.ConnectedSince = c.ConnectedSince
 			data.LastSeen = c.LastSeen
 		}
-		renderTemplate(w, d.Templates, "client.html", data)
+		web.ServePortal(w, data)
 	})
 }
 
-// saveSettings persists a settings form submission and redirects back to
-// redirectTo with a "saved" flash.
+// sessionCookie returns the request's session token, "" when absent.
+func sessionCookie(r *http.Request) string {
+	c, err := r.Cookie("session")
+	if err != nil {
+		return ""
+	}
+	return c.Value
+}
+
+// preAuthCSRF resolves the CSRF token injected into the login page. A request
+// that already carries a live session (pre-auth or authenticated) reuses the
+// token stored with it; anything else gets a fresh PRE-AUTH session — the
+// session cookie is set here (same attributes as the login POST sets) so the
+// synchronizer-token check on POST /panel/login has server-side state to
+// compare the header against.
+func (d Deps) preAuthCSRF(w http.ResponseWriter, r *http.Request) string {
+	if token, ok := d.Sessions.CSRFToken(sessionCookie(r)); ok {
+		return token
+	}
+	sessionToken, csrf := d.Sessions.Create(false)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    sessionToken,
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   int(d.SessionTTL.Seconds()),
+	})
+	return csrf
+}
+
+// saveSettings persists a settings form submission and confirms the save —
+// a 303 redirect back to redirectTo with a "saved" flash for HTML forms, or
+// a JSON {"ok":true,"restarting":...} body for API clients (see
+// respondSettingsSaved).
 //
 // keys is the allow-list of setting keys this request may write — the keys of
 // the section that was submitted. Two rules make partial forms safe now that
@@ -336,6 +333,28 @@ func (d Deps) saveSettings(w http.ResponseWriter, r *http.Request, keys []string
 			time.Sleep(500 * time.Millisecond)
 			os.Exit(0)
 		}()
+		respondSettingsSaved(w, r, redirectTo, true)
+		return
+	}
+	respondSettingsSaved(w, r, redirectTo, false)
+}
+
+// respondSettingsSaved answers a successful settings save. API clients (the
+// React SPA) ask for JSON via an Accept: application/json or
+// Content-Type: application/json header and get {"ok":true,"restarting":...};
+// a plain HTML form post keeps the classic 303 redirect with the flash query
+// parameters.
+func respondSettingsSaved(w http.ResponseWriter, r *http.Request, redirectTo string, restarting bool) {
+	if strings.Contains(r.Header.Get("Accept"), "application/json") ||
+		strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok":         true,
+			"restarting": restarting,
+		})
+		return
+	}
+	if restarting {
 		http.Redirect(w, r, redirectTo+"?saved=1&restarting=1", http.StatusSeeOther)
 		return
 	}

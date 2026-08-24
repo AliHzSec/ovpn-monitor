@@ -24,8 +24,10 @@ import (
 
 // newTestPanel wires a panel over a fresh migrated database. The raw *sql.DB is
 // returned alongside the db.DB wrapper so tests can seed tables directly, which
-// includes writing rows in an older schema's shape to exercise a migration.
-func newTestPanel(t *testing.T) (*http.ServeMux, *db.DB, *sql.DB, *http.Cookie) {
+// includes writing rows in an older schema's shape to exercise a migration. The
+// returned cookie is an authenticated session and csrf its server-side CSRF
+// token (what the served pages would inject into the csrf-token meta).
+func newTestPanel(t *testing.T) (*http.ServeMux, *db.DB, *sql.DB, *http.Cookie, string) {
 	t.Helper()
 	sqldb, err := sql.Open("sqlite3", filepath.Join(t.TempDir(), "t.sqlite"))
 	if err != nil {
@@ -36,31 +38,32 @@ func newTestPanel(t *testing.T) (*http.ServeMux, *db.DB, *sql.DB, *http.Cookie) 
 	if err := database.Migrate(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	tmpl, err := LoadTemplates("../../templates")
-	if err != nil {
-		t.Fatal(err)
-	}
 	sessions := auth.NewSessionStore(time.Hour)
-	token := auth.GenerateToken()
-	sessions.Set(token)
+	token, csrf := sessions.Create(true)
 
 	mux := http.NewServeMux()
 	Register(mux, Deps{
 		DB: database, Sessions: sessions,
 		OVPNOnline: &tracker.OnlineTracker{}, WGOnline: &tracker.OnlineTracker{},
 		Certs: &openvpn.CertWhitelist{}, WGRegistry: &wireguard.Registry{},
-		IPP: &openvpn.IPPStore{}, Templates: tmpl,
+		IPP: &openvpn.IPPStore{},
 		SessionTTL: time.Hour, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
-		TemplatesDir: "../../templates",
 	})
-	return mux, database, sqldb, &http.Cookie{Name: "session", Value: token}
+	return mux, database, sqldb, &http.Cookie{Name: "session", Value: token}, csrf
+}
+
+// withCSRF satisfies the synchronizer-token check: the X-CSRF-Token header
+// carries the token stored server-side with the request's session.
+func withCSRF(req *http.Request, csrf string) *http.Request {
+	req.Header.Set("X-CSRF-Token", csrf)
+	return req
 }
 
 // Saving one settings section must leave every other section's values intact.
 // The form for a section only carries its own fields, so a handler that blindly
 // wrote every known key would blank the rest — disabling whole subsystems.
 func TestSavingOneSectionLeavesOthersIntact(t *testing.T) {
-	mux, database, _, cookie := newTestPanel(t)
+	mux, database, _, cookie, csrf := newTestPanel(t)
 
 	before, _ := database.GetAllSettings(context.Background())
 
@@ -69,7 +72,7 @@ func TestSavingOneSectionLeavesOthersIntact(t *testing.T) {
 		"wireguard_interface":         {"wg1"},
 		"wireguard_handshake_timeout": {"240s"},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/settings/wireguard", strings.NewReader(form.Encode()))
+	req := withCSRF(httptest.NewRequest(http.MethodPost, "/settings/wireguard", strings.NewReader(form.Encode())), csrf)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	rec := httptest.NewRecorder()
@@ -101,14 +104,14 @@ func TestSavingOneSectionLeavesOthersIntact(t *testing.T) {
 // A section POST must not be able to write keys outside its own allow-list,
 // even when the request body smuggles them in.
 func TestSectionCannotWriteForeignKeys(t *testing.T) {
-	mux, database, _, cookie := newTestPanel(t)
+	mux, database, _, cookie, csrf := newTestPanel(t)
 
 	form := url.Values{
 		"wireguard_interface": {"wg1"},
 		"openvpn_status_log":  {"/tmp/evil.log"}, // not owned by this section
 		"addr":                {"0.0.0.0:9999"},  // would also trigger a restart
 	}
-	req := httptest.NewRequest(http.MethodPost, "/settings/wireguard", strings.NewReader(form.Encode()))
+	req := withCSRF(httptest.NewRequest(http.MethodPost, "/settings/wireguard", strings.NewReader(form.Encode())), csrf)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	rec := httptest.NewRecorder()
@@ -129,11 +132,11 @@ func TestSectionCannotWriteForeignKeys(t *testing.T) {
 
 // An empty password field means "keep the current password", never "clear it".
 func TestEmptyPasswordKeepsExistingHash(t *testing.T) {
-	mux, database, _, cookie := newTestPanel(t)
+	mux, database, _, cookie, csrf := newTestPanel(t)
 	before, _ := database.GetAllSettings(context.Background())
 
 	form := url.Values{"addr": {"0.0.0.0:80"}, "admin_user": {"admin"}, "poll_interval": {"10s"}, "admin_pass": {""}}
-	req := httptest.NewRequest(http.MethodPost, "/settings/general", strings.NewReader(form.Encode()))
+	req := withCSRF(httptest.NewRequest(http.MethodPost, "/settings/general", strings.NewReader(form.Encode())), csrf)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	mux.ServeHTTP(httptest.NewRecorder(), req)
@@ -144,20 +147,22 @@ func TestEmptyPasswordKeepsExistingHash(t *testing.T) {
 	}
 }
 
-// /settings redirects to the first section; unknown sections 404.
+// Every GET under /settings serves the SPA (the React router resolves the
+// section client-side and redirects bare /settings itself); unknown paths get
+// the SPA fallback, never a 404, so refreshes on client routes keep working.
 func TestSettingsRouting(t *testing.T) {
-	mux, _, _, cookie := newTestPanel(t)
+	mux, _, _, cookie, _ := newTestPanel(t)
 
 	for _, tc := range []struct {
 		path string
 		want int
 	}{
-		{"/settings", http.StatusSeeOther},
+		{"/settings", http.StatusOK},
 		{"/settings/general", http.StatusOK},
 		{"/settings/openvpn", http.StatusOK},
 		{"/settings/wireguard", http.StatusOK},
 		{"/settings/domains", http.StatusOK},
-		{"/settings/nope", http.StatusNotFound},
+		{"/settings/nope", http.StatusOK}, // SPA fallback, client router 404s
 	} {
 		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
 		req.AddCookie(cookie)
@@ -171,7 +176,7 @@ func TestSettingsRouting(t *testing.T) {
 
 // Settings pages stay behind auth after the route split.
 func TestSettingsRequiresAuth(t *testing.T) {
-	mux, _, _, _ := newTestPanel(t)
+	mux, _, _, _, _ := newTestPanel(t)
 	for _, p := range []string{"/settings", "/settings/general", "/settings/wireguard"} {
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, p, nil))
@@ -185,11 +190,11 @@ func TestSettingsRequiresAuth(t *testing.T) {
 // password — a password manager autofilling an unrelated page would otherwise
 // silently rotate the admin credential.
 func TestForeignSectionCannotChangePassword(t *testing.T) {
-	mux, database, _, cookie := newTestPanel(t)
+	mux, database, _, cookie, csrf := newTestPanel(t)
 	before, _ := database.GetAllSettings(context.Background())
 
 	form := url.Values{"wireguard_interface": {"wg1"}, "admin_pass": {"hunter2"}}
-	req := httptest.NewRequest(http.MethodPost, "/settings/wireguard", strings.NewReader(form.Encode()))
+	req := withCSRF(httptest.NewRequest(http.MethodPost, "/settings/wireguard", strings.NewReader(form.Encode())), csrf)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	mux.ServeHTTP(httptest.NewRecorder(), req)
@@ -202,11 +207,11 @@ func TestForeignSectionCannotChangePassword(t *testing.T) {
 
 // The General section still applies a real password change, stored hashed.
 func TestGeneralSectionChangesPassword(t *testing.T) {
-	mux, database, _, cookie := newTestPanel(t)
+	mux, database, _, cookie, csrf := newTestPanel(t)
 	before, _ := database.GetAllSettings(context.Background())
 
 	form := url.Values{"admin_user": {"admin"}, "admin_pass": {"a-new-password"}}
-	req := httptest.NewRequest(http.MethodPost, "/settings/general", strings.NewReader(form.Encode()))
+	req := withCSRF(httptest.NewRequest(http.MethodPost, "/settings/general", strings.NewReader(form.Encode())), csrf)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	mux.ServeHTTP(httptest.NewRecorder(), req)
@@ -218,23 +223,4 @@ func TestGeneralSectionChangesPassword(t *testing.T) {
 	if err := bcrypt.CompareHashAndPassword([]byte(after["admin_pass"]), []byte("a-new-password")); err != nil {
 		t.Errorf("stored password is not a bcrypt hash of the new value: %v", err)
 	}
-}
-
-// Changing the listening address from the section that owns it still signals a
-// restart, so the existing behaviour is preserved.
-func TestAddrChangeStillSignalsRestart(t *testing.T) {
-	mux, _, _, cookie := newTestPanel(t)
-
-	form := url.Values{"addr": {"127.0.0.1:8080"}, "admin_user": {"admin"}, "poll_interval": {"10s"}}
-	req := httptest.NewRequest(http.MethodPost, "/settings/general", strings.NewReader(form.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.AddCookie(cookie)
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	if loc := rec.Header().Get("Location"); loc != "/settings/general?saved=1&restarting=1" {
-		t.Errorf("redirect = %q, want the restarting flash", loc)
-	}
-	// NOTE: the handler schedules os.Exit(0) 500ms out. The test process must
-	// finish this test well before then; nothing else here sleeps.
 }

@@ -1,0 +1,213 @@
+/* ClientsPage.css — page-scoped styles for the Clients page. Colors come from
+   the body.light/body.dark custom properties in styles/tokens.css, so the page
+   flips with the theme. */
+
+.clients-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4, 16px);
+}
+
+@media (max-width: 768px) {
+  .clients-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.clients-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.clients-stat-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2, 8px);
+  margin-top: var(--sp-3, 12px);
+}
+
+.clients-stat-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: var(--fs-sm, 13px);
+}
+
+.clients-stat-row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.clients-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+}
+
+.clients-stat-row-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.clients-pct {
+  margin-left: 6px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.clients-ratio-bar {
+  height: 6px;
+  margin-top: var(--sp-3, 12px);
+  overflow: hidden;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--ring-track);
+}
+
+.clients-ratio-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-success);
+  transition: width 0.3s ease;
+}
+
+.clients-ratio-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: var(--fs-caption, 12px);
+  color: var(--text-tertiary);
+}
+
+.clients-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3, 12px);
+}
+
+.clients-search {
+  max-width: 280px;
+}
+
+.clients-search-icon {
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 768px) {
+  .clients-search {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.clients-table-card .ant-card-body {
+  padding: 0;
+}
+
+.clients-skeleton {
+  padding: var(--sp-6, 24px);
+}
+
+/* Subtle fade while a background refetch is in flight — the previous rows
+   stay visible (React Query keepPreviousData), only dimmed slightly. */
+.clients-table-fade {
+  transition: opacity 0.25s ease;
+}
+
+.clients-table-fade.is-fetching {
+  opacity: 0.6;
+}
+
+.clients-cell-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.clients-status-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+}
+
+.clients-status-dot.is-online {
+  background: var(--color-success);
+  box-shadow: 0 0 6px var(--green-glow);
+}
+
+.clients-status-dot.is-offline {
+  background: var(--text-tertiary);
+}
+
+.clients-name-text {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clients-status-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.clients-proto-tag {
+  margin-inline-end: 0;
+}
+
+.clients-total-text {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.clients-rel-time {
+  color: var(--text-secondary);
+}
+
+.clients-chevron {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  transition: color 0.2s ease;
+}
+
+.clients-table-card .ant-table-tbody > tr.clients-row {
+  cursor: pointer;
+}
+
+.clients-table-card .ant-table-tbody > tr.clients-row:hover .clients-chevron {
+  color: var(--color-primary);
+}
+
+.clients-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.clients-empty-title {
+  font-size: var(--fs-md, 15px);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.clients-empty-sub {
+  font-size: var(--fs-sm, 13px);
+  color: var(--text-tertiary);
+}
+
+.clients-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--sp-2, 8px);
+  font-size: var(--fs-sm, 13px);
+  color: var(--text-tertiary);
+}

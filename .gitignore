@@ -28,3 +28,7 @@ Thumbs.db
 
 # Go
 vendor/
+# React SPA frontend
+frontend/node_modules/
+internal/web/dist/*
+!internal/web/dist/.gitkeep

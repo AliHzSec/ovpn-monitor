@@ -1,0 +1,132 @@
+/* SettingsPage.css — field rows, section head and footer for the settings
+   page, adapted from templates/settings.html's page-specific styles. Colors
+   come from the body.light/body.dark custom properties in styles/tokens.css,
+   so the page flips with the theme. */
+
+.settings-page .page-grid {
+  max-width: 760px;
+}
+
+/* ── SECTION HEAD ── */
+.settings-section-head-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-heading, 15px);
+  font-weight: 600;
+  color: var(--text);
+  line-height: var(--lh-tight, 1.25);
+}
+
+.settings-section-head-title .anticon {
+  color: var(--color-primary);
+}
+
+.settings-section-head-note {
+  font-size: var(--fs-caption, 12px);
+  color: var(--text-tertiary);
+  margin-top: 6px;
+}
+
+/* ── SETTINGS CARD / FIELD ROWS ── */
+.settings-card .ant-card-body {
+  padding: 0;
+}
+
+.settings-field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5, 20px);
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border-secondary);
+  transition: background 0.15s;
+}
+
+.settings-field-row:last-child {
+  border-bottom: none;
+}
+
+.settings-field-row:focus-within {
+  background: var(--primary-faint);
+}
+
+.settings-field-label-wrap {
+  flex: 0 0 210px;
+}
+
+.settings-field-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: var(--fs-body, 14px);
+  font-weight: 600;
+  color: var(--text);
+  line-height: var(--lh-body, 1.5);
+}
+
+/* "This restarts the service" — a real warning, so amber is correct. */
+.settings-field-note {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-caption, 12px);
+  color: var(--color-warning);
+  line-height: var(--lh-body, 1.5);
+}
+
+.settings-field-note::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-warning);
+  flex-shrink: 0;
+}
+
+.settings-field-desc {
+  font-size: var(--fs-caption, 12px);
+  color: var(--text-tertiary);
+  line-height: var(--lh-body, 1.5);
+}
+
+.settings-field-input-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── FOOTER ── */
+.settings-form-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4, 16px);
+  flex-wrap: wrap;
+}
+
+.settings-form-footer-note {
+  font-size: var(--fs-caption, 12px);
+  color: var(--text-tertiary);
+}
+
+/* ── MISC ── */
+.settings-loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+@media (max-width: 768px) {
+  .settings-field-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .settings-field-label-wrap {
+    flex: none;
+    width: 100%;
+  }
+
+  .settings-field-input-wrap {
+    width: 100%;
+  }
+}

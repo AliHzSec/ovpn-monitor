@@ -1,0 +1,445 @@
+/* OverviewPage.css — overview layout, ring gauges, clients card and info
+   cards, ported 1:1 from the legacy templates/dashboard.html #page-overview
+   styles (and the ratio-bar rules from templates/static/theme.css). Colors
+   come from the mode-scoped custom properties in styles/tokens.css, so the
+   page flips with body.light / body.dark. */
+
+/* ── ROW LAYOUT ── */
+.overview-page .ov-row {
+  display: grid;
+  grid-template-columns: minmax(0, 13fr) minmax(300px, 7fr);
+  gap: var(--sp-4);
+  align-items: stretch;
+}
+
+.overview-page .ov-row .severity-card,
+.overview-page .ov-row .glass-card {
+  height: 100%;
+}
+
+.overview-page .info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-4);
+}
+
+/* ── SERVER RESOURCE GAUGES ── */
+.overview-page .resources-card .ant-card-body {
+  display: flex;
+  height: 100%;
+  padding: 0;
+}
+
+.overview-page .gauge-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 18px 24px;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.overview-page .gauge-item:hover {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.overview-page .gauge-item + .gauge-item {
+  border-left: 1px solid var(--border-secondary);
+}
+
+/* Top accent per gauge. Defaults to primary; React swaps it to warning or
+   error only when the value crosses a threshold. */
+.overview-page .gauge-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gauge-accent, var(--color-primary));
+  opacity: 0.8;
+  transition:
+    opacity 0.3s,
+    background 0.4s;
+}
+
+.overview-page .gauge-item:hover::before {
+  opacity: 1;
+}
+
+.overview-page .gauge-item-label {
+  font-size: var(--fs-label);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-label);
+  color: var(--text-tertiary);
+  align-self: flex-start;
+}
+
+.overview-page .gauge-ring-wrap {
+  position: relative;
+  width: clamp(118px, 8.5vw, 172px);
+  height: clamp(118px, 8.5vw, 172px);
+}
+
+.overview-page .gauge-ring-wrap svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(135deg);
+}
+
+.overview-page .ring-track {
+  fill: none;
+  stroke: var(--ring-track);
+  stroke-width: 9;
+}
+
+.overview-page .ring-fill {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 9;
+  stroke-linecap: round;
+  transition:
+    stroke-dasharray 0.7s cubic-bezier(0.34, 1.56, 0.64, 1),
+    stroke 0.4s ease;
+}
+
+.overview-page .gauge-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.overview-page .gauge-center-value {
+  font-size: clamp(22px, 1.7vw, 30px);
+  font-weight: 600;
+  color: var(--text);
+  line-height: var(--lh-tight);
+}
+
+.overview-page .gauge-sublabel {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: var(--lh-body);
+  margin-top: 2px;
+}
+
+/* ── CLIENTS CARD ── */
+.overview-page .clients-card .ant-card-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.overview-page .clients-top {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.overview-page .clients-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--sp-4);
+}
+
+.overview-page .clients-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-soft);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
+  color: var(--color-primary);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.overview-page .clients-title {
+  font-size: var(--fs-heading);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.overview-page .clients-total {
+  font-size: var(--fs-hero-lg);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  color: var(--text);
+}
+
+.overview-page .clients-total-label {
+  font-size: var(--fs-caption);
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+.overview-page .clients-side {
+  display: flex;
+  gap: 30px;
+  flex-shrink: 0;
+}
+
+.overview-page .clients-side-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.overview-page .clients-side-value {
+  font-size: var(--fs-hero);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+}
+
+.overview-page .clients-side-value.online {
+  color: var(--color-success);
+}
+
+.overview-page .clients-side-value.offline {
+  color: var(--text-tertiary);
+}
+
+.overview-page .clients-side-label {
+  font-size: var(--fs-label);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-label);
+}
+
+.overview-page .clients-pct-caption {
+  font-size: var(--fs-caption);
+  color: var(--text-tertiary);
+  margin-top: 7px;
+}
+
+/* ── RATIO BAR ── */
+.overview-page .ratio-bar {
+  height: 6px;
+  background: var(--ring-track);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  margin-top: var(--sp-3);
+}
+
+.overview-page .ratio-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+  transition:
+    width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.3s;
+}
+
+.overview-page .ratio-bar-fill.is-success {
+  background: var(--color-success);
+}
+
+/* ── INFO CARDS ── */
+.overview-page .info-card .ant-card-body {
+  padding: 20px 22px;
+}
+
+.overview-page .info-card-title {
+  font-size: var(--fs-heading);
+  font-weight: 600;
+  color: var(--text);
+  padding-bottom: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--border-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.overview-page .info-card-title-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.overview-page .info-card-title-dot.is-success {
+  background: var(--color-success);
+}
+
+.overview-page .info-card-title-dot.is-muted {
+  background: var(--text-tertiary);
+}
+
+.overview-page .info-rows {
+  display: flex;
+  flex-direction: row;
+  min-width: 0;
+}
+
+.overview-page .info-row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 18px;
+}
+
+.overview-page .info-row:first-child {
+  padding-left: 0;
+}
+
+.overview-page .info-row:last-child {
+  padding-right: 0;
+}
+
+.overview-page .info-row + .info-row {
+  border-left: 1px solid var(--border-secondary);
+}
+
+.overview-page .info-row-label {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  line-height: var(--lh-body);
+}
+
+.overview-page .info-row-value {
+  font-size: var(--fs-md);
+  font-weight: 500;
+  color: var(--text);
+  transition: color 0.3s;
+  min-width: 0;
+  max-width: 100%;
+  /* long, unbreakable tokens (e.g. an IPv6 address) must wrap instead of
+     forcing the card — and the page — wider than the viewport */
+  overflow-wrap: anywhere;
+}
+
+/* Three columns in one card leaves ~85px per value. Tighter gutters and one
+   step down in size keep figures like "14.08 TB" on a single line. */
+.overview-page .info-rows.cols-3 .info-row {
+  padding: 0 10px;
+}
+
+.overview-page .info-rows.cols-3 .info-row-value {
+  font-size: var(--fs-body);
+}
+
+.overview-page .info-row-value.muted {
+  color: var(--text-tertiary);
+}
+
+.overview-page .info-row-value.val-up {
+  color: var(--sent-color);
+}
+
+.overview-page .info-row-value.val-down {
+  color: var(--recv-color);
+}
+
+/* stacked variant: label left, value right — for longer text values */
+.overview-page .info-rows.vertical {
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.overview-page .info-rows.vertical .info-row {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 0;
+}
+
+.overview-page .info-rows.vertical .info-row + .info-row {
+  border-left: none;
+}
+
+.overview-page .info-rows.vertical .info-row-value {
+  font-size: var(--fs-body);
+  text-align: right;
+}
+
+/* Live-speed sparkline sits under the Upload/Download rows. */
+.overview-page .speed-sparkline {
+  margin-top: var(--sp-4);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1500px) {
+  .overview-page .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1250px) {
+  .overview-page .ov-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .overview-page .resources-card .ant-card-body {
+    flex-wrap: wrap;
+  }
+
+  .overview-page .gauge-item {
+    flex: 0 0 50%;
+  }
+
+  .overview-page .gauge-item + .gauge-item {
+    border-left: none;
+  }
+
+  .overview-page .gauge-item:nth-child(even) {
+    border-left: 1px solid var(--border-secondary);
+  }
+
+  .overview-page .gauge-item:nth-child(n + 3) {
+    border-top: 1px solid var(--border-secondary);
+  }
+}
+
+@media (max-width: 768px) {
+  .overview-page .gauge-item {
+    padding: 18px 14px;
+    gap: 6px;
+  }
+
+  .overview-page .gauge-ring-wrap {
+    width: clamp(104px, 30vw, 124px);
+    height: clamp(104px, 30vw, 124px);
+  }
+
+  .overview-page .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-page .info-card .ant-card-body {
+    padding: 16px 18px;
+  }
+
+  .overview-page .info-card-title {
+    margin-bottom: var(--sp-3);
+  }
+
+  .overview-page .info-row {
+    padding: 0 14px;
+  }
+
+  .overview-page .clients-side {
+    gap: 20px;
+  }
+}

@@ -1,12 +1,9 @@
 package handler
 
 import (
-	"bytes"
-	"html/template"
 	"log/slog"
 	"net"
 	"net/http"
-	"path/filepath"
 	"time"
 
 	"ovpnmonitor/internal/auth"
@@ -15,22 +12,9 @@ import (
 	"ovpnmonitor/internal/openvpn"
 	"ovpnmonitor/internal/sysinfo"
 	"ovpnmonitor/internal/tracker"
+	"ovpnmonitor/internal/web"
 	"ovpnmonitor/internal/wireguard"
 )
-
-func LoadTemplates(dir string) (*template.Template, error) {
-	return template.ParseGlob(filepath.Join(dir, "*.html"))
-}
-
-func renderTemplate(w http.ResponseWriter, tmpl *template.Template, name string, data interface{}) {
-	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, name, data); err != nil {
-		http.Error(w, "Template error", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	buf.WriteTo(w)
-}
 
 // VPNClientIP extracts the request's source IP and reports whether it belongs
 // to a monitored VPN subnet: the OpenVPN subnet (vpnNet, may be nil when
@@ -58,19 +42,17 @@ func VPNClientIP(r *http.Request, vpnNet *net.IPNet, wgReg *wireguard.Registry) 
 // Deps bundles everything the HTTP layer depends on, so Register takes one
 // value instead of a positional parameter list that grows with every feature.
 type Deps struct {
-	DB           *db.DB
-	Sessions     *auth.SessionStore
-	OVPNOnline   *tracker.OnlineTracker // OpenVPN online set, fed by the watcher
-	WGOnline     *tracker.OnlineTracker // WireGuard online set, fed by the wg poller
-	Certs        *openvpn.CertWhitelist
-	WGRegistry   *wireguard.Registry
-	IPP          *openvpn.IPPStore
-	Templates    *template.Template
-	VPNNet       *net.IPNet // OpenVPN subnet; nil when undetected
-	SessionTTL   time.Duration
-	Logger       *slog.Logger
-	TemplatesDir string
-	Cache        *sysinfo.StatsCache
+	DB         *db.DB
+	Sessions   *auth.SessionStore
+	OVPNOnline *tracker.OnlineTracker // OpenVPN online set, fed by the watcher
+	WGOnline   *tracker.OnlineTracker // WireGuard online set, fed by the wg poller
+	Certs      *openvpn.CertWhitelist
+	WGRegistry *wireguard.Registry
+	IPP        *openvpn.IPPStore
+	VPNNet     *net.IPNet // OpenVPN subnet; nil when undetected
+	SessionTTL time.Duration
+	Logger     *slog.Logger
+	Cache      *sysinfo.StatsCache
 }
 
 // annotate fills a client's per-system connection state: Online stays the
@@ -89,13 +71,10 @@ func (d Deps) annotate(c *model.Client, ovpnOnline, wgOnlineSet map[string]bool)
 	}
 }
 
-// Register mounts every route — static assets, the JSON/WebSocket APIs
-// (api.go) and the HTML pages (pages.go) — onto mux.
+// Register mounts every route — the embedded frontend assets (web package),
+// the JSON/WebSocket APIs (api.go) and the SPA pages (pages.go) — onto mux.
 func Register(mux *http.ServeMux, d Deps) {
-	// ── Static files ─────────────────────────────────────────────────────────
-	mux.Handle("/static/", http.StripPrefix("/static/",
-		http.FileServer(http.Dir(filepath.Join(d.TemplatesDir, "static")))))
-
+	web.RegisterAssets(mux)
 	registerAPI(mux, d)
 	registerPages(mux, d)
 }

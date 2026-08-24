@@ -1,0 +1,83 @@
+/* page-cards.css — adapted from 3x-ui's page-cards.css. Shadows and colors
+   come from the mode-scoped custom properties in tokens.css. */
+
+.overview-page .ant-card,
+.clients-page .ant-card,
+.client-detail-page .ant-card,
+.domain-detail-page .ant-card,
+.settings-page .ant-card,
+.glass-card {
+  border-radius: var(--card-radius, 12px);
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.25s ease,
+    border-color 0.2s ease;
+}
+
+.overview-page .ant-card.ant-card-hoverable:hover,
+.clients-page .ant-card.ant-card-hoverable:hover,
+.client-detail-page .ant-card.ant-card-hoverable:hover,
+.domain-detail-page .ant-card.ant-card-hoverable:hover,
+.settings-page .ant-card.ant-card-hoverable:hover {
+  cursor: default;
+  box-shadow: var(--shadow-card-hover);
+}
+
+.overview-page .ant-card .ant-card-actions,
+.clients-page .ant-card .ant-card-actions,
+.client-detail-page .ant-card .ant-card-actions,
+.domain-detail-page .ant-card .ant-card-actions,
+.settings-page .ant-card .ant-card-actions {
+  background: transparent;
+}
+
+/* Shared ui/ components (StatCard, SeverityCard, CopyText). */
+
+.stat-card-title {
+  font-size: var(--fs-label, 12px);
+  letter-spacing: var(--ls-label, 0.06em);
+  text-transform: uppercase;
+  color: var(--text-tertiary, rgba(255, 255, 255, 0.45));
+}
+
+.stat-card-value {
+  font-size: var(--fs-hero, 30px);
+  font-weight: 600;
+  line-height: var(--lh-tight, 1.25);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-card-extra {
+  color: var(--text-secondary, rgba(255, 255, 255, 0.65));
+  font-size: var(--fs-sm, 13px);
+}
+
+.severity-card .glass-card {
+  border: 1px solid var(--border-secondary, rgba(255, 255, 255, 0.08));
+}
+
+.severity-card.severity-warn .glass-card {
+  border-color: var(--color-warning, #faad14);
+}
+
+.severity-card.severity-critical .glass-card {
+  border-color: var(--color-error, #ff4d4f);
+}
+
+.copy-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--color-primary, #1677ff);
+}
+
+.copy-text-icon {
+  font-size: 12px;
+  color: var(--text-tertiary, rgba(255, 255, 255, 0.45));
+}
+
+.copy-text:hover .copy-text-icon {
+  color: var(--color-primary, #1677ff);
+}

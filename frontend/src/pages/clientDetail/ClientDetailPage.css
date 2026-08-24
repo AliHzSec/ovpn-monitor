@@ -1,0 +1,231 @@
+/* ClientDetailPage.css — page-specific styles for the client detail page.
+   Colors and typography come from the body.light/body.dark custom properties
+   in styles/tokens.css, so the page flips with the theme. */
+
+.client-detail-page .client-breadcrumb {
+  margin-bottom: -4px;
+}
+
+.client-detail-page .client-breadcrumb .ant-breadcrumb-link a {
+  color: var(--text-secondary);
+}
+
+/* ── CLIENT HEADER CARD ── */
+.client-detail-page .client-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4, 16px);
+  flex-wrap: wrap;
+}
+
+.client-detail-page .client-avatar.ant-avatar {
+  background: var(--primary-soft);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
+  color: var(--color-primary);
+  font-size: var(--fs-stat, 20px);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.client-detail-page .client-head-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.client-detail-page .client-name {
+  font-size: var(--fs-title, 22px);
+  font-weight: 600;
+  line-height: var(--lh-tight, 1.25);
+  overflow-wrap: anywhere;
+}
+
+.client-detail-page .badge-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ── INFO GRID (connection details) ── */
+.client-detail-page .info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-4, 16px);
+}
+
+@media (max-width: 900px) {
+  .client-detail-page .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .client-detail-page .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.client-detail-page .info-card-title {
+  font-size: var(--fs-heading, 15px);
+  font-weight: 600;
+  padding-bottom: var(--sp-3, 12px);
+  margin-bottom: var(--sp-4, 16px);
+  border-bottom: 1px solid var(--border-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2, 8px);
+}
+
+.client-detail-page .info-card-title-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.client-detail-page .info-card-title-dot-success {
+  background: var(--color-success);
+}
+
+.client-detail-page .kv {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3, 12px);
+}
+
+.client-detail-page .kv-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3, 12px);
+}
+
+.client-detail-page .kv-label {
+  font-size: var(--fs-sm, 13px);
+  color: var(--text-secondary);
+}
+
+.client-detail-page .kv-value {
+  font-size: var(--fs-lg, 17px);
+  font-weight: 500;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.client-detail-page .kv-value.muted {
+  color: var(--text-tertiary);
+}
+
+.client-detail-page .kv-value.recv {
+  color: var(--recv-color);
+}
+
+.client-detail-page .kv-value.sent {
+  color: var(--sent-color);
+}
+
+.client-detail-page .kv-value.total {
+  font-weight: 600;
+}
+
+/* ── VISITED DOMAINS CARD ── */
+.client-detail-page .domains-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-3, 12px);
+  margin-bottom: var(--sp-4, 16px);
+}
+
+.client-detail-page .domains-title {
+  font-size: var(--fs-heading, 15px);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2, 8px);
+}
+
+@media (max-width: 768px) {
+  .client-detail-page .domains-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ── TABLE ── */
+.client-detail-page .domain-text {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.client-detail-page .sub-count {
+  display: block;
+  font-size: var(--fs-sm, 13px);
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.client-detail-page .time-cell {
+  font-size: var(--fs-sm, 13px);
+  color: var(--text-secondary);
+}
+
+.client-detail-page .count-pill {
+  display: inline-block;
+  min-width: 36px;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--primary-soft);
+  color: var(--color-primary);
+  font-size: var(--fs-sm, 13px);
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Each row is a root domain that drills down to its subdomains, so it carries
+   the same affordance as a client row on the Clients page. */
+.client-detail-page .domain-row {
+  cursor: pointer;
+}
+
+.client-detail-page .row-chevron {
+  color: var(--text-tertiary);
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.client-detail-page .domain-row:hover .row-chevron {
+  color: var(--color-primary);
+  transform: translateX(2px);
+}
+
+/* ── FOOTER / EMPTY ── */
+.client-detail-page .domains-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: var(--fs-sm, 13px);
+  color: var(--text-tertiary);
+  padding-top: var(--sp-4, 16px);
+}
+
+.client-detail-page .empty-title {
+  display: block;
+  font-size: var(--fs-heading, 15px);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.client-detail-page .empty-text {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-secondary);
+}

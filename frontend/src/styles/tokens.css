@@ -1,0 +1,188 @@
+/* ==========================================================================
+   tokens.css — design tokens for the React SPA, single source of truth for
+   color, typography and shared shape values; everything else consumes them
+   through var(). Colors are scoped to body.light / body.dark (the class is
+   applied by src/hooks/useTheme.tsx at module load); the palette mirrors
+   3x-ui: dark surfaces are its exact dark tokens, light surfaces follow its
+   page-shell values. Semantic colors map onto antd's CSS variables (key
+   'ovpn') so they flip with the ConfigProvider algorithm automatically.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+    /* ── TYPOGRAPHY ────────────────────────────────────────────────────── */
+    --font-sans: "IBM Plex Sans", -apple-system, system-ui, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    --font-brand: "IBM Plex Mono", ui-monospace, monospace;
+
+    /* Scale. 14px is the hard floor for body copy and 12px for captions —
+       nothing in any page may go below these. */
+    --fs-caption: 12px;
+    /* smallest permitted size, captions/labels only */
+    --fs-body: 14px;
+    /* body-copy floor */
+    --fs-sm: 13px;
+    /* compact controls (buttons, pills) — still >= caption floor */
+    --fs-md: 15px;
+    --fs-heading: 15px;
+    /* card titles */
+    --fs-lg: 17px;
+    /* prominent values inside rows */
+    --fs-stat: 20px;
+    /* secondary stat values */
+    --fs-title: 22px;
+    /* page/entity titles */
+    --fs-hero: 30px;
+    /* the big headline numbers (28-34px band) */
+    --fs-hero-lg: 34px;
+    --fs-label: 12px;
+    /* uppercase kickers / section labels */
+
+    --lh-body: 1.5;
+    --lh-tight: 1.25;
+    --ls-label: 0.06em;
+
+    /* ── SHAPE / MOTION ────────────────────────────────────────────────── */
+    --card-radius: 12px;
+    --radius-ctl: 8px;
+    --radius-pill: 999px;
+
+    --card-transition: transform .2s, box-shadow .25s, border-color .2s;
+
+    /* ── LAYOUT ────────────────────────────────────────────────────────── */
+    --sidebar-width: 220px;
+    --topbar-h: 56px;
+    --content-pad: 24px;
+
+    /* ── SPACING ───────────────────────────────────────────────────────── */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 20px;
+    --sp-6: 24px;
+    --sp-8: 32px;
+}
+
+/* ── SURFACES / SHADOWS per mode ─────────────────────────────────────────
+   Dark values are 3x-ui's exact dark tokens; light values follow 3x-ui's
+   page-shell (--bg-page #e6e8ec, --bg-card #ffffff). */
+body.dark {
+    /* Tell form controls, scrollbars and the like that this is a dark UI. */
+    color-scheme: dark;
+
+    --bg-page: #1a1b1f;
+    --bg-card: #23252b;
+    /* Raised surfaces derived from the card color: inputs, hovers, wells. */
+    --bg-elevated: #2d2f37;
+    --bg-sunken: #15161a;
+    --bg-sidebar: #15161a;
+    --bg-topbar: #15161a;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.03);
+    --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px rgba(255, 255, 255, 0.04);
+
+    --ring-track: rgba(255, 255, 255, 0.10);
+    --glass-blur: blur(12px);
+}
+
+body.light {
+    color-scheme: light;
+
+    --bg-page: #e6e8ec;
+    --bg-card: #ffffff;
+    --bg-elevated: #f0f1f4;
+    --bg-sunken: #e2e4e9;
+    --bg-sidebar: #ffffff;
+    --bg-topbar: #ffffff;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.10);
+
+    --ring-track: rgba(0, 0, 0, 0.10);
+    --glass-blur: blur(12px);
+}
+
+/* ── SEMANTIC COLORS ─────────────────────────────────────────────────────
+   Mapped onto antd's css vars so they flip with the theme algorithm. */
+body.dark,
+body.light {
+    --color-primary: var(--ovpn-color-primary);
+    --color-primary-hover: var(--ovpn-color-primary-hover);
+    --color-primary-active: var(--ovpn-color-primary-active);
+    --color-success: var(--ovpn-color-success);
+    --color-error: var(--ovpn-color-error);
+    --color-warning: var(--ovpn-color-warning);
+    --color-purple: #722ed1;
+
+    /* Translucent accent washes. Percentages match the reference's selected /
+       hover states so submenus, pills and tints stay consistent. */
+    --primary-selected: color-mix(in srgb, var(--color-primary) 20%, transparent);
+    --primary-hover: color-mix(in srgb, var(--color-primary) 10%, transparent);
+    --primary-soft: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    --primary-faint: color-mix(in srgb, var(--color-primary) 6%, transparent);
+    --primary-ring: color-mix(in srgb, var(--color-primary) 30%, transparent);
+    --success-soft: color-mix(in srgb, var(--color-success) 14%, transparent);
+    --error-soft: color-mix(in srgb, var(--color-error) 14%, transparent);
+    --warning-soft: color-mix(in srgb, var(--color-warning) 14%, transparent);
+    --purple-soft: color-mix(in srgb, var(--color-purple) 18%, transparent);
+
+    /* ── TEXT ──────────────────────────────────────────────────────────── */
+    --text: var(--ovpn-color-text);
+    --text-secondary: var(--ovpn-color-text-secondary);
+    --text-tertiary: var(--ovpn-color-text-tertiary);
+
+    /* ── BORDERS ───────────────────────────────────────────────────────── */
+    --border: var(--ovpn-color-border);
+    --border-secondary: var(--ovpn-color-border-secondary);
+
+    /* ── COMPATIBILITY ALIASES ───────────────────────────────────────────
+       Older rule names remapped onto the palette above, kept for parity with
+       the legacy templates. --accent IS the primary blue. */
+    --bg: var(--bg-page);
+    --surface: var(--bg-card);
+    --surface-solid: var(--bg-card);
+    --surface2: var(--bg-elevated);
+    --surface3: var(--bg-elevated);
+    --border2: var(--border);
+    --accent: var(--color-primary);
+    --accent-glow: var(--primary-ring);
+    --accent-dim: var(--primary-faint);
+    --green: var(--color-success);
+    --green-dim: var(--success-soft);
+    --green-glow: color-mix(in srgb, var(--color-success) 30%, transparent);
+    --danger: var(--color-error);
+    --danger-dim: var(--error-soft);
+    --amber: var(--color-warning);
+    --amber-dim: var(--warning-soft);
+    --warn: var(--color-warning);
+    --warn-dim: var(--warning-soft);
+    --text-dim: var(--text-secondary);
+    --text-muted: var(--text-tertiary);
+    /* Traffic direction: download takes the primary accent, upload stays
+       neutral. Neither is ever amber. */
+    --recv-color: var(--color-primary);
+    --sent-color: var(--text-secondary);
+}
+
+html {
+    height: 100%;
+    /* Safety net: never let a descendant produce a horizontal scrollbar.
+       clip (not hidden) avoids creating a scroll container, so position:sticky
+       on the topbar keeps working. */
+    overflow-x: clip;
+}
+
+body {
+    font-family: var(--font-sans);
+    font-size: var(--fs-md);
+    line-height: var(--lh-body);
+    background: var(--bg-page);
+    color: var(--text);
+    min-height: 100dvh;
+    /* Numbers must never jitter as they tick. */
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}

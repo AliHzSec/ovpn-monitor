@@ -56,7 +56,6 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	exeDir := filepath.Dir(exe)
 
 	dbPath := filepath.Join(exeDir, "db.sqlite")
-	templatesDir := filepath.Join(exeDir, "templates")
 
 	// Step 1: open database
 	sqldb, err := sql.Open("sqlite3", dbPath)
@@ -154,7 +153,6 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		"log", opts.Log,
 		"addr", opts.Addr,
 		"certs_dir", opts.CertsDir,
-		"templates_dir", templatesDir,
 		"ipp_file", opts.IPPFile,
 		"server_config", opts.ServerConfig,
 		"vpn_subnet", detectedSubnet,
@@ -165,11 +163,6 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		"wireguard_interface", opts.WGIface,
 		"wireguard_handshake_timeout", opts.WGHandshakeTimeout,
 	)
-
-	tmpl, err := handler.LoadTemplates(templatesDir)
-	if err != nil {
-		return err
-	}
 
 	certList := &openvpn.CertWhitelist{}
 	if err := certList.Load(opts.CertsDir); err != nil {
@@ -291,19 +284,17 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	mux := http.NewServeMux()
 	handler.Register(mux, handler.Deps{
-		DB:           database,
-		Sessions:     sessions,
-		OVPNOnline:   online,
-		WGOnline:     wgOnline,
-		Certs:        certList,
-		WGRegistry:   wgReg,
-		IPP:          ippSt,
-		Templates:    tmpl,
-		VPNNet:       vpnNet,
-		SessionTTL:   opts.SessionTTL,
-		Logger:       logger,
-		TemplatesDir: templatesDir,
-		Cache:        cache,
+		DB:         database,
+		Sessions:   sessions,
+		OVPNOnline: online,
+		WGOnline:   wgOnline,
+		Certs:      certList,
+		WGRegistry: wgReg,
+		IPP:        ippSt,
+		VPNNet:     vpnNet,
+		SessionTTL: opts.SessionTTL,
+		Logger:     logger,
+		Cache:      cache,
 	})
 
 	srv := &http.Server{Addr: opts.Addr, Handler: mux}

@@ -1,0 +1,65 @@
+/* ServiceCard.css — state-aware service control card, adapted from the
+   legacy dashboard.html .service-card rules. All colors are var-driven so
+   the card flips with the light/dark theme. */
+
+.service-card .ant-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4, 16px);
+  height: 100%;
+}
+
+.service-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.service-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-caption, 12px);
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.service-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.service-status.running .service-status-text {
+  color: var(--color-success);
+}
+
+.service-status.running .service-status-dot {
+  background: var(--color-success);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-success) 60%, transparent);
+}
+
+.service-status.stopped .service-status-text {
+  color: var(--color-error);
+}
+
+.service-status.stopped .service-status-dot {
+  background: var(--color-error);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-error) 50%, transparent);
+}
+
+/* Fixed-width flex row: the Stop/Restart pair and the lone Start button
+   share the same footprint — the single button simply flexes to fill it. */
+.service-actions {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.service-actions .ant-btn {
+  flex: 1;
+}
