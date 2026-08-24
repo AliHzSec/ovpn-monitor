@@ -3,56 +3,38 @@ package web
 import (
 	"bytes"
 	"encoding/json"
-	"html"
 	"io/fs"
 	"net/http"
 
 	"ovpnmonitor/internal/model"
 )
 
-// csrfMetaPlaceholder is the empty CSRF meta tag the Vite entries ship with.
-// It is replaced in place at serve time when the caller supplies a CSRF
-// token, and left empty for pages that make no mutating requests (portal).
-const csrfMetaPlaceholder = `<meta name="csrf-token" content="" />`
-
 var headClose = []byte("</head>")
 
-// ServePage serves one embedded HTML entry (e.g. "index.html", "login.html")
-// with csrf injected into the csrf-token meta. An empty csrf leaves the
-// placeholder untouched: no token is exposed. No cookie is set here — the
-// session cookie (set by the login page / login POST handlers) is the only
-// cookie this panel uses.
-func ServePage(w http.ResponseWriter, name, csrf string) {
-	servePage(Dist, w, name, nil, csrf)
+// ServePage serves one embedded HTML entry (e.g. "index.html", "login.html").
+// No cookie is set here — the session cookie (set by the login POST handler)
+// is the only cookie this panel uses.
+func ServePage(w http.ResponseWriter, name string) {
+	servePage(Dist, w, name, nil)
 }
 
 // ServePortal serves portal.html with the window.OVPN_PORTAL bootstrap —
 // the JSON-encoded ClientPortalData — injected before </head>, replacing the
 // old server-rendered client.html template. The portal is IP-gated and
-// sessionless and makes no mutating requests, so the CSRF meta stays empty.
+// sessionless.
 func ServePortal(w http.ResponseWriter, data model.ClientPortalData) {
-	servePage(Dist, w, "portal.html", data, "")
+	servePage(Dist, w, "portal.html", data)
 }
 
 // servePage reads name out of fsys (rooted at the embed parent, so the path
-// is "dist/"+name), injects the CSRF meta when csrf is non-empty — and for
-// portal.html the bootstrap script — and writes the page no-cache. A dist
-// holding only the .gitkeep placeholder yields a clear 500 instead of a
-// broken page.
-func servePage(fsys fs.FS, w http.ResponseWriter, name string, portal any, csrf string) {
+// is "dist/"+name), injects the portal bootstrap for portal.html, and writes
+// the page no-cache. A dist holding only the .gitkeep placeholder yields a
+// clear 500 instead of a broken page.
+func servePage(fsys fs.FS, w http.ResponseWriter, name string, portal any) {
 	body, err := fs.ReadFile(fsys, "dist/"+name)
 	if err != nil {
 		NotBuilt(w)
 		return
-	}
-
-	if csrf != "" {
-		meta := []byte(`<meta name="csrf-token" content="` + html.EscapeString(csrf) + `" />`)
-		if bytes.Contains(body, []byte(csrfMetaPlaceholder)) {
-			body = bytes.Replace(body, []byte(csrfMetaPlaceholder), meta, 1)
-		} else {
-			body = injectBeforeHead(body, meta)
-		}
 	}
 
 	if portal != nil {

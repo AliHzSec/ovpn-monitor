@@ -1,7 +1,6 @@
 // api/http.ts — fetch wrapper for the ovpn-monitor backend, modeled on
 // 3x-ui's http-init.ts but trimmed: no base path (the panel is fixed at
-// /panel, the portal at /) and no CSRF-token endpoint — the Go server injects
-// the token into <meta name="csrf-token"> at runtime.
+// /panel, the portal at /).
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 const LOGIN_PATH = '/panel/login';
@@ -22,10 +21,6 @@ export interface HttpRequestOptions {
   headers?: Record<string, string> | Headers;
   params?: Record<string, unknown>;
   signal?: AbortSignal;
-}
-
-export function readCsrfToken(): string | null {
-  return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || null;
 }
 
 function encodeForm(data: unknown): string {
@@ -79,16 +74,16 @@ export async function httpRequest<T = unknown>(
   headers.set('X-Requested-With', 'XMLHttpRequest');
 
   let body: BodyInit | undefined;
-  if (!SAFE_METHODS.has(upper) && data !== undefined) {
-    const declaredType = (headers.get('Content-Type') || '').toLowerCase();
-    if (declaredType.startsWith('application/x-www-form-urlencoded')) {
-      body = encodeForm(data);
-    } else {
-      headers.set('Content-Type', 'application/json');
-      body = JSON.stringify(data);
+  if (!SAFE_METHODS.has(upper)) {
+    if (data !== undefined) {
+      const declaredType = (headers.get('Content-Type') || '').toLowerCase();
+      if (declaredType.startsWith('application/x-www-form-urlencoded')) {
+        body = encodeForm(data);
+      } else {
+        headers.set('Content-Type', 'application/json');
+        body = JSON.stringify(data);
+      }
     }
-    const token = readCsrfToken();
-    if (token) headers.set('X-CSRF-Token', token);
   }
 
   const res = await fetch(appendQuery(url, options.params), {

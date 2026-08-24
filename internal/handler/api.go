@@ -40,7 +40,7 @@ func registerAPI(mux *http.ServeMux, d Deps) {
 		"openvpn":   sysinfo.OpenVPNUnit(),
 		"wireguard": sysinfo.WGUnit,
 	}
-	mux.Handle("POST /api/service/{name}/{action}", auth.APIAuthMiddleware(d.Sessions, auth.CSRFMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("POST /api/service/{name}/{action}", auth.APIAuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		unit, known := serviceUnits[r.PathValue("name")]
 		action := r.PathValue("action")
 		if !known || (action != "start" && action != "stop" && action != "restart") {
@@ -66,7 +66,7 @@ func registerAPI(mux *http.ServeMux, d Deps) {
 			"ok":     true,
 			"active": sysinfo.ServiceActive(unit),
 		})
-	}))))
+	})))
 
 	mux.Handle("/api/clients", auth.APIAuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		filter := r.URL.Query().Get("filter")

@@ -16,10 +16,10 @@ import (
 // schedules os.Exit(0) 500ms out to effect the restart, and any test still
 // running when it fires would be killed mid-flight.
 func TestAddrChangeStillSignalsRestart(t *testing.T) {
-	mux, _, _, cookie, csrf := newTestPanel(t)
+	mux, _, _, cookie := newTestPanel(t)
 
 	form := url.Values{"addr": {"127.0.0.1:8080"}, "admin_user": {"admin"}, "poll_interval": {"10s"}}
-	req := withCSRF(httptest.NewRequest(http.MethodPost, "/settings/general", strings.NewReader(form.Encode())), csrf)
+	req := httptest.NewRequest(http.MethodPost, "/settings/general", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	rec := httptest.NewRecorder()

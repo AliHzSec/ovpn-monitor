@@ -9,18 +9,10 @@ import (
 	"time"
 )
 
-// session is one server-side session record. Beyond expiry it carries:
-//
-//   - authenticated: false for the PRE-AUTH sessions minted when the login
-//     page is served (they exist only to hold the CSRF token for the login
-//     POST and never pass AuthMiddleware), true after a successful login;
-//   - csrf: the synchronizer token bound to this session, injected into the
-//     served HTML pages and compared against the X-CSRF-Token header of
-//     mutating requests (see csrf.go).
+// session is one server-side session record. Every session is authenticated:
+// one is only ever minted on a successful login.
 type session struct {
-	expires       time.Time
-	authenticated bool
-	csrf          string
+	expires time.Time
 }
 
 type SessionStore struct {
@@ -55,20 +47,16 @@ func (s *SessionStore) sweepLoop() {
 	}
 }
 
-// Create mints a fresh session token and a fresh CSRF token and stores the
-// record. authenticated is false for the pre-auth sessions that back the
-// login form's CSRF check, true for the session minted on login success.
-func (s *SessionStore) Create(authenticated bool) (sessionToken, csrfToken string) {
-	sessionToken = GenerateToken()
-	csrfToken = GenerateToken()
+// Create mints a fresh session token and stores the record. It is only ever
+// called on a successful login, so every stored session is authenticated.
+func (s *SessionStore) Create() string {
+	sessionToken := GenerateToken()
 	s.mu.Lock()
 	s.sessions[sessionToken] = &session{
-		expires:       time.Now().Add(s.ttl),
-		authenticated: authenticated,
-		csrf:          csrfToken,
+		expires: time.Now().Add(s.ttl),
 	}
 	s.mu.Unlock()
-	return sessionToken, csrfToken
+	return sessionToken
 }
 
 // lookup returns the live session record for token, evicting it if expired.
@@ -86,27 +74,10 @@ func (s *SessionStore) lookup(token string) (*session, bool) {
 	return sess, true
 }
 
-// Valid reports whether token is a live AUTHENTICATED session. Pre-auth
-// sessions (minted for the login page's CSRF check) never qualify.
+// Valid reports whether token is a live session.
 func (s *SessionStore) Valid(token string) bool {
-	sess, ok := s.lookup(token)
-	return ok && sess.authenticated
-}
-
-// CSRFToken returns the synchronizer token stored with any live session,
-// pre-auth or authenticated. Records minted before tokens were stored
-// server-side get one lazily.
-func (s *SessionStore) CSRFToken(token string) (string, bool) {
-	sess, ok := s.lookup(token)
-	if !ok {
-		return "", false
-	}
-	if sess.csrf == "" {
-		s.mu.Lock()
-		sess.csrf = GenerateToken()
-		s.mu.Unlock()
-	}
-	return sess.csrf, true
+	_, ok := s.lookup(token)
+	return ok
 }
 
 func (s *SessionStore) Delete(token string) {

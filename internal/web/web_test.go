@@ -17,7 +17,7 @@ func TestUnbuiltDistReturnsClear500(t *testing.T) {
 	fsys := fstest.MapFS{"dist/.gitkeep": {}}
 
 	rec := httptest.NewRecorder()
-	servePage(fsys, rec, "index.html", nil, "token")
+	servePage(fsys, rec, "index.html", nil)
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want 500", rec.Code)
@@ -27,35 +27,31 @@ func TestUnbuiltDistReturnsClear500(t *testing.T) {
 	}
 }
 
-// A supplied CSRF token replaces the placeholder meta; an empty one leaves it
-// untouched, and no cookie is ever set from here.
-func TestServePageCSRFMeta(t *testing.T) {
-	const page = `<html><head><meta name="csrf-token" content="" /><title>t</title></head><body></body></html>`
+// A plain page is served verbatim, no-cache and without setting cookies.
+func TestServePagePassthrough(t *testing.T) {
+	const page = `<html><head><title>t</title></head><body></body></html>`
 	fsys := fstest.MapFS{"dist/index.html": {Data: []byte(page)}}
 
 	rec := httptest.NewRecorder()
-	servePage(fsys, rec, "index.html", nil, "abc123")
-	if !strings.Contains(rec.Body.String(), `<meta name="csrf-token" content="abc123" />`) {
-		t.Errorf("token not injected:\n%s", rec.Body.String())
+	servePage(fsys, rec, "index.html", nil)
+	if rec.Body.String() != page {
+		t.Errorf("page was modified in serving:\n%s", rec.Body.String())
 	}
 	if cookies := rec.Result().Cookies(); len(cookies) != 0 {
 		t.Errorf("page serving set cookies: %v", cookies)
 	}
-
-	rec = httptest.NewRecorder()
-	servePage(fsys, rec, "index.html", nil, "")
-	if !strings.Contains(rec.Body.String(), `<meta name="csrf-token" content="" />`) {
-		t.Errorf("empty token must leave the placeholder untouched:\n%s", rec.Body.String())
+	if cc := rec.Header().Get("Cache-Control"); !strings.Contains(cc, "no-cache") {
+		t.Errorf("HTML page served with Cache-Control %q, want no-cache", cc)
 	}
 }
 
 // portal.html gets the window.OVPN_PORTAL bootstrap injected before </head>,
 // with the ClientPortalData json tags the React portal reads. The portal is
-// sessionless: the CSRF meta stays empty and no cookies are set.
+// sessionless: no cookies are set.
 func TestServePortalInjectsBootstrap(t *testing.T) {
 	fsys := fstest.MapFS{
 		"dist/portal.html": {Data: []byte(
-			`<html><head><meta name="csrf-token" content="" /><title>VPN Portal</title></head><body></body></html>`)},
+			`<html><head><title>VPN Portal</title></head><body></body></html>`)},
 	}
 	data := model.ClientPortalData{
 		CommonName:     "alice",
@@ -66,16 +62,13 @@ func TestServePortalInjectsBootstrap(t *testing.T) {
 	}
 
 	rec := httptest.NewRecorder()
-	servePage(fsys, rec, "portal.html", data, "")
+	servePage(fsys, rec, "portal.html", data)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 500-free 200", rec.Code)
 	}
 	body := rec.Body.String()
 
-	if !strings.Contains(body, `<meta name="csrf-token" content="" />`) {
-		t.Error("portal csrf meta must stay empty")
-	}
 	if cookies := rec.Result().Cookies(); len(cookies) != 0 {
 		t.Errorf("portal set cookies: %v", cookies)
 	}

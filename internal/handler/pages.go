@@ -83,15 +83,13 @@ func registerPages(mux *http.ServeMux, d Deps) {
 	})
 
 	// ── Admin login ───────────────────────────────────────────────────────────
-	// GET serves the embedded login SPA. The synchronizer-token CSRF check on
-	// the POST needs server-side state pre-auth, so a visitor without a live
-	// session gets a PRE-AUTH one here (see preAuthCSRF): a session cookie
-	// whose record holds the CSRF token injected into the page.
+	// GET serves the embedded login SPA. No session or cookie is created here —
+	// one is only minted on a successful login POST.
 	mux.Handle("GET /panel/login", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		web.ServePage(w, "login.html", d.preAuthCSRF(w, r))
+		web.ServePage(w, "login.html")
 	}))
 
-	mux.Handle("POST /panel/login", auth.CSRFMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("POST /panel/login", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := r.FormValue("username")
 		pass := r.FormValue("password")
 		// Read credentials from DB on each attempt so changes take effect immediately.
@@ -103,13 +101,12 @@ func registerPages(mux *http.ServeMux, d Deps) {
 		}
 		passOK := bcrypt.CompareHashAndPassword([]byte(settings["admin_pass"]), []byte(pass)) == nil
 		if user == settings["admin_user"] && passOK {
-			// Session fixation protection: the pre-auth session dies with the
-			// login and the authenticated session is a brand-new token (with
-			// its own fresh CSRF token).
+			// Session fixation protection: any old session dies with the login
+			// and the authenticated session is a brand-new token.
 			if c, err := r.Cookie("session"); err == nil {
 				d.Sessions.Delete(c.Value)
 			}
-			token, _ := d.Sessions.Create(true)
+			token := d.Sessions.Create()
 			http.SetCookie(w, &http.Cookie{
 				Name:     "session",
 				Value:    token,
@@ -125,7 +122,7 @@ func registerPages(mux *http.ServeMux, d Deps) {
 		json.NewEncoder(w).Encode(map[string]string{
 			"error": "Invalid username or password",
 		})
-	})))
+	}))
 
 	// ── Admin logout ──────────────────────────────────────────────────────────
 	// Method-specific patterns: an all-method /panel/logout would conflict with
@@ -148,13 +145,9 @@ func registerPages(mux *http.ServeMux, d Deps) {
 	// patterns double as the SPA fallback: any unknown GET under /panel/ or
 	// /settings/ still serves the app (never a 404), so refreshes and deep
 	// links work. Method-specific patterns keep POSTs (login, settings saves)
-	// out of the GET-only SPA handlers. The session's stored CSRF token is
-	// injected into the meta for the SPA's http layer.
+	// out of the GET-only SPA handlers.
 	spa := auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// AuthMiddleware has already validated the session cookie, so the
-		// lookup cannot miss.
-		csrf, _ := d.Sessions.CSRFToken(sessionCookie(r))
-		web.ServePage(w, "index.html", csrf)
+		web.ServePage(w, "index.html")
 	}))
 	mux.Handle("GET /panel", spa)   // exact; "/panel/{$}" would only match "/panel/"
 	mux.Handle("GET /panel/", spa)  // subtree + SPA fallback
@@ -165,18 +158,18 @@ func registerPages(mux *http.ServeMux, d Deps) {
 	// Legacy target for a cached copy of the old single-page form: accepts
 	// every known key. Still presence-checked, so it can only write fields the
 	// submitted form actually carried.
-	mux.Handle("POST /settings", auth.AuthMiddleware(d.Sessions, auth.CSRFMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("POST /settings", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		d.saveSettings(w, r, allSettingsKeys(), "/settings/"+settingsSections[0].Key)
-	}))))
+	})))
 
-	mux.Handle("POST /settings/{section}", auth.AuthMiddleware(d.Sessions, auth.CSRFMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("POST /settings/{section}", auth.AuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		section, ok := findSettingsSection(r.PathValue("section"))
 		if !ok {
 			http.NotFound(w, r)
 			return
 		}
 		d.saveSettings(w, r, section.Keys, "/settings/"+section.Key)
-	}))))
+	})))
 
 	// ── Client portal (root) ──────────────────────────────────────────────────
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -223,36 +216,6 @@ func registerPages(mux *http.ServeMux, d Deps) {
 		}
 		web.ServePortal(w, data)
 	})
-}
-
-// sessionCookie returns the request's session token, "" when absent.
-func sessionCookie(r *http.Request) string {
-	c, err := r.Cookie("session")
-	if err != nil {
-		return ""
-	}
-	return c.Value
-}
-
-// preAuthCSRF resolves the CSRF token injected into the login page. A request
-// that already carries a live session (pre-auth or authenticated) reuses the
-// token stored with it; anything else gets a fresh PRE-AUTH session — the
-// session cookie is set here (same attributes as the login POST sets) so the
-// synchronizer-token check on POST /panel/login has server-side state to
-// compare the header against.
-func (d Deps) preAuthCSRF(w http.ResponseWriter, r *http.Request) string {
-	if token, ok := d.Sessions.CSRFToken(sessionCookie(r)); ok {
-		return token
-	}
-	sessionToken, csrf := d.Sessions.Create(false)
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session",
-		Value:    sessionToken,
-		Path:     "/",
-		HttpOnly: true,
-		MaxAge:   int(d.SessionTTL.Seconds()),
-	})
-	return csrf
 }
 
 // saveSettings persists a settings form submission and confirms the save —

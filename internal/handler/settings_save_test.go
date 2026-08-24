@@ -25,9 +25,8 @@ import (
 // newTestPanel wires a panel over a fresh migrated database. The raw *sql.DB is
 // returned alongside the db.DB wrapper so tests can seed tables directly, which
 // includes writing rows in an older schema's shape to exercise a migration. The
-// returned cookie is an authenticated session and csrf its server-side CSRF
-// token (what the served pages would inject into the csrf-token meta).
-func newTestPanel(t *testing.T) (*http.ServeMux, *db.DB, *sql.DB, *http.Cookie, string) {
+// returned cookie is an authenticated session.
+func newTestPanel(t *testing.T) (*http.ServeMux, *db.DB, *sql.DB, *http.Cookie) {
 	t.Helper()
 	sqldb, err := sql.Open("sqlite3", filepath.Join(t.TempDir(), "t.sqlite"))
 	if err != nil {
@@ -39,7 +38,7 @@ func newTestPanel(t *testing.T) (*http.ServeMux, *db.DB, *sql.DB, *http.Cookie, 
 		t.Fatal(err)
 	}
 	sessions := auth.NewSessionStore(time.Hour)
-	token, csrf := sessions.Create(true)
+	token := sessions.Create()
 
 	mux := http.NewServeMux()
 	Register(mux, Deps{
@@ -49,21 +48,14 @@ func newTestPanel(t *testing.T) (*http.ServeMux, *db.DB, *sql.DB, *http.Cookie, 
 		IPP: &openvpn.IPPStore{},
 		SessionTTL: time.Hour, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 	})
-	return mux, database, sqldb, &http.Cookie{Name: "session", Value: token}, csrf
-}
-
-// withCSRF satisfies the synchronizer-token check: the X-CSRF-Token header
-// carries the token stored server-side with the request's session.
-func withCSRF(req *http.Request, csrf string) *http.Request {
-	req.Header.Set("X-CSRF-Token", csrf)
-	return req
+	return mux, database, sqldb, &http.Cookie{Name: "session", Value: token}
 }
 
 // Saving one settings section must leave every other section's values intact.
 // The form for a section only carries its own fields, so a handler that blindly
 // wrote every known key would blank the rest — disabling whole subsystems.
 func TestSavingOneSectionLeavesOthersIntact(t *testing.T) {
-	mux, database, _, cookie, csrf := newTestPanel(t)
+	mux, database, _, cookie := newTestPanel(t)
 
 	before, _ := database.GetAllSettings(context.Background())
 
@@ -72,7 +64,7 @@ func TestSavingOneSectionLeavesOthersIntact(t *testing.T) {
 		"wireguard_interface":         {"wg1"},
 		"wireguard_handshake_timeout": {"240s"},
 	}
-	req := withCSRF(httptest.NewRequest(http.MethodPost, "/settings/wireguard", strings.NewReader(form.Encode())), csrf)
+	req := httptest.NewRequest(http.MethodPost, "/settings/wireguard", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	rec := httptest.NewRecorder()
@@ -104,14 +96,14 @@ func TestSavingOneSectionLeavesOthersIntact(t *testing.T) {
 // A section POST must not be able to write keys outside its own allow-list,
 // even when the request body smuggles them in.
 func TestSectionCannotWriteForeignKeys(t *testing.T) {
-	mux, database, _, cookie, csrf := newTestPanel(t)
+	mux, database, _, cookie := newTestPanel(t)
 
 	form := url.Values{
 		"wireguard_interface": {"wg1"},
 		"openvpn_status_log":  {"/tmp/evil.log"}, // not owned by this section
 		"addr":                {"0.0.0.0:9999"},  // would also trigger a restart
 	}
-	req := withCSRF(httptest.NewRequest(http.MethodPost, "/settings/wireguard", strings.NewReader(form.Encode())), csrf)
+	req := httptest.NewRequest(http.MethodPost, "/settings/wireguard", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	rec := httptest.NewRecorder()
@@ -132,11 +124,11 @@ func TestSectionCannotWriteForeignKeys(t *testing.T) {
 
 // An empty password field means "keep the current password", never "clear it".
 func TestEmptyPasswordKeepsExistingHash(t *testing.T) {
-	mux, database, _, cookie, csrf := newTestPanel(t)
+	mux, database, _, cookie := newTestPanel(t)
 	before, _ := database.GetAllSettings(context.Background())
 
 	form := url.Values{"addr": {"0.0.0.0:80"}, "admin_user": {"admin"}, "poll_interval": {"10s"}, "admin_pass": {""}}
-	req := withCSRF(httptest.NewRequest(http.MethodPost, "/settings/general", strings.NewReader(form.Encode())), csrf)
+	req := httptest.NewRequest(http.MethodPost, "/settings/general", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	mux.ServeHTTP(httptest.NewRecorder(), req)
@@ -151,7 +143,7 @@ func TestEmptyPasswordKeepsExistingHash(t *testing.T) {
 // section client-side and redirects bare /settings itself); unknown paths get
 // the SPA fallback, never a 404, so refreshes on client routes keep working.
 func TestSettingsRouting(t *testing.T) {
-	mux, _, _, cookie, _ := newTestPanel(t)
+	mux, _, _, cookie := newTestPanel(t)
 
 	for _, tc := range []struct {
 		path string
@@ -176,7 +168,7 @@ func TestSettingsRouting(t *testing.T) {
 
 // Settings pages stay behind auth after the route split.
 func TestSettingsRequiresAuth(t *testing.T) {
-	mux, _, _, _, _ := newTestPanel(t)
+	mux, _, _, _ := newTestPanel(t)
 	for _, p := range []string{"/settings", "/settings/general", "/settings/wireguard"} {
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, p, nil))
@@ -190,11 +182,11 @@ func TestSettingsRequiresAuth(t *testing.T) {
 // password — a password manager autofilling an unrelated page would otherwise
 // silently rotate the admin credential.
 func TestForeignSectionCannotChangePassword(t *testing.T) {
-	mux, database, _, cookie, csrf := newTestPanel(t)
+	mux, database, _, cookie := newTestPanel(t)
 	before, _ := database.GetAllSettings(context.Background())
 
 	form := url.Values{"wireguard_interface": {"wg1"}, "admin_pass": {"hunter2"}}
-	req := withCSRF(httptest.NewRequest(http.MethodPost, "/settings/wireguard", strings.NewReader(form.Encode())), csrf)
+	req := httptest.NewRequest(http.MethodPost, "/settings/wireguard", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	mux.ServeHTTP(httptest.NewRecorder(), req)
@@ -207,11 +199,11 @@ func TestForeignSectionCannotChangePassword(t *testing.T) {
 
 // The General section still applies a real password change, stored hashed.
 func TestGeneralSectionChangesPassword(t *testing.T) {
-	mux, database, _, cookie, csrf := newTestPanel(t)
+	mux, database, _, cookie := newTestPanel(t)
 	before, _ := database.GetAllSettings(context.Background())
 
 	form := url.Values{"admin_user": {"admin"}, "admin_pass": {"a-new-password"}}
-	req := withCSRF(httptest.NewRequest(http.MethodPost, "/settings/general", strings.NewReader(form.Encode())), csrf)
+	req := httptest.NewRequest(http.MethodPost, "/settings/general", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	mux.ServeHTTP(httptest.NewRecorder(), req)

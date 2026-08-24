@@ -55,7 +55,7 @@ func getJSON(t *testing.T, mux *http.ServeMux, cookie *http.Cookie, path string)
 // The two levels of the Visited Domains view must agree: the root list's
 // rolled-up numbers have to match what the detail route returns for that root.
 func TestVisitedDomainsRoutes(t *testing.T) {
-	mux, database, sqldb, cookie, _ := newTestPanel(t)
+	mux, database, sqldb, cookie := newTestPanel(t)
 	seedVisits(t, database, sqldb, []visit{
 		{"alice", "firebaseremoteconfig.googleapis.com", "2026-01-02 09:00:00", "2026-01-05 18:00:00", 210},
 		{"alice", "www.googleapis.com", "2026-01-01 08:00:00", "2026-01-04 12:00:00", 141},
@@ -98,7 +98,7 @@ func TestVisitedDomainsRoutes(t *testing.T) {
 // client name and root domain out of the URL) and stay behind the session
 // cookie.
 func TestDomainDetailPage(t *testing.T) {
-	mux, database, sqldb, cookie, _ := newTestPanel(t)
+	mux, database, sqldb, cookie := newTestPanel(t)
 	seedVisits(t, database, sqldb, []visit{
 		{"alice", "firebaseremoteconfig.googleapis.com", "2026-01-02 09:00:00", "2026-01-05 18:00:00", 210},
 	})
@@ -125,7 +125,7 @@ func TestDomainDetailPage(t *testing.T) {
 // A root the client never visited is an empty list, not an error, and the
 // client detail route still works alongside the nested one.
 func TestVisitedDomainsRoutesDoNotShadow(t *testing.T) {
-	mux, database, sqldb, cookie, _ := newTestPanel(t)
+	mux, database, sqldb, cookie := newTestPanel(t)
 	seedVisits(t, database, sqldb, []visit{
 		{"alice", "www.youtube.com", "2026-01-02 00:00:00", "2026-01-02 01:00:00", 5},
 	})
