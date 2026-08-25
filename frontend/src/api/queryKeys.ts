@@ -8,4 +8,5 @@ export const keys = {
     ['clientDomainDetail', name, root] as const,
   clientStats: (filter: string) => ['clientStats', filter] as const,
   settings: (section: string) => ['settings', section] as const,
+  ipv6: (service: string) => ['ipv6', service] as const,
 };

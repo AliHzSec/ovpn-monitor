@@ -84,3 +84,18 @@ export interface ServiceActionResult {
   active: boolean;
   error?: string;
 }
+
+// GET /api/settings/{service}/ipv6 response. "unknown" means the config file's
+// IPv6 markers are missing or inconsistent and need manual attention.
+export type IPv6State = 'enabled' | 'disabled' | 'unknown';
+
+export interface IPv6StateResult {
+  state: IPv6State;
+}
+
+// PUT /api/settings/{service}/ipv6 response.
+export interface IPv6SetResult {
+  ok: boolean;
+  state: IPv6State;
+  error?: string;
+}

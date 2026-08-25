@@ -31,6 +31,12 @@ type Options struct {
 	WGIface            string
 	WGHandshakeTimeout time.Duration
 
+	// Systemd units restarted by the IPv6 toggle (see the ipv6 package). There
+	// are no DB settings for these; empty values are replaced with the defaults
+	// in main, following the same degrade-to-default pattern.
+	WGUnit   string
+	OVPNUnit string
+
 	// Domain sniffer tunables (see the sniffer package). Zero/empty values are
 	// replaced with defaults by sniffer.Config.applyDefaults, so a missing or
 	// malformed setting can never disable capture outright.

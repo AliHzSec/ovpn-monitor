@@ -19,6 +19,7 @@ import (
 	"ovpnmonitor/internal/config"
 	"ovpnmonitor/internal/db"
 	"ovpnmonitor/internal/handler"
+	"ovpnmonitor/internal/ipv6"
 	"ovpnmonitor/internal/openvpn"
 	"ovpnmonitor/internal/sniffer"
 	"ovpnmonitor/internal/sysinfo"
@@ -109,6 +110,14 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		opts.WGHandshakeTimeout = 180 * time.Second
 	}
 
+	// Systemd units for the IPv6 toggle's restarts.
+	if opts.WGUnit == "" {
+		opts.WGUnit = sysinfo.WGUnit
+	}
+	if opts.OVPNUnit == "" {
+		opts.OVPNUnit = sysinfo.OpenVPNUnit()
+	}
+
 	// Step 4: determine VPN subnet from OpenVPN server config, fall back to ipp.txt
 	var vpnNet *net.IPNet
 	if opts.ServerConfig != "" {
@@ -188,6 +197,17 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	online := &tracker.OnlineTracker{}   // OpenVPN, fed by the watcher
 	wgOnline := &tracker.OnlineTracker{} // WireGuard, fed by the wg poller
 	ippSt := &openvpn.IPPStore{}
+
+	// IPv6 toggles (see the ipv6 package). A missing config path disables the
+	// corresponding toggle, mirroring how a blank wireguard_conf disables
+	// WireGuard monitoring; the endpoints then answer 404.
+	var wgIPv6, ovpnIPv6 *ipv6.Service
+	if opts.WGConf != "" {
+		wgIPv6 = ipv6.NewWireGuard(opts.WGConf, opts.WGUnit, opts.WGIface, logger)
+	}
+	if opts.ServerConfig != "" {
+		ovpnIPv6 = ipv6.NewOpenVPN(opts.ServerConfig, opts.OVPNUnit, logger)
+	}
 
 	sessions := auth.NewSessionStore(opts.SessionTTL)
 
@@ -295,6 +315,8 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		SessionTTL: opts.SessionTTL,
 		Logger:     logger,
 		Cache:      cache,
+		IPv6WG:     wgIPv6,
+		IPv6OVPN:   ovpnIPv6,
 	})
 
 	srv := &http.Server{Addr: opts.Addr, Handler: mux}

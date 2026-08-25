@@ -8,6 +8,7 @@ import (
 
 	"ovpnmonitor/internal/auth"
 	"ovpnmonitor/internal/db"
+	"ovpnmonitor/internal/ipv6"
 	"ovpnmonitor/internal/model"
 	"ovpnmonitor/internal/openvpn"
 	"ovpnmonitor/internal/sysinfo"
@@ -53,6 +54,10 @@ type Deps struct {
 	SessionTTL time.Duration
 	Logger     *slog.Logger
 	Cache      *sysinfo.StatsCache
+	// IPv6 toggles (see the ipv6 package); nil when the service's config path
+	// is not configured, in which case its endpoints answer 404.
+	IPv6WG   *ipv6.Service
+	IPv6OVPN *ipv6.Service
 }
 
 // annotate fills a client's per-system connection state: Online stays the

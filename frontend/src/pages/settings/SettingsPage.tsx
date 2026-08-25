@@ -18,6 +18,8 @@ import { useSettings } from '@/api/queries/useSettings';
 import { keys } from '@/api/queryKeys';
 import PageShell from '@/components/ui/PageShell';
 
+import IPv6Card from './IPv6Card';
+
 import './SettingsPage.css';
 
 // ── Schemas ────────────────────────────────────────────────────────────────
@@ -380,6 +382,10 @@ export function SettingsPage() {
             </span>
           </div>
         </form>
+      )}
+
+      {(section.key === 'wireguard' || section.key === 'openvpn') && (
+        <IPv6Card service={section.key} title={section.title} />
       )}
     </PageShell>
   );

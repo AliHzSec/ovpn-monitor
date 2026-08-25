@@ -119,6 +119,14 @@ export function post<T = unknown>(
   return httpRequest<T>('POST', url, data, options);
 }
 
+export function put<T = unknown>(
+  url: string,
+  data?: unknown,
+  options?: HttpRequestOptions,
+): Promise<T> {
+  return httpRequest<T>('PUT', url, data, options);
+}
+
 export function postForm<T = unknown>(
   url: string,
   data?: unknown,

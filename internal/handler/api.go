@@ -22,6 +22,8 @@ import (
 // API under /api and /ws, plus the unauthenticated (VPN-subnet-only)
 // /api/client-stats used by the client portal.
 func registerAPI(mux *http.ServeMux, d Deps) {
+	registerIPv6(mux, d)
+
 	// ── Admin API ────────────────────────────────────────────────────────────
 	mux.Handle("/api/server-stats", auth.APIAuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, data := d.Cache.Get()
