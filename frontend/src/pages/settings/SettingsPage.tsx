@@ -1,12 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
-import { Alert, Button, Card, Empty, Input, Spin } from 'antd';
-import {
-  GlobalOutlined,
-  HddOutlined,
-  PhoneOutlined,
-  SafetyOutlined,
-} from '@ant-design/icons';
+import { Alert, Button, Empty, Input, Spin } from 'antd';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Controller, useForm } from 'react-hook-form';
 import type { Resolver } from 'react-hook-form';
@@ -46,20 +40,9 @@ const wireguardSchema = z.object({
   wireguard_handshake_timeout: z.string().optional(),
 });
 
-const domainsSchema = z.object({
-  sniffer_ifaces: z.string().optional(),
-  sniffer_wg_conf: z.string().optional(),
-  sniffer_snaplen: z.string().optional(),
-  sniffer_workers: z.string().optional(),
-  sniffer_queue: z.string().optional(),
-  sniffer_flush: z.string().optional(),
-  sniffer_dedup: z.string().optional(),
-});
-
 type SettingsFormValues = z.infer<typeof generalSchema> &
   z.infer<typeof openvpnSchema> &
-  z.infer<typeof wireguardSchema> &
-  z.infer<typeof domainsSchema>;
+  z.infer<typeof wireguardSchema>;
 
 type FieldName = keyof SettingsFormValues;
 
@@ -82,12 +65,10 @@ interface SettingsSection {
   key: string;
   title: string;
   note: string;
-  icon: React.ReactNode;
   schema:
     | typeof generalSchema
     | typeof openvpnSchema
-    | typeof wireguardSchema
-    | typeof domainsSchema;
+    | typeof wireguardSchema;
   fields: SettingsField[];
 }
 
@@ -96,7 +77,6 @@ const SECTIONS: Record<string, SettingsSection> = {
     key: 'general',
     title: 'General',
     note: 'Panel address, administrator credentials and refresh cadence.',
-    icon: <HddOutlined />,
     schema: generalSchema,
     fields: [
       {
@@ -130,7 +110,6 @@ const SECTIONS: Record<string, SettingsSection> = {
     key: 'openvpn',
     title: 'OpenVPN',
     note: 'Where the panel reads OpenVPN status, certificates and client IPs.',
-    icon: <PhoneOutlined />,
     schema: openvpnSchema,
     fields: [
       {
@@ -159,7 +138,6 @@ const SECTIONS: Record<string, SettingsSection> = {
     key: 'wireguard',
     title: 'WireGuard',
     note: 'Peer configuration and the interface the poller reads counters from.',
-    icon: <SafetyOutlined />,
     schema: wireguardSchema,
     fields: [
       {
@@ -175,37 +153,6 @@ const SECTIONS: Record<string, SettingsSection> = {
         placeholder: '180s',
         description: 'How long after the last handshake a peer counts as online',
       },
-    ],
-  },
-  domains: {
-    key: 'domains',
-    title: 'Domain Tracking',
-    note: 'Passive capture of TLS SNI and HTTP Host names on the tunnel interfaces.',
-    icon: <GlobalOutlined />,
-    schema: domainsSchema,
-    fields: [
-      {
-        name: 'sniffer_ifaces',
-        label: 'Capture Interfaces',
-        placeholder: 'tun0,wg0',
-        description: 'Comma-separated',
-      },
-      {
-        name: 'sniffer_wg_conf',
-        label: 'WireGuard Config File',
-        placeholder: '/etc/wireguard/wg0.conf',
-        description: 'Peer to name mapping source',
-      },
-      { name: 'sniffer_snaplen', label: 'Snap Length (bytes)', placeholder: '1600' },
-      { name: 'sniffer_workers', label: 'Parse Workers (0 = auto)', placeholder: '0' },
-      {
-        name: 'sniffer_queue',
-        label: 'Parse Queue Size',
-        placeholder: '4096',
-        description: 'Packets beyond this are dropped rather than queued',
-      },
-      { name: 'sniffer_flush', label: 'Flush Interval', placeholder: '2m' },
-      { name: 'sniffer_dedup', label: 'Dedup Window', placeholder: '60s' },
     ],
   },
 };
@@ -284,9 +231,9 @@ export function SettingsPage() {
   if (!section) {
     return (
       <PageShell title="Panel Settings" className="settings-page">
-        <Card className="settings-card">
+        <section className="dc-card settings-card">
           <Empty description="Unknown settings section (404)" />
-        </Card>
+        </section>
       </PageShell>
     );
   }
@@ -307,10 +254,6 @@ export function SettingsPage() {
       ) : null}
 
       <div className="settings-section-head">
-        <div className="settings-section-head-title">
-          {section.icon}
-          {section.title}
-        </div>
         <div className="settings-section-head-note">{section.note}</div>
       </div>
 
@@ -322,7 +265,8 @@ export function SettingsPage() {
         <Alert type="error" message="Failed to load settings." showIcon />
       ) : (
         <form onSubmit={handleSubmit((values) => saveMutation.mutate(values))}>
-          <Card className="settings-card">
+          <section className="dc-card settings-card">
+            <div className="dc-card-head">{section.title}</div>
             {section.fields.map((field) => (
               <div className="settings-field-row" key={field.name}>
                 <div className="settings-field-label-wrap">
@@ -366,7 +310,7 @@ export function SettingsPage() {
                 </div>
               </div>
             ))}
-          </Card>
+          </section>
 
           <div className="settings-form-footer">
             <Button

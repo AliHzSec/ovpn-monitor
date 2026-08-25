@@ -13,8 +13,8 @@ export function SysInfoCard({ stats }: { stats: SystemStats }) {
   ];
 
   return (
-    <section className="ovp-card">
-      <div className="ovp-card-head">System Info</div>
+    <section className="dc-card">
+      <div className="dc-card-head">System Info</div>
       <div className="ovp-info-body">
         {rows.map((r) => (
           <div key={r.k} className="ovp-info-row">
@@ -33,16 +33,16 @@ export function IpCard({ stats }: { stats: SystemStats }) {
   const ipv6 = pickPublicIPv6(stats.ipv6s || []);
 
   return (
-    <section className="ovp-card">
-      <div className="ovp-card-head">IP Addresses</div>
+    <section className="dc-card">
+      <div className="dc-card-head">IP Addresses</div>
       <div className="ovp-ip-body">
         <div className="ovp-ip-block">
-          <div className="ovp-klabel">IPv4</div>
+          <div className="dc-klabel">IPv4</div>
           <div className="ovp-ip-val">{ipv4 ?? '—'}</div>
         </div>
         <div className="ovp-ip-sep" />
         <div className="ovp-ip-block">
-          <div className="ovp-klabel">IPv6</div>
+          <div className="dc-klabel">IPv6</div>
           <div className="ovp-ip-val ovp-ip-val-v6">{ipv6 ?? '—'}</div>
         </div>
       </div>

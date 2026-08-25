@@ -7,6 +7,7 @@ import 'antd/dist/reset.css';
 import '@/styles/tokens.css';
 import '@/styles/page-shell.css';
 import '@/styles/page-cards.css';
+import '@/styles/dc.css';
 
 import LoginPage from '@/pages/login/LoginPage';
 

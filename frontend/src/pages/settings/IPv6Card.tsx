@@ -1,4 +1,4 @@
-import { Card, Modal, Switch, message } from 'antd';
+import { Modal, Switch, message } from 'antd';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { HttpError, put } from '@/api/http';
@@ -62,10 +62,10 @@ export default function IPv6Card({ service, title }: IPv6CardProps) {
   const busy = ipv6Query.isLoading || setMutation.isPending;
 
   return (
-    <Card className="settings-card ipv6-card">
+    <section className="dc-card ipv6-card">
+      <div className="dc-card-head">IPv6</div>
       <div className="settings-field-row">
         <div className="settings-field-label-wrap">
-          <label className="settings-field-label">IPv6</label>
           <div className="settings-field-desc">
             Disable IPv6 to force all client traffic over IPv4 only.
           </div>
@@ -93,6 +93,6 @@ export default function IPv6Card({ service, title }: IPv6CardProps) {
           />
         </div>
       </div>
-    </Card>
+    </section>
   );
 }

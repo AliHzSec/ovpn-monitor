@@ -228,96 +228,6 @@ func (d *DB) ClientStatsByName(ctx context.Context, commonName, cutoff, kind str
 	return &c, nil
 }
 
-// rootGroupExpr is the grouping key of the Visited Domains list: a row's stored
-// root_domain, falling back to the hostname itself. The fallback only fires for
-// a row the backfill could not resolve (see ensureVisitedRootDomain); it groups
-// such a row under itself rather than silently dropping it into an empty bucket.
-const rootGroupExpr = `COALESCE(NULLIF(root_domain, ''), domain)`
-
-// QueryVisitedRootDomains returns one row per ROOT domain the client visited,
-// newest activity first. Each row's first_seen is the earliest and last_seen the
-// latest across every hostname under that root, and visit_count is their sum —
-// including the root itself when it was browsed directly.
-//
-// MIN/MAX over the timestamp columns is a lexicographic comparison, which is
-// exactly chronological for the fixed "YYYY-MM-DD HH:MM:SS" format every writer
-// uses (the same property the sniffer's flush upsert relies on).
-//
-// The result is bounded by the number of distinct root domains the client has
-// visited, so callers can safely paginate on the client.
-func (d *DB) QueryVisitedRootDomains(ctx context.Context, clientName string) ([]model.VisitedDomain, error) {
-	q := `
-		SELECT ` + rootGroupExpr + ` AS root,
-		       MIN(first_seen), MAX(last_seen), SUM(visit_count),
-		       COUNT(*), GROUP_CONCAT(domain, ' ')
-		FROM visited_domains
-		WHERE client_name = ?
-		GROUP BY root
-		ORDER BY MAX(last_seen) DESC`
-	rows, err := d.db.QueryContext(ctx, q, clientName)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var out []model.VisitedDomain
-	for rows.Next() {
-		var v model.VisitedDomain
-		var hostnames sql.NullString
-		if err := rows.Scan(&v.Domain, &v.FirstSeen, &v.LastSeen, &v.VisitCount,
-			&v.SubdomainCount, &hostnames); err != nil {
-			return nil, err
-		}
-		v.Hostnames = hostnames.String
-		v.FirstSeenEpoch = parseLocalEpoch(v.FirstSeen)
-		v.LastSeenEpoch = parseLocalEpoch(v.LastSeen)
-		out = append(out, v)
-	}
-	return out, rows.Err()
-}
-
-// QueryVisitedSubdomains returns the individual hostname rows folded into one
-// root domain of one client, newest activity first — the detail behind a single
-// row of QueryVisitedRootDomains. The root domain itself is included when it was
-// visited directly, since it is stored like any other hostname.
-func (d *DB) QueryVisitedSubdomains(ctx context.Context, clientName, rootDomain string) ([]model.VisitedDomain, error) {
-	q := `
-		SELECT domain, first_seen, last_seen, visit_count
-		FROM visited_domains
-		WHERE client_name = ? AND ` + rootGroupExpr + ` = ?
-		ORDER BY last_seen DESC`
-	rows, err := d.db.QueryContext(ctx, q, clientName, rootDomain)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var out []model.VisitedDomain
-	for rows.Next() {
-		var v model.VisitedDomain
-		if err := rows.Scan(&v.Domain, &v.FirstSeen, &v.LastSeen, &v.VisitCount); err != nil {
-			return nil, err
-		}
-		v.FirstSeenEpoch = parseLocalEpoch(v.FirstSeen)
-		v.LastSeenEpoch = parseLocalEpoch(v.LastSeen)
-		out = append(out, v)
-	}
-	return out, rows.Err()
-}
-
-// PurgeVisitedDomainsOlderThan deletes aggregated domain rows whose last_seen is
-// older than the retention window, returning the number of rows removed. Used by
-// the daily cleanup job so browsing history is kept for a bounded period only.
-func (d *DB) PurgeVisitedDomainsOlderThan(ctx context.Context, retention time.Duration) (int64, error) {
-	cutoff := time.Now().Add(-retention).Format("2006-01-02 15:04:05")
-	res, err := d.db.ExecContext(ctx,
-		`DELETE FROM visited_domains WHERE last_seen < ?`, cutoff)
-	if err != nil {
-		return 0, err
-	}
-	return res.RowsAffected()
-}
-
 func (d *DB) SumAllTraffic(ctx context.Context) (sent, recv uint64, err error) {
 	const q = `SELECT COALESCE(SUM(bytes_sent), 0), COALESCE(SUM(bytes_received), 0) FROM sessions`
 	err = d.db.QueryRowContext(ctx, q).Scan(&sent, &recv)
@@ -351,8 +261,8 @@ func (d *DB) AllClientNames(ctx context.Context) ([]string, error) {
 }
 
 // DeleteClientData permanently removes every row belonging to a single client
-// across all per-client tables — sessions, visited_domains and clients — in one
-// transaction, returning the number of rows deleted from each for audit logging.
+// across all per-client tables — sessions and clients — in one transaction,
+// returning the number of rows deleted from each for audit logging.
 // It is the cleanup counterpart to the append-only write path: once a client's
 // certificate is revoked or removed, its owner's data is purged outright rather
 // than kept and filtered at read time, so the database does not grow without bound.
@@ -360,28 +270,20 @@ func (d *DB) AllClientNames(ctx context.Context) ([]string, error) {
 // sessions is deleted explicitly (rather than left to the clients→sessions
 // ON DELETE CASCADE) for two reasons: the exact per-table count is needed for the
 // audit log, and it removes any dependence on the foreign_keys pragma being enabled
-// on the executing connection. visited_domains is keyed by client_name (a plain
-// string, not a foreign key), so it must always be deleted explicitly.
-func (d *DB) DeleteClientData(ctx context.Context, name string) (sessionRows, domainRows, clientRows int64, err error) {
+// on the executing connection.
+func (d *DB) DeleteClientData(ctx context.Context, name string) (sessionRows, clientRows int64, err error) {
 	tx, err := d.db.BeginTx(ctx, nil)
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, err
 	}
 	defer tx.Rollback()
 
 	res, err := tx.ExecContext(ctx,
 		`DELETE FROM sessions WHERE client_id IN (SELECT id FROM clients WHERE common_name = ?)`, name)
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, err
 	}
 	sessionRows, _ = res.RowsAffected()
-
-	res, err = tx.ExecContext(ctx,
-		`DELETE FROM visited_domains WHERE client_name = ?`, name)
-	if err != nil {
-		return 0, 0, 0, err
-	}
-	domainRows, _ = res.RowsAffected()
 
 	// WireGuard counter baselines are keyed by pubkey but carry the peer name;
 	// deleting them here keeps the state table from accumulating rows for
@@ -389,18 +291,18 @@ func (d *DB) DeleteClientData(ctx context.Context, name string) (sessionRows, do
 	// user-visible data.
 	if _, err = tx.ExecContext(ctx,
 		`DELETE FROM wg_peer_state WHERE name = ?`, name); err != nil {
-		return 0, 0, 0, err
+		return 0, 0, err
 	}
 
 	res, err = tx.ExecContext(ctx,
 		`DELETE FROM clients WHERE common_name = ?`, name)
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, err
 	}
 	clientRows, _ = res.RowsAffected()
 
 	if err := tx.Commit(); err != nil {
-		return 0, 0, 0, err
+		return 0, 0, err
 	}
-	return sessionRows, domainRows, clientRows, nil
+	return sessionRows, clientRows, nil
 }

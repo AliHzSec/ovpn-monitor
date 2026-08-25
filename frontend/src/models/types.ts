@@ -64,20 +64,6 @@ export interface Client {
   traffic_wireguard_readable: string;
 }
 
-// VisitedDomain serves both levels of the visited-domains UI: top-level rows
-// (Domain is a root domain, values rolled up across its hostnames) and a root
-// domain's detail rows (Domain is one hostname with its own values).
-export interface VisitedDomain {
-  domain: string;
-  first_seen: string;
-  last_seen: string;
-  visit_count: number;
-  first_seen_epoch: number;
-  last_seen_epoch: number;
-  subdomain_count?: number; // top-level rows only
-  hostnames?: string; // search blob, top-level rows only
-}
-
 // POST /api/service/{name}/{action} response.
 export interface ServiceActionResult {
   ok: boolean;

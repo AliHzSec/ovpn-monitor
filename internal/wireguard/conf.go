@@ -28,9 +28,9 @@ type Conf struct {
 }
 
 // ParseConfFile parses a WireGuard server config. It is the single, shared
-// peer-name parser for the whole panel (the domain sniffer uses it too), so
-// browsing history and traffic accounting always land under the same client
-// name. It recognises the naming conventions of the popular install scripts:
+// peer-name parser for the whole panel, so every subsystem lands on the same
+// client name. It recognises the naming conventions of the popular install
+// scripts:
 //
 //	### Client alice          (angristan/wireguard-install)
 //	# BEGIN_PEER alice        (Nyr/wireguard-install)
@@ -139,7 +139,7 @@ func setPeerName(current *Peer, pending *string, name string) {
 // "wg-" plus the first 10 characters of its base64 public key, with '+' and
 // '/' mapped to their URL-safe variants so the name stays path- and
 // query-string-safe. Deterministic, so the same peer always maps to the same
-// client row across restarts and across the sniffer/poller boundary.
+// client row across restarts.
 func fallbackName(pubkey string) string {
 	s := strings.NewReplacer("+", "-", "/", "_").Replace(pubkey)
 	if len(s) > 10 {

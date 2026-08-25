@@ -153,7 +153,6 @@ func TestSettingsRouting(t *testing.T) {
 		{"/settings/general", http.StatusOK},
 		{"/settings/openvpn", http.StatusOK},
 		{"/settings/wireguard", http.StatusOK},
-		{"/settings/domains", http.StatusOK},
 		{"/settings/nope", http.StatusOK}, // SPA fallback, client router 404s
 	} {
 		req := httptest.NewRequest(http.MethodGet, tc.path, nil)

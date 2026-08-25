@@ -42,10 +42,6 @@ var settingsSections = []settingsSection{
 	{"wireguard", "WireGuard", []string{
 		"wireguard_conf", "wireguard_interface", "wireguard_handshake_timeout",
 	}},
-	{"domains", "Domain Tracking", []string{
-		"sniffer_ifaces", "sniffer_wg_conf", "sniffer_snaplen",
-		"sniffer_workers", "sniffer_queue", "sniffer_flush", "sniffer_dedup",
-	}},
 }
 
 // findSettingsSection resolves a URL path segment to its section.
@@ -140,8 +136,8 @@ func registerPages(mux *http.ServeMux, d Deps) {
 
 	// ── SPA pages ─────────────────────────────────────────────────────────────
 	// Every authenticated page is the same embedded index.html; the React
-	// router resolves /panel, /panel/clients/{name}/domains/{root}, /settings/*
-	// etc. client-side and fetches its data over the JSON APIs. The subtree
+	// router resolves /panel, /panel/clients/{name}, /settings/* etc.
+	// client-side and fetches its data over the JSON APIs. The subtree
 	// patterns double as the SPA fallback: any unknown GET under /panel/ or
 	// /settings/ still serves the app (never a 404), so refreshes and deep
 	// links work. Method-specific patterns keep POSTs (login, settings saves)

@@ -67,13 +67,13 @@ export default function ServicePanelCard({ service, title }: ServicePanelCardPro
   const pending = pendingAction !== null;
 
   return (
-    <section className="ovp-card">
+    <section className="dc-card">
       <div className="ovp-svc-head">
         <div
           className="ovp-svc-dot"
           style={{ background: running ? 'var(--color-success)' : 'var(--color-error)' }}
         />
-        <div className="ovp-card-head-text">{title}</div>
+        <div className="dc-card-head-text">{title}</div>
         <div
           className="ovp-svc-state"
           style={{ color: running ? 'var(--color-success)' : 'var(--color-error)' }}
@@ -83,7 +83,7 @@ export default function ServicePanelCard({ service, title }: ServicePanelCardPro
       </div>
       <div className="ovp-svc-body">
         <div className="ovp-svc-uptime">
-          <div className="ovp-klabel">Uptime</div>
+          <div className="dc-klabel">Uptime</div>
           <div className="ovp-svc-uptime-val">{running ? formatUptime(uptime) : '—'}</div>
         </div>
         {running ? (

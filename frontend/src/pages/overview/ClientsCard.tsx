@@ -11,8 +11,8 @@ export default function ClientsCard({ online, total }: ClientsCardProps) {
   const pct = total > 0 ? Math.round((online / total) * 100) : 0;
 
   return (
-    <section className="ovp-card">
-      <div className="ovp-card-head">Clients</div>
+    <section className="dc-card">
+      <div className="dc-card-head">Clients</div>
       <div className="ovp-clients-body">
         <div className="ovp-clients-top">
           <div className="ovp-clients-count">

@@ -12,8 +12,8 @@ export default function SocketsCard({ tcp, udp }: SocketsCardProps) {
   const udpShare = total > 0 ? ((udp / total) * 100).toFixed(1) : '0.0';
 
   return (
-    <section className="ovp-card">
-      <div className="ovp-card-head">Connection Stats</div>
+    <section className="dc-card">
+      <div className="dc-card-head">Connection Stats</div>
       <div className="ovp-socks-body">
         <div className="ovp-socks-head">
           <div className="ovp-socks-num">{total.toLocaleString()}</div>

@@ -21,7 +21,6 @@ import (
 	"ovpnmonitor/internal/handler"
 	"ovpnmonitor/internal/ipv6"
 	"ovpnmonitor/internal/openvpn"
-	"ovpnmonitor/internal/sniffer"
 	"ovpnmonitor/internal/sysinfo"
 	"ovpnmonitor/internal/tracker"
 	"ovpnmonitor/internal/wireguard"
@@ -45,8 +44,8 @@ func main() {
 }
 
 func run(ctx context.Context, logger *slog.Logger) error {
-	// Derived so background subsystems (sniffer, loops) also stop when run
-	// returns early on an error, not only on a signal.
+	// Derived so background subsystems (loops) also stop when run returns
+	// early on an error, not only on a signal.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -255,7 +254,6 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	go wgReg.RefreshLoop(ctx, opts.WGConf, database, logger, reap)
 	go ippSt.RefreshLoop(ctx, opts.IPPFile, database, logger)
 	go cache.Run(ctx)
-	go purgeVisitedDomainsLoop(ctx, database, logger)
 
 	// WireGuard poller: the wg-side counterpart of the OpenVPN watcher. Safe
 	// to start even when WireGuard is absent — dump failures degrade to a
@@ -272,34 +270,6 @@ func run(ctx context.Context, logger *slog.Logger) error {
 			HandshakeTimeout: opts.WGHandshakeTimeout,
 		}
 		go wgPoller.Run(ctx)
-	}
-
-	// The poller's interface and the sniffer's capture list are separate
-	// settings, so a WireGuard deployment on a non-default interface can end up
-	// accounted but never sniffed. Surface that at startup — it is otherwise
-	// indistinguishable from peers that simply browsed nothing.
-	sniffer.CheckWireGuardCapture(logger, opts.WGConf, opts.WGIface, opts.SnifferIfaces)
-
-	// Domain sniffer: runs in-process on the panel's own DB handle, so there is
-	// no separate service and no second database path to keep in sync. It shuts
-	// down with ctx; snifferDone closes once its final flush has committed.
-	snifferDone := sniffer.Start(ctx, sqldb, sniffer.Config{
-		Ifaces:  opts.SnifferIfaces,
-		IPPFile: opts.IPPFile,
-		WGConf:  opts.SnifferWGConf,
-		Snaplen: opts.SnifferSnaplen,
-		Workers: opts.SnifferWorkers,
-		Queue:   opts.SnifferQueue,
-		Flush:   opts.SnifferFlush,
-		Dedup:   opts.SnifferDedup,
-	}, logger)
-	waitSnifferDrain := func() {
-		cancel() // make sure the sniffer sees shutdown even on an early error return
-		select {
-		case <-snifferDone:
-		case <-time.After(20 * time.Second):
-			logger.Warn("sniffer did not finish draining in time")
-		}
 	}
 
 	mux := http.NewServeMux()
@@ -338,13 +308,10 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	if opts.Log == "" {
 		logger.Warn("watcher disabled: configure openvpn_status_log via /settings and restart")
 		<-ctx.Done()
-		waitSnifferDrain()
 		return ctx.Err()
 	}
 
 	w := openvpn.Watcher{DB: database, Logger: logger, Certs: certList, Online: online,
 		PollInterval: opts.PollInterval}
-	err = w.Watch(ctx, opts.Log)
-	waitSnifferDrain()
-	return err
+	return w.Watch(ctx, opts.Log)
 }

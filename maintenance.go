@@ -3,45 +3,11 @@ package main
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"ovpnmonitor/internal/db"
 	"ovpnmonitor/internal/openvpn"
 	"ovpnmonitor/internal/wireguard"
 )
-
-// visitedDomainRetention is how long aggregated (client, domain) browsing
-// records are kept before the daily cleanup job purges them.
-const visitedDomainRetention = 90 * 24 * time.Hour
-
-// purgeVisitedDomainsLoop runs an immediate purge on startup and then once a day,
-// deleting visited_domains rows whose last_seen is older than the retention
-// window so browsing history storage stays bounded.
-func purgeVisitedDomainsLoop(ctx context.Context, database *db.DB, logger *slog.Logger) {
-	purge := func() {
-		c, cancel := context.WithTimeout(ctx, 30*time.Second)
-		defer cancel()
-		n, err := database.PurgeVisitedDomainsOlderThan(c, visitedDomainRetention)
-		if err != nil {
-			logger.Warn("visited-domains purge failed", "err", err)
-			return
-		}
-		if n > 0 {
-			logger.Info("purged stale visited domains", "rows", n)
-		}
-	}
-	purge()
-	ticker := time.NewTicker(24 * time.Hour)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			purge()
-		case <-ctx.Done():
-			return
-		}
-	}
-}
 
 // reapRevokedClients permanently deletes the database rows of every client that
 // is no longer valid in EITHER system: its common name is absent from the
@@ -100,17 +66,16 @@ func reapRevokedClients(ctx context.Context, database *db.DB, certs *openvpn.Cer
 		if validSet[name] {
 			continue
 		}
-		sessionRows, domainRows, clientRows, err := database.DeleteClientData(ctx, name)
+		sessionRows, clientRows, err := database.DeleteClientData(ctx, name)
 		if err != nil {
 			logger.Error("revoked-client cleanup: delete failed", "client", name, "err", err)
 			continue
 		}
-		if clientRows > 0 || sessionRows > 0 || domainRows > 0 {
+		if clientRows > 0 || sessionRows > 0 {
 			logger.Info("deleted revoked client data",
 				"client", name,
 				"clients_rows", clientRows,
-				"sessions_rows", sessionRows,
-				"visited_domains_rows", domainRows)
+				"sessions_rows", sessionRows)
 		}
 	}
 }

@@ -56,19 +56,19 @@ export default function SpeedCard({ up, down, upSpeed, downSpeed }: SpeedCardPro
   }, [up, down]);
 
   return (
-    <section className="ovp-card">
-      <div className="ovp-card-head">Overall Speed</div>
+    <section className="dc-card">
+      <div className="dc-card-head">Overall Speed</div>
       <div className="ovp-speed-vals">
         <div className="ovp-speed-cell">
           <div className="ovp-speed-cell-head">
-            <div className="ovp-dash" style={{ background: 'var(--dc-blue)' }} />
+            <div className="dc-dash" style={{ background: 'var(--dc-blue)' }} />
             <div className="ovp-speed-name">Upload</div>
           </div>
           <div className="ovp-speed-num">{fmt(upSpeed / MB)}/s</div>
         </div>
         <div className="ovp-speed-cell">
           <div className="ovp-speed-cell-head">
-            <div className="ovp-dash" style={{ background: 'var(--dc-purple)' }} />
+            <div className="dc-dash" style={{ background: 'var(--dc-purple)' }} />
             <div className="ovp-speed-name">Download</div>
           </div>
           <div className="ovp-speed-num">{fmt(downSpeed / MB)}/s</div>

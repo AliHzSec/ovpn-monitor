@@ -8,7 +8,6 @@ import PanelLayout from '@/layouts/PanelLayout';
 const OverviewPage = lazy(() => import('@/pages/overview/OverviewPage'));
 const ClientsPage = lazy(() => import('@/pages/clients/ClientsPage'));
 const ClientDetailPage = lazy(() => import('@/pages/clientDetail/ClientDetailPage'));
-const DomainDetailPage = lazy(() => import('@/pages/domainDetail/DomainDetailPage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 
 function lazyPage(element: React.ReactNode) {
@@ -23,10 +22,6 @@ export const router = createBrowserRouter(
         { path: 'panel', element: lazyPage(<OverviewPage />) },
         { path: 'panel/clients', element: lazyPage(<ClientsPage />) },
         { path: 'panel/clients/:name', element: lazyPage(<ClientDetailPage />) },
-        {
-          path: 'panel/clients/:name/domains/:root',
-          element: lazyPage(<DomainDetailPage />),
-        },
         { path: 'settings', element: <Navigate to="/settings/general" replace /> },
         { path: 'settings/:section', element: lazyPage(<SettingsPage />) },
         { path: '*', element: <Navigate to="/panel" replace /> },

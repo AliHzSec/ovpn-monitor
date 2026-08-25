@@ -13,8 +13,6 @@ import (
 
 	"ovpnmonitor/internal/auth"
 	"ovpnmonitor/internal/db"
-	"ovpnmonitor/internal/domain"
-	"ovpnmonitor/internal/model"
 	"ovpnmonitor/internal/sysinfo"
 )
 
@@ -125,44 +123,6 @@ func registerAPI(mux *http.ServeMux, d Deps) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(c)
-	})))
-
-	// ── Visited domains for one client, collapsed to root domains ────────────
-	// One row per site, with first/last seen and visits rolled up across every
-	// hostname under it. The per-hostname breakdown lives at the route below.
-	mux.Handle("GET /api/clients/{name}/domains", auth.APIAuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		name := r.PathValue("name")
-		domains, err := d.DB.QueryVisitedRootDomains(r.Context(), name)
-		if err != nil {
-			d.Logger.Error("visited root domains: " + err.Error())
-			http.Error(w, "Internal Error", http.StatusInternalServerError)
-			return
-		}
-		if domains == nil {
-			domains = []model.VisitedDomain{}
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(domains)
-	})))
-
-	// ── Hostnames under one root domain, for the domain detail page ──────────
-	// The root domain is matched against the stored grouping key, so a value
-	// that is not a root domain (or that this client never visited) simply
-	// yields an empty list rather than an error.
-	mux.Handle("GET /api/clients/{name}/domains/{root}", auth.APIAuthMiddleware(d.Sessions, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		name := r.PathValue("name")
-		root := domain.Normalize(r.PathValue("root"))
-		subdomains, err := d.DB.QueryVisitedSubdomains(r.Context(), name, root)
-		if err != nil {
-			d.Logger.Error("visited subdomains: " + err.Error())
-			http.Error(w, "Internal Error", http.StatusInternalServerError)
-			return
-		}
-		if subdomains == nil {
-			subdomains = []model.VisitedDomain{}
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(subdomains)
 	})))
 
 	// ── Settings sections as JSON ──────────────────────────────────────────

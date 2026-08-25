@@ -1,47 +1,37 @@
-/* ClientsPage.css — page-scoped styles for the Clients page. Colors come from
-   the body.light/body.dark custom properties in styles/tokens.css, so the page
-   flips with the theme. */
+/* ClientsPage.css — Clients page in the dc design language (see
+   styles/dc.css for the shared card/table skin and primitives). Colors come
+   from the body.light/body.dark custom properties in styles/tokens.css, so
+   the page flips with the theme. */
 
 .clients-stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--sp-3, 12px);
-}
-
-/* Summary cards: 16px body padding / 8px on mobile, per 3x-ui's
-   page-shell.css (.clients-page .summary-card). */
-.clients-stats-grid .ant-card .ant-card-body {
-  padding: var(--sp-4, 16px);
+  gap: 12px;
 }
 
 @media (max-width: 768px) {
   .clients-stats-grid {
     grid-template-columns: 1fr;
   }
-
-  .clients-stats-grid .ant-card .ant-card-body {
-    padding: var(--sp-2, 8px);
-  }
-}
-
-.clients-card-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .clients-stat-rows {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-2, 8px);
-  margin-top: var(--sp-3, 12px);
 }
 
 .clients-stat-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  font-size: var(--fs-sm, 13px);
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--dc-hairline);
+  font-size: 12.5px;
+}
+
+.clients-stat-row:last-child {
+  border-bottom: none;
 }
 
 .clients-stat-row-label {
@@ -52,54 +42,55 @@
 }
 
 .clients-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   flex: none;
   border-radius: 50%;
 }
 
 .clients-stat-row-value {
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--dc-value);
 }
 
 .clients-pct {
   margin-left: 6px;
-  font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--dc-faint);
 }
 
+/* Online ratio bar — the same slim bar the overview's Clients card uses. */
 .clients-ratio-bar {
-  height: 6px;
-  margin-top: var(--sp-3, 12px);
+  height: 7px;
+  margin-top: 4px;
   overflow: hidden;
-  border-radius: var(--radius-pill, 999px);
-  background: var(--ring-track);
+  border-radius: 4px;
+  background: var(--dc-line);
 }
 
 .clients-ratio-bar-fill {
   height: 100%;
   border-radius: inherit;
   background: var(--color-success);
-  transition: width 0.3s ease;
+  transition: width 600ms ease;
 }
 
 .clients-ratio-bar-labels {
   display: flex;
   justify-content: space-between;
-  margin-top: 6px;
-  font-size: var(--fs-caption, 12px);
-  color: var(--text-tertiary);
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dc-faint);
 }
 
-/* Filter bar: 8px internal gaps per 3x-ui's ClientsPage.css .filter-bar; the
-   12px space below comes from .page-grid (their .filter-bar margin-bottom). */
+/* Filter bar: segmented tabs left, search right. */
 .clients-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp-2, 8px);
+  gap: 8px;
 }
 
 .clients-search {
@@ -107,7 +98,7 @@
 }
 
 .clients-search-icon {
-  color: var(--text-tertiary);
+  color: var(--dc-ghost);
 }
 
 @media (max-width: 768px) {
@@ -117,14 +108,14 @@
   }
 }
 
-/* Table-in-card: 3x-ui sits its tables in a plain size="small" Card, whose
-   body padding is 12px (antd cardPaddingSM). */
-.clients-table-card .ant-card-body {
-  padding: var(--sp-3, 12px);
+/* Table sits flush inside a dc card; the dc skin (dc.css) owns the header
+   micro-type, hairline rows and hover. */
+.clients-table-card {
+  padding: 6px 4px 8px;
 }
 
 .clients-skeleton {
-  padding: var(--sp-3, 12px);
+  padding: 12px;
 }
 
 /* Subtle fade while a background refetch is in flight — the previous rows
@@ -140,24 +131,23 @@
 .clients-cell-name {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   min-width: 0;
 }
 
 .clients-status-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   flex: none;
   border-radius: 50%;
 }
 
 .clients-status-dot.is-online {
   background: var(--color-success);
-  box-shadow: 0 0 6px var(--green-glow);
 }
 
 .clients-status-dot.is-offline {
-  background: var(--text-tertiary);
+  background: var(--dc-dot-off);
 }
 
 .clients-name-text {
@@ -170,25 +160,36 @@
 .clients-status-cell {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  white-space: nowrap;
 }
 
-.clients-proto-tag {
-  margin-inline-end: 0;
+@media (max-width: 768px) {
+  /* Too many columns for a phone: keep the table readable with a horizontal
+     scroll instead of crushing the cells. */
+  .clients-table-card {
+    overflow-x: auto;
+  }
+
+  .clients-table-card .ant-table {
+    min-width: 560px;
+  }
 }
 
 .clients-total-text {
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--dc-value);
 }
 
 .clients-rel-time {
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
 .clients-chevron {
-  font-size: 12px;
-  color: var(--text-tertiary);
+  font-size: 11px;
+  color: var(--dc-dead);
   transition: color 0.2s ease;
 }
 
@@ -197,7 +198,7 @@
 }
 
 .clients-table-card .ant-table-tbody > tr.clients-row:hover .clients-chevron {
-  color: var(--color-primary);
+  color: var(--dc-blue);
 }
 
 .clients-empty {
@@ -207,13 +208,13 @@
 }
 
 .clients-empty-title {
-  font-size: var(--fs-md, 15px);
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text);
 }
 
 .clients-empty-sub {
-  font-size: var(--fs-sm, 13px);
+  font-size: 12px;
   color: var(--text-tertiary);
 }
 
@@ -221,7 +222,8 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: var(--sp-2, 8px);
-  font-size: var(--fs-sm, 13px);
-  color: var(--text-tertiary);
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dc-faint);
 }

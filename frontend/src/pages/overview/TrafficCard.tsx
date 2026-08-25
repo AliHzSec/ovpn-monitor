@@ -20,11 +20,11 @@ export default function TrafficCard({ sent, received }: TrafficCardProps) {
   const down = splitBytes(received);
 
   return (
-    <section className="ovp-card">
-      <div className="ovp-card-head">Traffic</div>
+    <section className="dc-card">
+      <div className="dc-card-head">Traffic</div>
       <div className="ovp-traffic-body">
         <div className="ovp-traffic-total">
-          <div className="ovp-klabel">Total transferred</div>
+          <div className="dc-klabel">Total transferred</div>
           <div className="ovp-traffic-total-row">
             <div className="ovp-traffic-num">{total.value}</div>
             <div className="ovp-traffic-unit">{total.unit}</div>
@@ -33,18 +33,18 @@ export default function TrafficCard({ sent, received }: TrafficCardProps) {
         <div className="ovp-traffic-split">
           <div className="ovp-traffic-cell">
             <div className="ovp-traffic-cell-head">
-              <div className="ovp-dash" style={{ background: 'var(--dc-blue)' }} />
-              <div className="ovp-klabel">Sent</div>
+              <div className="dc-dash" style={{ background: 'var(--dc-blue)' }} />
+              <div className="dc-klabel">Sent</div>
             </div>
             <div className="ovp-traffic-val">
               {up.value} <span className="ovp-traffic-val-unit">{up.unit}</span>
             </div>
           </div>
-          <div className="ovp-vsep" />
+          <div className="dc-vsep" />
           <div className="ovp-traffic-cell">
             <div className="ovp-traffic-cell-head">
-              <div className="ovp-dash" style={{ background: 'var(--dc-dash-recv)' }} />
-              <div className="ovp-klabel">Received</div>
+              <div className="dc-dash" style={{ background: 'var(--dc-dash-recv)' }} />
+              <div className="dc-klabel">Received</div>
             </div>
             <div className="ovp-traffic-val">
               {down.value} <span className="ovp-traffic-val-unit">{down.unit}</span>

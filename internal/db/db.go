@@ -7,8 +7,6 @@ import (
 	"sync"
 
 	"golang.org/x/crypto/bcrypt"
-
-	"ovpnmonitor/internal/domain"
 )
 
 type DB struct {
@@ -53,28 +51,6 @@ func (d *DB) Migrate(ctx context.Context) error {
 			key   TEXT PRIMARY KEY,
 			value TEXT NOT NULL DEFAULT ''
 		)`,
-		// Aggregated per-(client, hostname) browsing history. One row per unique
-		// (client, hostname) pair — NOT one row per visit — so storage is bounded
-		// by (clients × distinct hostnames), independent of traffic volume. Populated
-		// by the in-process domain sniffer (see the sniffer package) which upserts here.
-		// client_name is the OpenVPN common name or WireGuard peer name (a plain
-		// string, not a clients.id FK, so WireGuard peers with no clients row work too).
-		//
-		// root_domain is the site the hostname belongs to, as resolved by the shared
-		// internal/domain package. It is stored rather than derived at query time so
-		// the top-level Visited Domains list is a plain indexed GROUP BY, and so every
-		// row's grouping is decided by exactly one implementation. Existing databases
-		// gain the column and a backfill from ensureVisitedRootDomain below.
-		`CREATE TABLE IF NOT EXISTS visited_domains (
-			id          INTEGER PRIMARY KEY,
-			client_name TEXT NOT NULL,
-			domain      TEXT NOT NULL,
-			root_domain TEXT NOT NULL DEFAULT '',
-			first_seen  TEXT NOT NULL,
-			last_seen   TEXT NOT NULL,
-			visit_count INTEGER NOT NULL DEFAULT 1 CHECK (visit_count >= 0),
-			UNIQUE (client_name, domain)
-		)`,
 		// Persisted WireGuard poller state: the last raw kernel counters applied
 		// per peer. WireGuard counters are volatile (they reset to zero on any
 		// interface restart or reboot), so sessions are built from deltas against
@@ -95,8 +71,6 @@ func (d *DB) Migrate(ctx context.Context) error {
 		// holds two open sessions, so the uniqueness key includes the boolean
 		// expression (protocol = 'wireguard') rather than client_id alone.
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_one_open_session_per_client ON sessions(client_id, (protocol = 'wireguard')) WHERE disconnected_at IS NULL`,
-		`CREATE INDEX IF NOT EXISTS idx_visited_client ON visited_domains(client_name)`,
-		`CREATE INDEX IF NOT EXISTS idx_visited_last_seen ON visited_domains(last_seen)`,
 		`INSERT OR IGNORE INTO settings (key, value) VALUES ('addr', '0.0.0.0:80')`,
 		`INSERT OR IGNORE INTO settings (key, value) VALUES ('admin_user', 'admin')`,
 		`INSERT OR IGNORE INTO settings (key, value) VALUES ('admin_pass', 'admin')`,
@@ -113,32 +87,11 @@ func (d *DB) Migrate(ctx context.Context) error {
 		`INSERT OR IGNORE INTO settings (key, value) VALUES ('wireguard_conf', '/etc/wireguard/wg0.conf')`,
 		`INSERT OR IGNORE INTO settings (key, value) VALUES ('wireguard_interface', 'wg0')`,
 		`INSERT OR IGNORE INTO settings (key, value) VALUES ('wireguard_handshake_timeout', '180s')`,
-		// Domain sniffer tunables (see the sniffer package). '0' means "auto".
-		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_ifaces', 'tun0,wg0')`,
-		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_wg_conf', '/etc/wireguard/wg0.conf')`,
-		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_snaplen', '1600')`,
-		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_workers', '0')`,
-		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_queue', '4096')`,
-		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_flush', '2m')`,
-		`INSERT OR IGNORE INTO settings (key, value) VALUES ('sniffer_dedup', '60s')`,
 	}
 	for _, s := range stmts {
 		if _, err := d.db.ExecContext(ctx, s); err != nil {
 			return err
 		}
-	}
-	// Bring a pre-existing visited_domains table up to the current shape. Runs
-	// after the CREATE TABLE above so a fresh database is a no-op.
-	if err := d.ensureVisitedRootDomain(ctx); err != nil {
-		return err
-	}
-	// Indexed on the same expression the Visited Domains queries group and
-	// filter by (see rootGroupExpr), not on the bare column — an index on
-	// root_domain alone would not be usable by either query.
-	if _, err := d.db.ExecContext(ctx,
-		`CREATE INDEX IF NOT EXISTS idx_visited_root
-		 ON visited_domains(client_name, COALESCE(NULLIF(root_domain, ''), domain))`); err != nil {
-		return err
 	}
 	// Ensure the admin password is stored as a bcrypt hash. This converts the
 	// default 'admin' seed and any pre-existing plaintext value to a hash.
@@ -146,105 +99,6 @@ func (d *DB) Migrate(ctx context.Context) error {
 		return err
 	}
 	return nil
-}
-
-// ensureVisitedRootDomain adds visited_domains.root_domain to a database created
-// before the column existed, and fills it in for every row that lacks one.
-//
-// Databases from earlier versions hold one row per ROOT domain (the sniffer used
-// to collapse the hostname before writing), so the backfill maps each stored
-// value through domain.Root and the row simply becomes "the root was visited
-// directly" — no history is lost, only the subdomain detail that was never
-// captured. It also repairs rows written by the version whose root detection let
-// private-suffix hosts such as firebaseremoteconfig.googleapis.com stand alone:
-// those now resolve to googleapis.com and join the right group.
-//
-// A value domain.Root cannot resolve (a stored bare IP, or a name from a future
-// suffix list this binary does not know) falls back to grouping under itself, so
-// the row still appears in the UI instead of vanishing into an empty group.
-func (d *DB) ensureVisitedRootDomain(ctx context.Context) error {
-	rows, err := d.db.QueryContext(ctx, `PRAGMA table_info(visited_domains)`)
-	if err != nil {
-		return err
-	}
-	hasColumn := false
-	for rows.Next() {
-		var cid int
-		var name, ctype string
-		var notNull, pk int
-		var dflt sql.NullString
-		if err := rows.Scan(&cid, &name, &ctype, &notNull, &dflt, &pk); err != nil {
-			rows.Close()
-			return err
-		}
-		if name == "root_domain" {
-			hasColumn = true
-		}
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return err
-	}
-	if !hasColumn {
-		if _, err := d.db.ExecContext(ctx,
-			`ALTER TABLE visited_domains ADD COLUMN root_domain TEXT NOT NULL DEFAULT ''`); err != nil {
-			return err
-		}
-	}
-
-	// Read the un-backfilled rows first, then write them in one transaction.
-	// Only rows with an empty root_domain are touched, so a migration that is
-	// interrupted simply resumes on the next start.
-	pending, err := d.db.QueryContext(ctx,
-		`SELECT id, domain FROM visited_domains WHERE root_domain = ''`)
-	if err != nil {
-		return err
-	}
-	type backfill struct {
-		id   int64
-		root string
-	}
-	var todo []backfill
-	for pending.Next() {
-		var id int64
-		var host string
-		if err := pending.Scan(&id, &host); err != nil {
-			pending.Close()
-			return err
-		}
-		root, ok := domain.Root(host)
-		if !ok {
-			root = domain.Normalize(host)
-		}
-		if root == "" {
-			continue // nothing sensible to group an empty hostname under
-		}
-		todo = append(todo, backfill{id: id, root: root})
-	}
-	pending.Close()
-	if err := pending.Err(); err != nil {
-		return err
-	}
-	if len(todo) == 0 {
-		return nil
-	}
-
-	tx, err := d.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	stmt, err := tx.PrepareContext(ctx, `UPDATE visited_domains SET root_domain = ? WHERE id = ?`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-	for _, b := range todo {
-		if _, err := stmt.ExecContext(ctx, b.root, b.id); err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
 }
 
 // ensureHashedAdminPassword migrates a plaintext admin_pass to a bcrypt hash.

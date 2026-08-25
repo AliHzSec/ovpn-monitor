@@ -11,14 +11,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Badge, Card, Empty, Input, Segmented, Skeleton, Table, Tag, Tooltip } from 'antd';
+import { Badge, Empty, Input, Segmented, Skeleton, Table, Tooltip } from 'antd';
 import type { TableProps } from 'antd';
-import {
-  RightOutlined,
-  SearchOutlined,
-  SwapOutlined,
-  TeamOutlined,
-} from '@ant-design/icons';
+import { RightOutlined, SearchOutlined } from '@ant-design/icons';
 
 import { get } from '@/api/http';
 import { keys } from '@/api/queryKeys';
@@ -181,11 +176,9 @@ export function ClientsPage() {
             status={c.online ? 'success' : 'default'}
             text={c.online ? 'Online' : 'Offline'}
           />
-          {c.online && c.online_openvpn ? <Tag className="clients-proto-tag">OVPN</Tag> : null}
+          {c.online && c.online_openvpn ? <span className="dc-tag dc-tag-ovpn">OVPN</span> : null}
           {c.online && c.online_wireguard ? (
-            <Tag color="#722ed1" className="clients-proto-tag">
-              WG
-            </Tag>
+            <span className="dc-tag dc-tag-wg">WG</span>
           ) : null}
         </span>
       ),
@@ -227,14 +220,7 @@ export function ClientsPage() {
   return (
     <PageShell title="Clients" className="clients-page">
       <div className="clients-stats-grid">
-        <StatCard
-          title={
-            <span className="clients-card-title">
-              <TeamOutlined /> Clients
-            </span>
-          }
-          value={loaded ? stats.total : '—'}
-        >
+        <StatCard title="Clients" value={loaded ? stats.total : '—'}>
           <div className="clients-stat-rows">
             <div className="clients-stat-row">
               <span className="clients-stat-row-label">
@@ -269,14 +255,7 @@ export function ClientsPage() {
           </div>
         </StatCard>
 
-        <StatCard
-          title={
-            <span className="clients-card-title">
-              <SwapOutlined /> Traffic
-            </span>
-          }
-          value={loaded ? formatBytes(stats.traffic) : '—'}
-        >
+        <StatCard title="Traffic" value={loaded ? formatBytes(stats.traffic) : '—'}>
           <div className="clients-stat-rows">
             <div className="clients-stat-row">
               <span className="clients-stat-row-label">
@@ -317,7 +296,7 @@ export function ClientsPage() {
         />
       </div>
 
-      <Card className="glass-card clients-table-card" variant="borderless">
+      <section className="dc-card clients-table-card">
         {showSkeleton ? (
           <div className="clients-skeleton">
             <Skeleton active title={false} paragraph={{ rows: 5 }} />
@@ -357,7 +336,7 @@ export function ClientsPage() {
             />
           </div>
         )}
-      </Card>
+      </section>
 
       <div className="clients-footer">
         <span>VPN Client Monitor</span>

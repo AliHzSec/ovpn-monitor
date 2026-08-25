@@ -1,43 +1,25 @@
-/* SettingsPage.css — field rows, section head and footer for the settings
-   page, adapted from templates/settings.html's page-specific styles. Colors
-   come from the body.light/body.dark custom properties in styles/tokens.css,
-   so the page flips with the theme. */
+/* SettingsPage.css — settings sections in the dc design language (see
+   styles/dc.css): the section form is a dc card whose rows are separated by
+   hairlines, inputs ride the shared dc input skin. Colors come from the
+   body.light/body.dark custom properties in styles/tokens.css. */
 
 .settings-page .page-grid {
   max-width: 760px;
 }
 
 /* ── SECTION HEAD ── */
-.settings-section-head-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: var(--fs-heading, 15px);
-  font-weight: 600;
-  color: var(--text);
-  line-height: var(--lh-tight, 1.25);
-}
-
-.settings-section-head-title .anticon {
-  color: var(--color-primary);
-}
-
 .settings-section-head-note {
-  font-size: var(--fs-caption, 12px);
+  font-size: 12px;
   color: var(--text-tertiary);
-  margin-top: 6px;
 }
 
 /* ── SETTINGS CARD / FIELD ROWS ── */
-/* Rows mirror 3x-ui's components/ui/SettingListItem.css: the list sits in a
-   plain Card (default body padding), each item padded 20px with a
-   border-secondary separator between rows. */
 .settings-field-row {
   display: flex;
   align-items: center;
-  gap: var(--sp-2, 8px);
-  padding: var(--sp-5, 20px);
-  border-bottom: 1px solid var(--border-secondary);
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--dc-hairline);
   transition: background 0.15s;
 }
 
@@ -46,18 +28,17 @@
 }
 
 .settings-field-row:focus-within {
-  background: var(--primary-faint);
+  background: var(--dc-hover);
 }
 
 .settings-field-label-wrap {
   flex: 0 0 210px;
 }
 
-/* SettingListItem title: 14px/500, primary text color. */
 .settings-field-label {
   display: block;
-  margin-bottom: 4px;
-  font-size: var(--fs-body, 14px);
+  margin-bottom: 3px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--text);
   line-height: var(--lh-body, 1.5);
@@ -67,8 +48,8 @@
 .settings-field-note {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: var(--fs-caption, 12px);
+  gap: 6px;
+  font-size: 11.5px;
   color: var(--color-warning);
   line-height: var(--lh-body, 1.5);
 }
@@ -83,11 +64,10 @@
   flex-shrink: 0;
 }
 
-/* SettingListItem description: 14px tertiary, line-height 1.5715. */
 .settings-field-desc {
-  font-size: var(--fs-body, 14px);
-  color: var(--text-tertiary);
-  line-height: 1.5715;
+  font-size: 11.5px;
+  color: var(--dc-ghost);
+  line-height: 1.55;
 }
 
 .settings-field-input-wrap {
@@ -95,17 +75,24 @@
   min-width: 0;
 }
 
+.settings-field-input-wrap .ant-input,
+.settings-field-input-wrap .ant-input-affix-wrapper {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
 /* ── FOOTER ── */
 .settings-form-footer {
   display: flex;
   align-items: center;
-  gap: var(--sp-4, 16px);
+  gap: 16px;
   flex-wrap: wrap;
 }
 
 .settings-form-footer-note {
-  font-size: var(--fs-caption, 12px);
-  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dc-faint);
 }
 
 /* ── MISC ── */
@@ -115,10 +102,14 @@
   padding: 48px 0;
 }
 
+.settings-card .ant-empty {
+  padding: 32px 0;
+}
+
 /* ── IPV6 BOX ── */
 /* Sits below the section's settings form, same card/row styling. */
 .ipv6-card {
-  margin-top: var(--sp-6, 24px);
+  margin-top: 12px;
 }
 
 .ipv6-switch-wrap {
@@ -130,8 +121,7 @@
   .settings-field-row {
     flex-direction: column;
     align-items: flex-start;
-    /* Stacked meta/control spacing matches SettingListItem's Row gutter. */
-    gap: var(--sp-4, 16px);
+    gap: 10px;
   }
 
   .settings-field-label-wrap {

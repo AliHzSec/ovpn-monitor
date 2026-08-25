@@ -3,7 +3,6 @@ package config
 import (
 	"context"
 	"database/sql"
-	"strconv"
 	"time"
 )
 
@@ -36,17 +35,6 @@ type Options struct {
 	// in main, following the same degrade-to-default pattern.
 	WGUnit   string
 	OVPNUnit string
-
-	// Domain sniffer tunables (see the sniffer package). Zero/empty values are
-	// replaced with defaults by sniffer.Config.applyDefaults, so a missing or
-	// malformed setting can never disable capture outright.
-	SnifferIfaces  string
-	SnifferWGConf  string
-	SnifferSnaplen int
-	SnifferWorkers int
-	SnifferQueue   int
-	SnifferFlush   time.Duration
-	SnifferDedup   time.Duration
 }
 
 func LoadFromDB(ctx context.Context, sqldb *sql.DB) (Options, error) {
@@ -81,25 +69,7 @@ func LoadFromDB(ctx context.Context, sqldb *sql.DB) (Options, error) {
 		WGConf:             vals["wireguard_conf"],
 		WGIface:            vals["wireguard_interface"],
 		WGHandshakeTimeout: durationSetting(vals["wireguard_handshake_timeout"]),
-
-		SnifferIfaces:  vals["sniffer_ifaces"],
-		SnifferWGConf:  vals["sniffer_wg_conf"],
-		SnifferSnaplen: atoiSetting(vals["sniffer_snaplen"]),
-		SnifferWorkers: atoiSetting(vals["sniffer_workers"]),
-		SnifferQueue:   atoiSetting(vals["sniffer_queue"]),
-		SnifferFlush:   durationSetting(vals["sniffer_flush"]),
-		SnifferDedup:   durationSetting(vals["sniffer_dedup"]),
 	}, nil
-}
-
-// atoiSetting parses an integer setting, returning 0 (= "use default") when
-// the value is missing or not a number.
-func atoiSetting(s string) int {
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		return 0
-	}
-	return n
 }
 
 // durationSetting parses a duration setting like "2m" or "60s", returning 0

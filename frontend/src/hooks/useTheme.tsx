@@ -42,6 +42,7 @@ const DARK_TOKENS = {
   colorTextSecondary: '#8b949e',
   colorTextTertiary: '#6e7681',
   colorTextQuaternary: '#57606a',
+  colorTextDescription: '#57606a',
   colorBorder: '#1a1e22',
   colorBorderSecondary: '#16191d',
   fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
@@ -64,6 +65,32 @@ const DARK_MENU_TOKENS = {
 const DARK_CARD_TOKENS = {
   colorBorderSecondary: '#1a1e22',
   borderRadiusLG: 9,
+};
+const DARK_TABLE_TOKENS = {
+  headerBg: '#101316',
+  headerColor: '#6e7681',
+  headerSplitColor: 'transparent',
+  borderColor: '#16191d',
+  rowHoverBg: '#131619',
+  rowSelectedBg: '#16191d',
+  rowSelectedHoverBg: '#1a1e22',
+};
+const DARK_SEGMENTED_TOKENS = {
+  trackBg: '#0b0d0f',
+  itemColor: '#8b949e',
+  itemHoverBg: '#131619',
+  itemHoverColor: '#e6e9ec',
+  itemSelectedBg: '#16191d',
+  itemSelectedColor: '#e6e9ec',
+};
+const DARK_MODAL_TOKENS = {
+  contentBg: '#101316',
+  headerBg: '#101316',
+  titleColor: '#e6e9ec',
+};
+const DARK_TOOLTIP_TOKENS = {
+  colorBgDefault: '#16191d',
+  colorTextLightSolid: '#c9d1d9',
 };
 const STATISTIC_TOKENS = {
   contentFontSize: 17,
@@ -121,6 +148,10 @@ export function buildAntdThemeConfig(isDark: boolean): ThemeConfig {
       Layout: DARK_LAYOUT_TOKENS,
       Menu: DARK_MENU_TOKENS,
       Card: DARK_CARD_TOKENS,
+      Table: DARK_TABLE_TOKENS,
+      Segmented: DARK_SEGMENTED_TOKENS,
+      Modal: DARK_MODAL_TOKENS,
+      Tooltip: DARK_TOOLTIP_TOKENS,
       Statistic: STATISTIC_TOKENS,
     },
   };

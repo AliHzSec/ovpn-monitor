@@ -128,7 +128,6 @@ export default function AppSidebar() {
     { key: '/settings/general', icon: navDot(), label: 'General' },
     { key: '/settings/openvpn', icon: navDot(), label: 'OpenVPN' },
     { key: '/settings/wireguard', icon: navDot(), label: 'WireGuard' },
-    { key: '/settings/domains', icon: navDot(), label: 'Domain Tracking' },
   ];
 
   const navItems: MenuProps['items'] = [

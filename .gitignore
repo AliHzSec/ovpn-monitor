@@ -1,8 +1,6 @@
 # Binary
 ovpnmonitor.exe
 ovpnmonitor
-cmd/sniffer/sniffer
-cmd/sniffer/ovpnsniffer
 
 # Database
 *.sqlite

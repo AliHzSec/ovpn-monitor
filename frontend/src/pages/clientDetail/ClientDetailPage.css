@@ -1,25 +1,30 @@
-/* ClientDetailPage.css — page-specific styles for the client detail page.
-   Colors and typography come from the body.light/body.dark custom properties
-   in styles/tokens.css, so the page flips with the theme. */
+/* ClientDetailPage.css — client detail page in the dc design language (see
+   styles/dc.css for the shared card skin). Colors come from the
+   body.light/body.dark custom properties in styles/tokens.css. */
 
-.client-detail-page .client-breadcrumb .ant-breadcrumb-link a {
-  color: var(--text-secondary);
+.client-detail-page .client-breadcrumb {
+  font-size: 12px;
 }
 
 /* ── CLIENT HEADER CARD ── */
+.client-detail-page .client-head-card {
+  padding: 16px;
+}
+
 .client-detail-page .client-head {
   display: flex;
   align-items: center;
-  gap: var(--sp-4, 16px);
+  gap: 14px;
   flex-wrap: wrap;
 }
 
 .client-detail-page .client-avatar.ant-avatar {
-  background: var(--primary-soft);
-  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
-  color: var(--color-primary);
-  font-size: var(--fs-stat, 20px);
-  font-weight: 600;
+  background: var(--dc-selected);
+  border: 1px solid var(--dc-line);
+  color: var(--dc-value);
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 500;
   flex-shrink: 0;
 }
 
@@ -31,8 +36,9 @@
 }
 
 .client-detail-page .client-name {
-  font-size: var(--fs-title, 22px);
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   line-height: var(--lh-tight, 1.25);
   overflow-wrap: anywhere;
 }
@@ -40,7 +46,7 @@
 .client-detail-page .badge-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -48,7 +54,7 @@
 .client-detail-page .info-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--sp-3, 12px);
+  gap: 12px;
 }
 
 @media (max-width: 900px) {
@@ -63,62 +69,46 @@
   }
 }
 
-/* Card titles follow 3x-ui's kicker type (IndexPage.css .ov-kicker): 11px,
-   uppercase, 0.08em tracking, secondary color — no divider rule. */
-.client-detail-page .info-card-title {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  margin-bottom: var(--sp-3, 12px);
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2, 8px);
+.client-detail-page .info-card-body {
+  padding: 6px 16px 10px;
 }
 
-.client-detail-page .info-card-title-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  flex-shrink: 0;
-}
-
-.client-detail-page .info-card-title-dot-success {
-  background: var(--color-success);
-}
-
+/* Label/value rows mirror the overview's System Info card: hairline-separated,
+   tertiary label left, mono value right. */
 .client-detail-page .kv {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3, 12px);
 }
 
 .client-detail-page .kv-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--sp-3, 12px);
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--dc-hairline);
+}
+
+.client-detail-page .kv-row:last-child {
+  border-bottom: none;
 }
 
 .client-detail-page .kv-label {
-  font-size: var(--fs-sm, 13px);
-  color: var(--text-secondary);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: var(--text-tertiary);
 }
 
-/* Prominent row values: 18px/600 tabular-nums, the 18–20px stat-value band
-   of 3x-ui's IndexPage.css (.ov-foot-value / .ov-strip-value). */
 .client-detail-page .kv-value {
-  font-size: 18px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--dc-value);
   text-align: right;
   overflow-wrap: anywhere;
 }
 
 .client-detail-page .kv-value.muted {
-  color: var(--text-tertiary);
-  font-weight: 500;
+  color: var(--dc-faint);
 }
 
 .client-detail-page .kv-value.recv {
@@ -127,112 +117,4 @@
 
 .client-detail-page .kv-value.sent {
   color: var(--sent-color);
-}
-
-/* ── VISITED DOMAINS CARD ── */
-/* Table-in-card body padding matches 3x-ui's plain size="small" table cards
-   (antd cardPaddingSM = 12px). */
-.client-detail-page .domains-card .ant-card-body {
-  padding: var(--sp-3, 12px);
-}
-
-/* Card-internal toolbar: 8px gaps like 3x-ui's .card-toolbar, 12px below. */
-.client-detail-page .domains-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--sp-2, 8px);
-  margin-bottom: var(--sp-3, 12px);
-}
-
-.client-detail-page .domains-title {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-@media (max-width: 768px) {
-  .client-detail-page .domains-head {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-
-/* ── TABLE ── */
-.client-detail-page .domain-text {
-  font-weight: 500;
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
-.client-detail-page .sub-count {
-  display: block;
-  font-size: var(--fs-sm, 13px);
-  color: var(--text-tertiary);
-  margin-top: 2px;
-}
-
-.client-detail-page .time-cell {
-  font-size: var(--fs-sm, 13px);
-  color: var(--text-secondary);
-}
-
-.client-detail-page .count-pill {
-  display: inline-block;
-  min-width: 36px;
-  padding: 2px 10px;
-  border-radius: var(--radius-pill, 999px);
-  background: var(--primary-soft);
-  color: var(--color-primary);
-  font-size: var(--fs-sm, 13px);
-  font-weight: 600;
-  text-align: center;
-}
-
-/* Each row is a root domain that drills down to its subdomains, so it carries
-   the same affordance as a client row on the Clients page. */
-.client-detail-page .domain-row {
-  cursor: pointer;
-}
-
-.client-detail-page .row-chevron {
-  color: var(--text-tertiary);
-  transition:
-    transform 0.2s ease,
-    color 0.2s ease;
-}
-
-.client-detail-page .domain-row:hover .row-chevron {
-  color: var(--color-primary);
-  transform: translateX(2px);
-}
-
-/* ── FOOTER / EMPTY ── */
-.client-detail-page .domains-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  font-size: var(--fs-sm, 13px);
-  color: var(--text-tertiary);
-  padding-top: var(--sp-3, 12px);
-}
-
-.client-detail-page .empty-title {
-  display: block;
-  font-size: var(--fs-heading, 15px);
-  font-weight: 600;
-  color: var(--text);
-}
-
-.client-detail-page .empty-text {
-  display: block;
-  margin-top: 4px;
-  color: var(--text-secondary);
 }

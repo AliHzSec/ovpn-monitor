@@ -30,7 +30,6 @@
 .overview-page,
 .clients-page,
 .client-detail-page,
-.domain-detail-page,
 .settings-page,
 .portal-page {
   min-height: 100vh;
@@ -53,8 +52,10 @@
 }
 
 .page-title {
-  font-size: var(--fs-title, 22px);
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
   line-height: var(--lh-tight, 1.25);
   margin: 0;
 }

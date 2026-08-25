@@ -166,7 +166,6 @@ func TestSPAPagesServeIndex(t *testing.T) {
 		"/panel",
 		"/panel/clients",
 		"/panel/clients/anything",              // client detail, name resolved by the SPA
-		"/panel/clients/anything/domains/x.co", // domain detail
 		"/panel/totally/unknown/deep/link",     // SPA fallback
 	} {
 		req := httptest.NewRequest(http.MethodGet, path, nil)

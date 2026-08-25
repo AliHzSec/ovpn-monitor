@@ -243,10 +243,10 @@ body.light {
     --warn-dim: var(--warning-soft);
     --text-dim: var(--text-secondary);
     --text-muted: var(--text-tertiary);
-    /* Traffic direction: download takes the primary accent, upload stays
-       neutral. Neither is ever amber. */
-    --recv-color: var(--color-primary);
-    --sent-color: var(--text-secondary);
+    /* Traffic direction follows the design: download is the purple accent,
+       upload the blue. Neither is ever amber. */
+    --recv-color: var(--dc-purple);
+    --sent-color: var(--dc-blue);
 }
 
 html {

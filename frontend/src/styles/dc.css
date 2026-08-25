@@ -1,0 +1,347 @@
+/* ==========================================================================
+   dc.css — the panel's shared design language, extracted from the designer's
+   mock (VPN Monitor.dc.html) and the rewritten overview page. Two parts:
+
+     1. Primitives (.dc-card, .dc-card-head, .dc-klabel, …) — plain-div card
+        chrome every page reuses instead of duplicating.
+     2. An antd skin — overrides that bring the antd components the pages use
+        (Table, Segmented, Input, Button, Tag, Modal, Empty, …) onto the same
+        flat surfaces, hairline borders and micro-type headers.
+
+   All colors come from the dc/semantic custom properties in tokens.css, so
+   everything here flips with body.dark/body.light. Loaded by all three
+   entries right after page-cards.css.
+   ========================================================================== */
+
+/* ── 1. PRIMITIVES ───────────────────────────────────────────────────────── */
+
+.dc-card {
+  background: var(--bg-card);
+  border: 1px solid var(--dc-line);
+  border-radius: 9px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dc-card-head,
+.dc-card-head-text {
+  font-size: 10.5px;
+  letter-spacing: 0.11em;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.dc-card-head {
+  padding: 12px 16px 11px;
+  border-bottom: 1px solid var(--dc-line);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* Micro label (10px uppercase, ghost color) — field/group labels inside cards. */
+.dc-klabel {
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  color: var(--dc-ghost);
+  text-transform: uppercase;
+}
+
+/* Numeric values are always IBM Plex Mono. */
+.dc-mono {
+  font-family: var(--font-mono);
+}
+
+/* 10×2 legend dash (upload/download, sent/received). */
+.dc-dash {
+  width: 10px;
+  height: 2px;
+  flex: 0 0 auto;
+}
+
+/* Vertical hairline separating split cells. */
+.dc-vsep {
+  width: 1px;
+  background: var(--dc-line);
+  flex: none;
+}
+
+/* Slim progress bar (clients ratio, portal): 7px, 4px radius, hairline track. */
+.dc-bar {
+  position: relative;
+  height: 7px;
+  background: var(--dc-line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dc-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  border-radius: 4px;
+  transition: width 600ms ease;
+}
+
+/* Small protocol tag (OVPN/WG): bordered ghost chip in the accent color. */
+.dc-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, currentColor 38%, transparent);
+}
+
+.dc-tag-ovpn {
+  color: var(--dc-blue);
+}
+
+.dc-tag-wg {
+  color: var(--dc-purple);
+}
+
+/* ── 2. ANTD SKIN ────────────────────────────────────────────────────────── */
+
+/* — Buttons: the design has no filled buttons; every action is a bordered
+     ghost (service Restart/Stop). Primary keeps the blue accent as a tint. — */
+
+body .ant-btn-default {
+  background: transparent;
+  border-color: var(--dc-btn-border);
+  color: var(--dc-value);
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+body .ant-btn-default:not(:disabled):hover {
+  background: var(--dc-btn-hover-bg);
+  border-color: var(--dc-btn-hover-border);
+  color: var(--text);
+}
+
+body .ant-btn-primary {
+  background: color-mix(in srgb, var(--dc-blue) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--dc-blue) 35%, transparent);
+  color: var(--dc-blue);
+  border-radius: 6px;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+body .ant-btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--dc-blue) 16%, transparent);
+  border-color: color-mix(in srgb, var(--dc-blue) 50%, transparent);
+  color: var(--dc-blue);
+}
+
+body .ant-btn-dangerous,
+body .ant-btn-dangerous:not(:disabled):hover {
+  background: transparent;
+  border-color: var(--dc-danger-border);
+  color: var(--color-error);
+  box-shadow: none;
+}
+
+/* — Inputs — */
+
+body .ant-input,
+body .ant-input-affix-wrapper,
+body .ant-input-number,
+body .ant-select .ant-select-selector {
+  background: var(--bg-page);
+  border-color: var(--dc-btn-border);
+  border-radius: 6px;
+  color: var(--text);
+  box-shadow: none;
+}
+
+body .ant-input::placeholder {
+  color: var(--dc-ghost);
+}
+
+body .ant-input-affix-wrapper .ant-input {
+  background: transparent;
+  border: none;
+}
+
+body .ant-input:hover,
+body .ant-input-affix-wrapper:hover,
+body .ant-select:not(.ant-select-disabled):hover .ant-select-selector {
+  border-color: var(--dc-btn-hover-border);
+}
+
+body .ant-input:focus,
+body .ant-input-affix-wrapper-focused,
+body .ant-select-focused .ant-select-selector {
+  border-color: var(--dc-blue) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dc-blue) 18%, transparent) !important;
+}
+
+body .ant-input-affix-wrapper .anticon {
+  color: var(--dc-ghost);
+}
+
+/* — Segmented (filter tabs) — */
+
+body .ant-segmented {
+  background: var(--bg-page);
+  border: 1px solid var(--dc-line);
+  border-radius: 6px;
+  padding: 2px;
+  color: var(--text-secondary);
+}
+
+body .ant-segmented .ant-segmented-item {
+  border-radius: 5px;
+  color: var(--text-secondary);
+}
+
+body .ant-segmented .ant-segmented-item-selected {
+  background: var(--dc-selected);
+  color: var(--text);
+  box-shadow: none;
+}
+
+/* — Table — */
+
+body .ant-table-wrapper .ant-table {
+  background: transparent;
+}
+
+body .ant-table-wrapper .ant-table-thead > tr > th {
+  background: transparent;
+  border-bottom: 1px solid var(--dc-line);
+  color: var(--text-tertiary);
+  font-size: 10.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding: 10px 12px;
+}
+
+body .ant-table-wrapper .ant-table-thead > tr > th::before {
+  display: none;
+}
+
+body .ant-table-wrapper .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--dc-hairline);
+  color: var(--text);
+  padding: 10px 12px;
+}
+
+body .ant-table-wrapper .ant-table-tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+body .ant-table-wrapper .ant-table-tbody > tr.ant-table-row:hover > td,
+body .ant-table-wrapper .ant-table-tbody > tr > td.ant-table-cell-row-hover {
+  background: var(--dc-hover);
+}
+
+body .ant-table-wrapper .ant-table-column-sorter {
+  color: var(--dc-dead);
+}
+
+body .ant-table-wrapper .ant-table-column-sorter-up.active,
+body .ant-table-wrapper .ant-table-column-sorter-down.active {
+  color: var(--dc-blue);
+}
+
+body .ant-table-wrapper .ant-table-column-title {
+  flex: none;
+}
+
+/* — Badge (status text) — */
+
+body .ant-badge .ant-badge-status-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* — Breadcrumb — */
+
+body .ant-breadcrumb {
+  font-size: 12px;
+}
+
+body .ant-breadcrumb a {
+  color: var(--dc-blue);
+}
+
+body .ant-breadcrumb a:hover {
+  color: var(--color-primary-hover);
+  background: transparent;
+}
+
+body .ant-breadcrumb .ant-breadcrumb-separator,
+body .ant-breadcrumb li:last-child {
+  color: var(--text-tertiary);
+}
+
+/* — Empty — */
+
+body .ant-empty .ant-empty-description {
+  color: var(--dc-ghost);
+}
+
+body .ant-empty .ant-empty-image {
+  opacity: 0.5;
+}
+
+/* — Alert (settings flash) — */
+
+body .ant-alert {
+  border-radius: 6px;
+  font-size: 12.5px;
+}
+
+/* — Modal (confirm dialogs) — */
+
+body .ant-modal .ant-modal-content {
+  border: 1px solid var(--dc-line);
+  border-radius: 9px;
+  box-shadow: none;
+  padding: 18px;
+}
+
+body .ant-modal .ant-modal-title {
+  font-size: 13.5px;
+}
+
+body .ant-modal .ant-modal-body {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+/* — Tooltip — */
+
+body .ant-tooltip .ant-tooltip-inner {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  border-radius: 6px;
+}
+
+/* — Switch — */
+
+body .ant-switch {
+  background: var(--dc-track);
+}
+
+body .ant-switch.ant-switch-checked {
+  background: var(--color-success);
+}
+
+/* — Message toasts — */
+
+body .ant-message .ant-message-notice .ant-message-notice-content {
+  border: 1px solid var(--dc-line);
+  border-radius: 6px;
+  box-shadow: none;
+  font-size: 12.5px;
+}

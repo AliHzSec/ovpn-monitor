@@ -26,9 +26,9 @@ step "Building frontend (outputs to internal/web/dist)"
 npm run build || die "frontend build (vite) failed"
 cd ..
 
-step "Building Go binary (CGO_ENABLED=1; libpcap headers required)"
+step "Building Go binary (CGO_ENABLED=1; required by go-sqlite3)"
 CGO_ENABLED=1 go build -o ovpnmonitor . ||
-	die "go build failed — libpcap headers required (Debian/Ubuntu: apt-get install libpcap-dev)"
+	die "go build failed"
 
 bin="$(pwd)/ovpnmonitor"
 size="$(du -h "$bin" | cut -f1)"

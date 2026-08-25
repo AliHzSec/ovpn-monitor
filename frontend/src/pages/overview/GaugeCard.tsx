@@ -12,9 +12,6 @@ const BANDS = {
 
 export type GaugeBandKey = keyof typeof BANDS;
 
-// Length of the mock's 270° arc path (r = 44, viewBox 100×100).
-const ARC = 179.07;
-
 function band(key: GaugeBandKey, pct: number): { color: string; status: string } {
   const [warn, crit] = BANDS[key];
   if (pct > crit) return { color: 'var(--color-error)', status: 'Critical' };
@@ -34,8 +31,8 @@ export default function GaugeCard({ bandKey, label, pct, detail }: GaugeCardProp
   const clamped = Math.min(100, Math.max(0, pct));
 
   return (
-    <section className="ovp-card">
-      <div className="ovp-card-head">{label}</div>
+    <section className="dc-card">
+      <div className="dc-card-head">{label}</div>
       <div className="ovp-gauge-body">
         <div className="ovp-gauge">
           <svg viewBox="0 0 100 100" className="ovp-gauge-svg">
@@ -52,7 +49,14 @@ export default function GaugeCard({ bandKey, label, pct, detail }: GaugeCardProp
               stroke={color}
               strokeWidth="7"
               strokeLinecap="round"
-              strokeDasharray={`${((ARC * clamped) / 100).toFixed(1)} ${ARC}`}
+              // The arc's true length is 2π·44·¾ ≈ 207.3, so a dash pattern in
+              // user units could go stale and wrap (a second segment at the
+              // track's end). pathLength normalizes the path to 100 units:
+              // the pattern "pct 100" then always spans the whole path, so
+              // exactly one arc renders, filling linearly from bottom-left to
+              // bottom-right.
+              pathLength={100}
+              strokeDasharray={`${clamped} 100`}
               className="ovp-gauge-fill"
             />
           </svg>

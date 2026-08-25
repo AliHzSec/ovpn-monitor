@@ -1,7 +1,9 @@
 /* OverviewPage.css — a 1:1 translation of the designer's mock
    (VPN Monitor.dc.html) inline styles into classes. Dark-mode values are the
-   mock's exact hex colors, consumed through the --dc-* / --ovpn-* variables
-   defined in styles/tokens.css; light mode falls back to approximations. */
+   mock's exact hex colors, consumed through the --dc-* / semantic variables
+   defined in styles/tokens.css; light mode falls back to approximations.
+   Shared card chrome (.dc-card, .dc-card-head, .dc-klabel, .dc-dash,
+   .dc-vsep) lives in styles/dc.css. */
 
 .ovp {
   display: flex;
@@ -28,50 +30,6 @@
   height: 5px;
   border-radius: 50%;
   background: var(--color-success);
-  flex: none;
-}
-
-/* — shared card chrome — */
-
-.ovp-card {
-  background: var(--bg-card);
-  border: 1px solid var(--dc-line);
-  border-radius: 9px;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.ovp-card-head,
-.ovp-card-head-text {
-  font-size: 10.5px;
-  letter-spacing: 0.11em;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  font-weight: 500;
-}
-
-.ovp-card-head {
-  padding: 12px 16px 11px;
-  border-bottom: 1px solid var(--dc-line);
-}
-
-.ovp-klabel {
-  font-size: 10px;
-  letter-spacing: 0.09em;
-  color: var(--dc-ghost);
-  text-transform: uppercase;
-}
-
-.ovp-dash {
-  width: 10px;
-  height: 2px;
-  flex: 0 0 auto;
-}
-
-.ovp-vsep {
-  width: 1px;
-  background: var(--dc-line);
   flex: none;
 }
 
@@ -319,7 +277,7 @@
   gap: 6px;
 }
 
-.ovp-traffic-cell-head .ovp-klabel {
+.ovp-traffic-cell-head .dc-klabel {
   font-size: 10.5px;
   letter-spacing: 0.07em;
 }
