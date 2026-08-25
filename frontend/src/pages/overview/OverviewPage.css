@@ -1,445 +1,477 @@
-/* OverviewPage.css — overview layout, ring gauges, clients card and info
-   cards, ported 1:1 from the legacy templates/dashboard.html #page-overview
-   styles (and the ratio-bar rules from templates/static/theme.css). Colors
-   come from the mode-scoped custom properties in styles/tokens.css, so the
-   page flips with body.light / body.dark. */
+/* OverviewPage.css — a 1:1 port of 3x-ui's pages/index/IndexPage.css, with
+   antd CSS variables referenced through our 'ovpn' cssVar key (see
+   src/hooks/useTheme.tsx). Adds the services row and extends the system strip
+   to four cells; everything else matches the reference values exactly. */
 
-/* ── ROW LAYOUT ── */
-.overview-page .ov-row {
-  display: grid;
-  grid-template-columns: minmax(0, 13fr) minmax(300px, 7fr);
-  gap: var(--sp-4);
-  align-items: stretch;
-}
-
-.overview-page .ov-row .severity-card,
-.overview-page .ov-row .glass-card {
-  height: 100%;
-}
-
-.overview-page .info-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--sp-4);
-}
-
-/* ── SERVER RESOURCE GAUGES ── */
-.overview-page .resources-card .ant-card-body {
-  display: flex;
-  height: 100%;
-  padding: 0;
-}
-
-.overview-page .gauge-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 26px 18px 24px;
-  position: relative;
-  transition: background 0.2s;
-}
-
-.overview-page .gauge-item:hover {
-  background: rgba(255, 255, 255, 0.015);
-}
-
-.overview-page .gauge-item + .gauge-item {
-  border-left: 1px solid var(--border-secondary);
-}
-
-/* Top accent per gauge. Defaults to primary; React swaps it to warning or
-   error only when the value crosses a threshold. */
-.overview-page .gauge-item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--gauge-accent, var(--color-primary));
-  opacity: 0.8;
-  transition:
-    opacity 0.3s,
-    background 0.4s;
-}
-
-.overview-page .gauge-item:hover::before {
-  opacity: 1;
-}
-
-.overview-page .gauge-item-label {
-  font-size: var(--fs-label);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: var(--ls-label);
-  color: var(--text-tertiary);
-  align-self: flex-start;
-}
-
-.overview-page .gauge-ring-wrap {
-  position: relative;
-  width: clamp(118px, 8.5vw, 172px);
-  height: clamp(118px, 8.5vw, 172px);
-}
-
-.overview-page .gauge-ring-wrap svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(135deg);
-}
-
-.overview-page .ring-track {
-  fill: none;
-  stroke: var(--ring-track);
-  stroke-width: 9;
-}
-
-.overview-page .ring-fill {
-  fill: none;
-  stroke: var(--color-primary);
-  stroke-width: 9;
-  stroke-linecap: round;
-  transition:
-    stroke-dasharray 0.7s cubic-bezier(0.34, 1.56, 0.64, 1),
-    stroke 0.4s ease;
-}
-
-.overview-page .gauge-center {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.overview-page .gauge-center-value {
-  font-size: clamp(22px, 1.7vw, 30px);
-  font-weight: 600;
-  color: var(--text);
-  line-height: var(--lh-tight);
-}
-
-.overview-page .gauge-sublabel {
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
-  text-align: center;
-  line-height: var(--lh-body);
-  margin-top: 2px;
-}
-
-/* ── CLIENTS CARD ── */
-.overview-page .clients-card .ant-card-body {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.overview-page .clients-top {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-4);
-}
-
-.overview-page .clients-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: var(--sp-4);
-}
-
-.overview-page .clients-icon-box {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--primary-soft);
-  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
-  color: var(--color-primary);
-  font-size: 18px;
-  flex-shrink: 0;
-}
-
-.overview-page .clients-title {
-  font-size: var(--fs-heading);
-  font-weight: 600;
-  color: var(--text);
-}
-
-.overview-page .clients-total {
-  font-size: var(--fs-hero-lg);
-  font-weight: 600;
-  line-height: var(--lh-tight);
-  color: var(--text);
-}
-
-.overview-page .clients-total-label {
-  font-size: var(--fs-caption);
-  color: var(--text-tertiary);
-  margin-top: 4px;
-}
-
-.overview-page .clients-side {
-  display: flex;
-  gap: 30px;
-  flex-shrink: 0;
-}
-
-.overview-page .clients-side-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.overview-page .clients-side-value {
-  font-size: var(--fs-hero);
-  font-weight: 600;
-  line-height: var(--lh-tight);
-}
-
-.overview-page .clients-side-value.online {
-  color: var(--color-success);
-}
-
-.overview-page .clients-side-value.offline {
-  color: var(--text-tertiary);
-}
-
-.overview-page .clients-side-label {
-  font-size: var(--fs-label);
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-label);
-}
-
-.overview-page .clients-pct-caption {
-  font-size: var(--fs-caption);
-  color: var(--text-tertiary);
-  margin-top: 7px;
-}
-
-/* ── RATIO BAR ── */
-.overview-page .ratio-bar {
-  height: 6px;
-  background: var(--ring-track);
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-  margin-top: var(--sp-3);
-}
-
-.overview-page .ratio-bar-fill {
-  height: 100%;
-  background: var(--color-primary);
-  border-radius: var(--radius-pill);
-  transition:
-    width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
-    background 0.3s;
-}
-
-.overview-page .ratio-bar-fill.is-success {
-  background: var(--color-success);
-}
-
-/* ── INFO CARDS ── */
-.overview-page .info-card .ant-card-body {
-  padding: 20px 22px;
-}
-
-.overview-page .info-card-title {
-  font-size: var(--fs-heading);
-  font-weight: 600;
-  color: var(--text);
-  padding-bottom: var(--sp-3);
-  margin-bottom: var(--sp-4);
-  border-bottom: 1px solid var(--border-secondary);
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
-.overview-page .info-card-title-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  flex-shrink: 0;
-}
-
-.overview-page .info-card-title-dot.is-success {
-  background: var(--color-success);
-}
-
-.overview-page .info-card-title-dot.is-muted {
-  background: var(--text-tertiary);
-}
-
-.overview-page .info-rows {
-  display: flex;
-  flex-direction: row;
-  min-width: 0;
-}
-
-.overview-page .info-row {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 0 18px;
-}
-
-.overview-page .info-row:first-child {
-  padding-left: 0;
-}
-
-.overview-page .info-row:last-child {
-  padding-right: 0;
-}
-
-.overview-page .info-row + .info-row {
-  border-left: 1px solid var(--border-secondary);
-}
-
-.overview-page .info-row-label {
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
-  line-height: var(--lh-body);
-}
-
-.overview-page .info-row-value {
-  font-size: var(--fs-md);
-  font-weight: 500;
-  color: var(--text);
-  transition: color 0.3s;
-  min-width: 0;
-  max-width: 100%;
-  /* long, unbreakable tokens (e.g. an IPv6 address) must wrap instead of
-     forcing the card — and the page — wider than the viewport */
-  overflow-wrap: anywhere;
-}
-
-/* Three columns in one card leaves ~85px per value. Tighter gutters and one
-   step down in size keep figures like "14.08 TB" on a single line. */
-.overview-page .info-rows.cols-3 .info-row {
-  padding: 0 10px;
-}
-
-.overview-page .info-rows.cols-3 .info-row-value {
-  font-size: var(--fs-body);
-}
-
-.overview-page .info-row-value.muted {
-  color: var(--text-tertiary);
-}
-
-.overview-page .info-row-value.val-up {
-  color: var(--sent-color);
-}
-
-.overview-page .info-row-value.val-down {
-  color: var(--recv-color);
-}
-
-/* stacked variant: label left, value right — for longer text values */
-.overview-page .info-rows.vertical {
-  flex-direction: column;
-  gap: var(--sp-3);
-}
-
-.overview-page .info-rows.vertical .info-row {
-  flex-direction: row;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--sp-3);
-  padding: 0;
-}
-
-.overview-page .info-rows.vertical .info-row + .info-row {
-  border-left: none;
-}
-
-.overview-page .info-rows.vertical .info-row-value {
-  font-size: var(--fs-body);
-  text-align: right;
-}
-
-/* Live-speed sparkline sits under the Upload/Download rows. */
-.overview-page .speed-sparkline {
-  margin-top: var(--sp-4);
-}
-
-/* ── RESPONSIVE ── */
-@media (max-width: 1500px) {
-  .overview-page .info-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 1250px) {
-  .overview-page .ov-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 900px) {
-  .overview-page .resources-card .ant-card-body {
-    flex-wrap: wrap;
-  }
-
-  .overview-page .gauge-item {
-    flex: 0 0 50%;
-  }
-
-  .overview-page .gauge-item + .gauge-item {
-    border-left: none;
-  }
-
-  .overview-page .gauge-item:nth-child(even) {
-    border-left: 1px solid var(--border-secondary);
-  }
-
-  .overview-page .gauge-item:nth-child(n + 3) {
-    border-top: 1px solid var(--border-secondary);
-  }
+.overview-page {
+  --ov-accent: var(--ovpn-color-primary);
+  --ov-line: var(--ovpn-color-border);
+  --ov-label: var(--ovpn-color-text-secondary);
+  --ov-faint: var(--ovpn-color-text-tertiary);
+  --ov-gap: 12px;
+  --ov-pad: 20px;
 }
 
 @media (max-width: 768px) {
-  .overview-page .gauge-item {
-    padding: 18px 14px;
-    gap: 6px;
+  .overview-page {
+    --ov-gap: 8px;
+    --ov-pad: 14px;
+  }
+}
+
+.ov-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ov-gap);
+}
+
+/* — action bar — */
+
+.ov-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ov-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border: 1px solid var(--ov-line);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--ovpn-color-text);
+}
+
+.ov-state-dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.ov-state[data-state='running'] .ov-state-dot::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  animation: ovPulse 1.6s infinite ease-out;
+}
+
+@keyframes ovPulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ov-state[data-state='running'] .ov-state-dot::after {
+    animation: none;
+  }
+}
+
+.ov-bar-updated {
+  margin-inline-start: auto;
+  font-size: 12px;
+  color: var(--ov-faint);
+}
+
+@media (max-width: 768px) {
+  .ov-bar-updated {
+    margin-inline-start: 0;
+    width: 100%;
+  }
+}
+
+.ov-health {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.ov-health-mark {
+  width: 14px;
+  height: 1px;
+  background: currentColor;
+  flex: none;
+}
+
+.ov-rule {
+  height: 1px;
+  border: 0;
+  margin: 0;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--ov-line) 48px,
+    var(--ov-line) calc(100% - 48px),
+    transparent
+  );
+}
+
+/* — shared type — */
+
+.ov-kicker {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ov-label);
+}
+
+.ov-kicker-icon {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ov-sub {
+  font-size: 12.5px;
+  margin-top: 4px;
+  color: var(--ov-faint);
+}
+
+.ov-mono {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+}
+
+/* — vitals tiles — */
+
+.ov-vitals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ov-gap);
+}
+
+@media (max-width: 1100px) {
+  .ov-vitals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .ov-vitals {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ov-tile {
+  overflow: hidden;
+}
+
+.ov-tile-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px var(--ov-pad) 0;
+  color: var(--ov-accent);
+}
+
+.ov-tile-icon {
+  display: inline-flex;
+  font-size: 15px;
+}
+
+.ov-tile-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 12px var(--ov-pad) 0;
+}
+
+.ov-tile-number {
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ovpn-color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-tile-unit {
+  font-size: 14px;
+  color: var(--ov-label);
+}
+
+.ov-tile-detail {
+  padding: 5px var(--ov-pad) 0;
+  font-size: 12px;
+  color: var(--ov-label);
+}
+
+.ov-tile-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px var(--ov-pad) 0;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ov-faint);
+}
+
+.ov-tile-chart {
+  margin-top: 6px;
+}
+
+/* — throughput + connections — */
+
+.ov-mid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--ov-gap);
+}
+
+@media (max-width: 1100px) {
+  .ov-mid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ov-wide-head {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: var(--ov-pad) var(--ov-pad) 0;
+}
+
+.ov-wide-head-stack {
+  flex-direction: column;
+  gap: 0;
+}
+
+.ov-wide-legend {
+  margin-inline-start: auto;
+  display: flex;
+  gap: 22px;
+  text-align: end;
+}
+
+.ov-legend-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ov-label);
+}
+
+.ov-legend-num {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ovpn-color-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ov-conn-total {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.ov-conn-legend {
+  display: flex;
+  gap: 16px;
+  padding: 16px var(--ov-pad) 0;
+}
+
+.ov-conn-legend > div {
+  flex: 1 1 0;
+}
+
+.ov-conn-legend .ov-legend-label {
+  justify-content: flex-start;
+}
+
+.ov-swatch {
+  width: 14px;
+  height: 2px;
+  flex: none;
+}
+
+.ov-wide-chart {
+  padding: 12px 8px 0;
+}
+
+.ov-wide-foot {
+  display: flex;
+  gap: 16px;
+  margin: 12px var(--ov-pad) 0;
+  padding: 14px 0 var(--ov-pad);
+  border-top: 1px solid var(--ov-line);
+}
+
+.ov-wide-foot > div {
+  flex: 1 1 0;
+}
+
+.ov-foot-sep {
+  width: 1px;
+  background: var(--ov-line);
+}
+
+.ov-foot-value {
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 4px;
+  color: var(--ovpn-color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-foot-part {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .ov-wide-foot {
+    flex-direction: column;
+    gap: 10px;
   }
 
-  .overview-page .gauge-ring-wrap {
-    width: clamp(104px, 30vw, 124px);
-    height: clamp(104px, 30vw, 124px);
+  .ov-wide-foot .ov-foot-sep {
+    display: none;
   }
+}
 
-  .overview-page .info-grid {
-    grid-template-columns: 1fr;
-  }
+/* — service control cards — */
 
-  .overview-page .info-card .ant-card-body {
-    padding: 16px 18px;
-  }
+.ov-services {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ov-gap);
+}
 
-  .overview-page .info-card-title {
-    margin-bottom: var(--sp-3);
+@media (max-width: 768px) {
+  .ov-services {
+    grid-template-columns: minmax(0, 1fr);
   }
+}
 
-  .overview-page .info-row {
-    padding: 0 14px;
-  }
+/* — system strip —
 
-  .overview-page .clients-side {
-    gap: 20px;
+   tracks follow SystemStrip's cell order:
+   uptime (os | openvpn | wireguard) · clients (total | online | offline) ·
+   system info · ip addresses */
+.ov-strip-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(max-content, 1.3fr) minmax(max-content, 1.1fr)
+    minmax(0, 1.2fr) minmax(0, 1.2fr);
+  gap: 16px;
+  padding: var(--ov-pad);
+}
+
+@media (max-width: 1439px) {
+  .ov-strip-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+@media (max-width: 560px) {
+  .ov-strip-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1440px) {
+  .ov-strip-cell + .ov-strip-cell {
+    border-inline-start: 1px solid var(--ov-line);
+    padding-inline-start: 16px;
+  }
+}
+
+.ov-strip-value {
+  font-size: 19px;
+  font-weight: 600;
+  margin-top: 6px;
+  color: var(--ovpn-color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-strip-online {
+  color: var(--ovpn-color-success);
+}
+
+.ov-strip-offline {
+  color: var(--ov-faint);
+}
+
+.ov-strip-split {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+}
+
+.ov-strip-split-sep {
+  width: 1px;
+  background: var(--ov-line);
+  margin-top: 8px;
+}
+
+.ov-strip-sub {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 8px;
+  color: var(--ov-faint);
+}
+
+.ov-strip-sub + .ov-strip-value {
+  margin-top: 2px;
+}
+
+/* system-info cell: three stacked label/value facts */
+.ov-strip-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.ov-strip-fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ov-strip-fact .ov-strip-sub {
+  margin-top: 0;
+  flex: none;
+}
+
+.ov-strip-fact-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ovpn-color-text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.ov-ip {
+  margin-top: 7px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.ov-ip-v6 {
+  margin-top: 3px;
+}
+
+.ov-ip-none {
+  color: var(--ov-faint);
 }

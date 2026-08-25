@@ -1,6 +1,12 @@
 import { useState } from 'react';
-import { Button, Card, Modal, message } from 'antd';
-import { CaretRightOutlined, ReloadOutlined, StopOutlined } from '@ant-design/icons';
+import { Button, Card, Modal, message, theme } from 'antd';
+import {
+  CaretRightOutlined,
+  GlobalOutlined,
+  PoweroffOutlined,
+  ReloadOutlined,
+  SafetyCertificateOutlined,
+} from '@ant-design/icons';
 
 import { post } from '@/api/http';
 import { useServerStats } from '@/api/queries/useServerStats';
@@ -16,15 +22,22 @@ interface ServiceCardProps {
   title: string;
 }
 
+const serviceIcon: Record<ServiceName, React.ReactNode> = {
+  openvpn: <SafetyCertificateOutlined />,
+  wireguard: <GlobalOutlined />,
+};
+
 function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-// State-aware OpenVPN/WireGuard service card: status dot + Start or
-// Stop/Restart depending on the live uptime pushed over the WebSocket bridge
-// (status is frozen while an action is in flight, mirroring the legacy
-// servicePending behavior).
+// OpenVPN/WireGuard service control card. Visual treatment mirrors 3x-ui's
+// OverviewActionBar service controls: a state pill with a pulsing dot
+// (.ov-state) plus an outlined-primary Restart and a text Stop button.
+// Status is frozen while an action is in flight, mirroring the legacy
+// servicePending behavior.
 export default function ServiceCard({ service, title }: ServiceCardProps) {
+  const { token } = theme.useToken();
   const { data, dataUpdatedAt } = useServerStats();
   const [pendingAction, setPendingAction] = useState<ServiceAction | null>(null);
   // Freeze pins the displayed status to the query snapshot that was current
@@ -69,27 +82,24 @@ export default function ServiceCard({ service, title }: ServiceCardProps) {
   const pending = pendingAction !== null;
 
   return (
-    <Card className="glass-card service-card" variant="borderless">
-      <div className="service-head">
-        <span className="stat-card-title">{title}</span>
-        <span className={`service-status ${running ? 'running' : 'stopped'}`}>
-          <span className="service-status-dot" />
-          <span className="service-status-text">{running ? 'Running' : 'Stopped'}</span>
+    <Card hoverable className="ov-service" styles={{ body: { padding: 0 } }}>
+      <div className="ov-tile-head ov-service-head">
+        <span className="ov-tile-icon">{serviceIcon[service]}</span>
+        <span className="ov-kicker">{title}</span>
+        <span className="ov-state" data-state={running ? 'running' : 'stop'}>
+          <span
+            className="ov-state-dot"
+            style={{ color: running ? token.colorSuccess : token.colorTextTertiary }}
+          />
+          <span>{running ? 'Running' : 'Stopped'}</span>
         </span>
       </div>
-      <div className="service-actions">
+      <div className="ov-service-actions">
         {running ? (
           <>
             <Button
-              danger
-              icon={<StopOutlined />}
-              disabled={pending}
-              loading={pendingAction === 'stop'}
-              onClick={() => confirmAction('stop')}
-            >
-              Stop
-            </Button>
-            <Button
+              color="primary"
+              variant="outlined"
               icon={<ReloadOutlined />}
               disabled={pending}
               loading={pendingAction === 'restart'}
@@ -97,10 +107,20 @@ export default function ServiceCard({ service, title }: ServiceCardProps) {
             >
               Restart
             </Button>
+            <Button
+              type="text"
+              icon={<PoweroffOutlined />}
+              disabled={pending}
+              loading={pendingAction === 'stop'}
+              onClick={() => confirmAction('stop')}
+            >
+              Stop
+            </Button>
           </>
         ) : (
           <Button
-            type="primary"
+            color="primary"
+            variant="outlined"
             icon={<CaretRightOutlined />}
             disabled={pending}
             loading={pendingAction === 'start'}

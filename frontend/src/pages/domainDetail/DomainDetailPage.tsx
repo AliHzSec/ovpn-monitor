@@ -12,6 +12,7 @@ import type { TableProps } from 'antd';
 import { ArrowLeftOutlined, GlobalOutlined } from '@ant-design/icons';
 
 import { useDomainDetail } from '@/api/queries/useDomainDetail';
+import PageShell from '@/components/ui/PageShell';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { VisitedDomain } from '@/models/types';
 import { relativeTime } from '@/utils/format';
@@ -195,7 +196,17 @@ export function DomainDetailPage() {
   );
 
   return (
-    <div className="domain-detail-page">
+    <PageShell
+      title={root || 'Domain Detail'}
+      className="domain-detail-page"
+      actions={
+        <Link to={clientHref}>
+          <Button ghost icon={<ArrowLeftOutlined />}>
+            Back to Client
+          </Button>
+        </Link>
+      }
+    >
       <Breadcrumb
         className="dd-breadcrumb"
         items={[
@@ -204,14 +215,6 @@ export function DomainDetailPage() {
           { title: <span className="dd-crumb-current">{root}</span> },
         ]}
       />
-
-      <div className="dd-back">
-        <Link to={clientHref}>
-          <Button ghost icon={<ArrowLeftOutlined />}>
-            Back to Client
-          </Button>
-        </Link>
-      </div>
 
       <Card className="dd-domain-head" variant="borderless">
         <div className="dd-domain-avatar">
@@ -257,7 +260,7 @@ export function DomainDetailPage() {
           <div className="dd-kv">
             <div className="dd-kv-row">
               <span className="dd-kv-label">Total</span>
-              <span className="dd-kv-value total">
+              <span className="dd-kv-value">
                 {showPlaceholders ? '—' : summary.total}
               </span>
             </div>
@@ -335,7 +338,7 @@ export function DomainDetailPage() {
           />
         )}
       </Card>
-    </div>
+    </PageShell>
   );
 }
 

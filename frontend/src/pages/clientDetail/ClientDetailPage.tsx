@@ -282,7 +282,7 @@ export function ClientDetailPage() {
             <div className="kv">
               <div className="kv-row">
                 <span className="kv-label">Total</span>
-                <span className="kv-value total">
+                <span className="kv-value">
                   {client ? readableOr(client.total_traffic_readable, client.total_traffic) : '—'}
                 </span>
               </div>

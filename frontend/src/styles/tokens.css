@@ -16,10 +16,10 @@
     --font-mono: "IBM Plex Mono", ui-monospace, monospace;
     --font-brand: "IBM Plex Mono", ui-monospace, monospace;
 
-    /* Scale. 14px is the hard floor for body copy and 12px for captions —
-       nothing in any page may go below these. */
+    /* Scale. Body copy floors at 14px; uppercase kickers / chart footers /
+       strip sub-labels follow 3x-ui's hierarchy and run 10–12px. */
     --fs-caption: 12px;
-    /* smallest permitted size, captions/labels only */
+    /* captions/labels */
     --fs-body: 14px;
     /* body-copy floor */
     --fs-sm: 13px;

@@ -2,10 +2,6 @@
    Colors and typography come from the body.light/body.dark custom properties
    in styles/tokens.css, so the page flips with the theme. */
 
-.client-detail-page .client-breadcrumb {
-  margin-bottom: -4px;
-}
-
 .client-detail-page .client-breadcrumb .ant-breadcrumb-link a {
   color: var(--text-secondary);
 }
@@ -52,7 +48,7 @@
 .client-detail-page .info-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--sp-4, 16px);
+  gap: var(--sp-3, 12px);
 }
 
 @media (max-width: 900px) {
@@ -67,12 +63,14 @@
   }
 }
 
+/* Card titles follow 3x-ui's kicker type (IndexPage.css .ov-kicker): 11px,
+   uppercase, 0.08em tracking, secondary color — no divider rule. */
 .client-detail-page .info-card-title {
-  font-size: var(--fs-heading, 15px);
-  font-weight: 600;
-  padding-bottom: var(--sp-3, 12px);
-  margin-bottom: var(--sp-4, 16px);
-  border-bottom: 1px solid var(--border-secondary);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: var(--sp-3, 12px);
   display: flex;
   align-items: center;
   gap: var(--sp-2, 8px);
@@ -108,15 +106,19 @@
   color: var(--text-secondary);
 }
 
+/* Prominent row values: 18px/600 tabular-nums, the 18–20px stat-value band
+   of 3x-ui's IndexPage.css (.ov-foot-value / .ov-strip-value). */
 .client-detail-page .kv-value {
-  font-size: var(--fs-lg, 17px);
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   text-align: right;
   overflow-wrap: anywhere;
 }
 
 .client-detail-page .kv-value.muted {
   color: var(--text-tertiary);
+  font-weight: 500;
 }
 
 .client-detail-page .kv-value.recv {
@@ -127,26 +129,31 @@
   color: var(--sent-color);
 }
 
-.client-detail-page .kv-value.total {
-  font-weight: 600;
+/* ── VISITED DOMAINS CARD ── */
+/* Table-in-card body padding matches 3x-ui's plain size="small" table cards
+   (antd cardPaddingSM = 12px). */
+.client-detail-page .domains-card .ant-card-body {
+  padding: var(--sp-3, 12px);
 }
 
-/* ── VISITED DOMAINS CARD ── */
+/* Card-internal toolbar: 8px gaps like 3x-ui's .card-toolbar, 12px below. */
 .client-detail-page .domains-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--sp-3, 12px);
-  margin-bottom: var(--sp-4, 16px);
+  gap: var(--sp-2, 8px);
+  margin-bottom: var(--sp-3, 12px);
 }
 
 .client-detail-page .domains-title {
-  font-size: var(--fs-heading, 15px);
-  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
-  gap: var(--sp-2, 8px);
+  gap: 7px;
 }
 
 @media (max-width: 768px) {
@@ -214,7 +221,7 @@
   gap: 10px;
   font-size: var(--fs-sm, 13px);
   color: var(--text-tertiary);
-  padding-top: var(--sp-4, 16px);
+  padding-top: var(--sp-3, 12px);
 }
 
 .client-detail-page .empty-title {

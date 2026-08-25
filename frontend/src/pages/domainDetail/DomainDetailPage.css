@@ -3,9 +3,10 @@
    color is a shared token from styles/tokens.css, so the page flips with
    body.dark / body.light. */
 
-/* ── BREADCRUMB / BACK ─────────────────────────────────────────────────── */
+/* ── BREADCRUMB ────────────────────────────────────────────────────────── */
+/* Spacing between the breadcrumb, header card, grid and table card comes
+   from .page-grid's 12px gap (styles/page-shell.css). */
 .dd-breadcrumb {
-  margin-bottom: var(--sp-4, 16px);
   font-size: var(--fs-body, 14px);
 }
 
@@ -15,20 +16,11 @@
   overflow-wrap: anywhere;
 }
 
-.dd-back {
-  margin-bottom: 18px;
-}
-
 /* ── DOMAIN HEADER CARD ────────────────────────────────────────────────── */
-.dd-domain-head {
-  margin-bottom: var(--sp-4, 16px);
-}
-
 .dd-domain-head .ant-card-body {
   display: flex;
   align-items: center;
   gap: var(--sp-4, 16px);
-  padding: 22px 24px;
   flex-wrap: wrap;
 }
 
@@ -71,8 +63,7 @@
 .dd-info-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--sp-4, 16px);
-  margin-bottom: var(--sp-4, 16px);
+  gap: var(--sp-3, 12px);
 }
 
 @media (max-width: 900px) {
@@ -87,13 +78,14 @@
   }
 }
 
+/* Card titles follow 3x-ui's kicker type (IndexPage.css .ov-kicker): 11px,
+   uppercase, 0.08em tracking, secondary color — no divider rule. */
 .dd-info-card-title {
-  font-size: var(--fs-heading, 15px);
-  font-weight: 600;
-  color: var(--text);
-  padding-bottom: var(--sp-3, 12px);
-  margin-bottom: var(--sp-4, 16px);
-  border-bottom: 1px solid var(--border-secondary);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: var(--sp-3, 12px);
   display: flex;
   align-items: center;
   gap: var(--sp-2, 8px);
@@ -130,9 +122,12 @@
   line-height: var(--lh-body, 1.5);
 }
 
+/* Prominent row values: 18px/600 tabular-nums, the 18–20px stat-value band
+   of 3x-ui's IndexPage.css (.ov-foot-value / .ov-strip-value). */
 .dd-kv-value {
-  font-size: var(--fs-lg, 17px);
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--text);
   text-align: right;
   overflow-wrap: anywhere;
@@ -140,10 +135,7 @@
 
 .dd-kv-value.muted {
   color: var(--text-tertiary);
-}
-
-.dd-kv-value.total {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* A hostname is far longer than the other summary values, so it gets the
@@ -155,22 +147,30 @@
 }
 
 /* ── SUBDOMAINS CARD ───────────────────────────────────────────────────── */
+/* Table-in-card body padding matches 3x-ui's plain size="small" table cards
+   (antd cardPaddingSM = 12px). */
+.dd-domains-card .ant-card-body {
+  padding: var(--sp-3, 12px);
+}
+
+/* Card-internal toolbar: 8px gaps like 3x-ui's .card-toolbar, 12px below. */
 .dd-domains-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--sp-3, 12px);
-  margin-bottom: var(--sp-4, 16px);
+  gap: var(--sp-2, 8px);
+  margin-bottom: var(--sp-3, 12px);
 }
 
 .dd-domains-title {
-  font-size: var(--fs-heading, 15px);
-  font-weight: 600;
-  color: var(--text);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
-  gap: var(--sp-2, 8px);
+  gap: 7px;
 }
 
 .dd-search {
@@ -191,7 +191,7 @@
 
 /* ── TABLE ─────────────────────────────────────────────────────────────── */
 .dd-table-skeleton {
-  padding: 24px 0;
+  padding: var(--sp-3, 12px) 0;
 }
 
 .dd-domain-text {

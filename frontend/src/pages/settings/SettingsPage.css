@@ -29,15 +29,14 @@
 }
 
 /* ── SETTINGS CARD / FIELD ROWS ── */
-.settings-card .ant-card-body {
-  padding: 0;
-}
-
+/* Rows mirror 3x-ui's components/ui/SettingListItem.css: the list sits in a
+   plain Card (default body padding), each item padded 20px with a
+   border-secondary separator between rows. */
 .settings-field-row {
   display: flex;
   align-items: center;
-  gap: var(--sp-5, 20px);
-  padding: 16px 18px;
+  gap: var(--sp-2, 8px);
+  padding: var(--sp-5, 20px);
   border-bottom: 1px solid var(--border-secondary);
   transition: background 0.15s;
 }
@@ -54,11 +53,12 @@
   flex: 0 0 210px;
 }
 
+/* SettingListItem title: 14px/500, primary text color. */
 .settings-field-label {
   display: block;
   margin-bottom: 4px;
   font-size: var(--fs-body, 14px);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text);
   line-height: var(--lh-body, 1.5);
 }
@@ -83,10 +83,11 @@
   flex-shrink: 0;
 }
 
+/* SettingListItem description: 14px tertiary, line-height 1.5715. */
 .settings-field-desc {
-  font-size: var(--fs-caption, 12px);
+  font-size: var(--fs-body, 14px);
   color: var(--text-tertiary);
-  line-height: var(--lh-body, 1.5);
+  line-height: 1.5715;
 }
 
 .settings-field-input-wrap {
@@ -118,7 +119,8 @@
   .settings-field-row {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    /* Stacked meta/control spacing matches SettingListItem's Row gutter. */
+    gap: var(--sp-4, 16px);
   }
 
   .settings-field-label-wrap {

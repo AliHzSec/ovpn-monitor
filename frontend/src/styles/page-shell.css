@@ -1,6 +1,31 @@
-/* page-shell.css — adapted from 3x-ui's page-shell.css, scoped to the panel
-   page classes ovpn-monitor uses. Colors come from the body.light/body.dark
-   custom properties in tokens.css, so pages flip with the theme. */
+/* page-shell.css — adapted from 3x-ui's page-shell.css. The page classes
+   (overview-page, clients-page, …) mark the page body for card styling; the
+   layout chrome (content padding, mobile drawer-handle clearance) hangs off
+   .panel-shell, which wraps every panel page in layouts/PanelLayout.tsx.
+   Colors come from the body.light/body.dark custom properties in tokens.css,
+   so pages flip with the theme. */
+
+.panel-shell {
+  min-height: 100vh;
+  background: var(--bg-page);
+}
+
+.panel-shell .content-shell,
+.panel-shell .content-area {
+  background: transparent;
+}
+
+.panel-shell .content-area {
+  padding: 24px;
+}
+
+@media (max-width: 768px) {
+  .panel-shell .content-area {
+    padding: 12px;
+    /* room for the floating drawer handle (see layouts/AppSidebar.css) */
+    padding-top: 64px;
+  }
+}
 
 .overview-page,
 .clients-page,
@@ -9,51 +34,12 @@
 .settings-page,
 .portal-page {
   min-height: 100vh;
-  background: var(--bg-page);
-}
-
-.overview-page .ant-layout,
-.overview-page .ant-layout-content,
-.clients-page .ant-layout,
-.clients-page .ant-layout-content,
-.client-detail-page .ant-layout,
-.client-detail-page .ant-layout-content,
-.domain-detail-page .ant-layout,
-.domain-detail-page .ant-layout-content,
-.settings-page .ant-layout,
-.settings-page .ant-layout-content {
-  background: transparent;
-}
-
-.overview-page .content-shell,
-.clients-page .content-shell,
-.client-detail-page .content-shell,
-.domain-detail-page .content-shell,
-.settings-page .content-shell {
-  background: transparent;
-}
-
-.overview-page .content-area,
-.clients-page .content-area,
-.client-detail-page .content-area,
-.domain-detail-page .content-area,
-.settings-page .content-area {
-  padding: 24px;
-}
-
-@media (max-width: 768px) {
-  .overview-page .content-area,
-  .clients-page .content-area,
-  .client-detail-page .content-area,
-  .domain-detail-page .content-area,
-  .settings-page .content-area {
-    padding: 8px;
-  }
 }
 
 .page-grid {
   display: grid;
-  gap: var(--sp-4, 16px);
+  /* 3x-ui's gap rhythm between bars/cards/sections (IndexPage.css --ov-gap). */
+  gap: var(--sp-3, 12px);
   grid-template-columns: 1fr;
 }
 
@@ -75,43 +61,6 @@
 
 .loading-spacer {
   min-height: calc(100vh - 120px);
-}
-
-/* Panel shell layout pieces (sidebar lives in layouts/AppSidebar.css). */
-.panel-shell {
-  min-height: 100vh;
-}
-
-.panel-main {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.panel-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--sp-3, 12px);
-  height: var(--topbar-h, 56px);
-  padding: 0 var(--content-pad, 24px);
-  background: var(--bg-topbar, #17181c);
-  border-bottom: 1px solid var(--border-secondary, rgba(255, 255, 255, 0.08));
-}
-
-@media (max-width: 768px) {
-  .panel-topbar {
-    padding: 0 8px 0 60px; /* room for the hamburger handle */
-  }
-}
-
-.topbar-updated {
-  font-size: var(--fs-sm, 13px);
-  color: var(--text-secondary, rgba(255, 255, 255, 0.65));
-  font-variant-numeric: tabular-nums;
 }
 
 /* Standalone login page. */

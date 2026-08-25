@@ -5,12 +5,22 @@
 .clients-stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--sp-4, 16px);
+  gap: var(--sp-3, 12px);
+}
+
+/* Summary cards: 16px body padding / 8px on mobile, per 3x-ui's
+   page-shell.css (.clients-page .summary-card). */
+.clients-stats-grid .ant-card .ant-card-body {
+  padding: var(--sp-4, 16px);
 }
 
 @media (max-width: 768px) {
   .clients-stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .clients-stats-grid .ant-card .ant-card-body {
+    padding: var(--sp-2, 8px);
   }
 }
 
@@ -82,16 +92,18 @@
   color: var(--text-tertiary);
 }
 
+/* Filter bar: 8px internal gaps per 3x-ui's ClientsPage.css .filter-bar; the
+   12px space below comes from .page-grid (their .filter-bar margin-bottom). */
 .clients-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp-3, 12px);
+  gap: var(--sp-2, 8px);
 }
 
 .clients-search {
-  max-width: 280px;
+  max-width: 320px;
 }
 
 .clients-search-icon {
@@ -105,12 +117,14 @@
   }
 }
 
+/* Table-in-card: 3x-ui sits its tables in a plain size="small" Card, whose
+   body padding is 12px (antd cardPaddingSM). */
 .clients-table-card .ant-card-body {
-  padding: 0;
+  padding: var(--sp-3, 12px);
 }
 
 .clients-skeleton {
-  padding: var(--sp-6, 24px);
+  padding: var(--sp-3, 12px);
 }
 
 /* Subtle fade while a background refetch is in flight — the previous rows
