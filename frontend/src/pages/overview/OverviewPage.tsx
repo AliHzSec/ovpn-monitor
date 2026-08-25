@@ -54,30 +54,21 @@ export default function OverviewPage() {
   const history = useOverviewHistory(stats, dataUpdatedAt);
   const updated = useMemo(() => formatClock(dataUpdatedAt), [dataUpdatedAt]);
 
-  if (isPending || !stats) {
-    return (
-      <div className="overview-page">
-        <OverviewSkeleton />
-      </div>
-    );
-  }
-
   // ── Resources: CPU · RAM · Swap · Disk ──
-  const ramTotal = stats.mem_total || 0;
-  const ramUsed = stats.mem_used || 0;
+  // Derived with safe defaults BEFORE the loading early-return below: every
+  // hook (including the health useMemo) must run on every render.
+  const ramTotal = stats?.mem_total || 0;
+  const ramUsed = stats?.mem_used || 0;
   const ramPct = ramTotal > 0 ? (ramUsed / ramTotal) * 100 : 0;
-  const diskTotal = stats.disk_total || 0;
-  const diskUsed = stats.disk_used || 0;
+  const diskTotal = stats?.disk_total || 0;
+  const diskUsed = stats?.disk_used || 0;
   const diskPct = diskTotal > 0 ? (diskUsed / diskTotal) * 100 : 0;
   const diskFree = Math.max(0, diskTotal - diskUsed);
-  const swapTotal = stats.swap_total || 0;
-  const swapUsed = stats.swap_used || 0;
+  const swapTotal = stats?.swap_total || 0;
+  const swapUsed = stats?.swap_used || 0;
   const hasSwap = swapTotal > 0;
   const swapPct = hasSwap ? (swapUsed / swapTotal) * 100 : 0;
-  const cpuPct = stats.cpu_percent || 0;
-
-  const ovpnRunning = (stats.ovpn_uptime ?? 0) > 0;
-  const wgRunning = (stats.wireguard_uptime ?? 0) > 0;
+  const cpuPct = stats?.cpu_percent || 0;
 
   // Health line, as in 3x-ui's IndexPage: names the vitals past the warn /
   // critical thresholds (80% / 90%), hidden when everything is fine.
@@ -95,6 +86,17 @@ export default function OverviewPage() {
     if (warm.length) return { text: `High usage: ${list(warm)}`, color: token.colorWarning };
     return null;
   }, [cpuPct, ramPct, swapPct, diskPct, token.colorError, token.colorWarning]);
+
+  if (isPending || !stats) {
+    return (
+      <div className="overview-page">
+        <OverviewSkeleton />
+      </div>
+    );
+  }
+
+  const ovpnRunning = (stats.ovpn_uptime ?? 0) > 0;
+  const wgRunning = (stats.wireguard_uptime ?? 0) > 0;
 
   const statePill = (label: string, running: boolean) => (
     <span className="ov-state" data-state={running ? 'running' : 'stop'}>
