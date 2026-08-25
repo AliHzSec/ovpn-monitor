@@ -27,28 +27,43 @@ function applyDom(isDark: boolean) {
 const initialDark = readBool(STORAGE_DARK, true);
 applyDom(initialDark);
 
+// Dark tokens follow the designer's palette (VPN Monitor.dc.html): page
+// #0b0d0f, cards #101316, borders #1a1e22, text #e6e9ec, primary #7aa2f7.
 const DARK_TOKENS = {
-  colorBgBase: '#1a1b1f',
-  colorBgLayout: '#1a1b1f',
-  colorBgContainer: '#23252b',
-  colorBgElevated: '#2d2f37',
+  colorBgBase: '#0b0d0f',
+  colorBgLayout: '#0b0d0f',
+  colorBgContainer: '#101316',
+  colorBgElevated: '#16191d',
+  colorPrimary: '#7aa2f7',
+  colorSuccess: '#3fb950',
+  colorWarning: '#d29922',
+  colorError: '#f85149',
+  colorText: '#e6e9ec',
+  colorTextSecondary: '#8b949e',
+  colorTextTertiary: '#6e7681',
+  colorTextQuaternary: '#57606a',
+  colorBorder: '#1a1e22',
+  colorBorderSecondary: '#16191d',
+  fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+  fontFamilyCode: "'IBM Plex Mono', ui-monospace, monospace",
 };
 const DARK_LAYOUT_TOKENS = {
-  bodyBg: '#1a1b1f',
-  headerBg: '#15161a',
-  headerColor: '#ffffff',
-  footerBg: '#1a1b1f',
-  siderBg: '#15161a',
-  triggerBg: '#23252b',
-  triggerColor: '#ffffff',
+  bodyBg: '#0b0d0f',
+  headerBg: '#0b0d0f',
+  headerColor: '#e6e9ec',
+  footerBg: '#0b0d0f',
+  siderBg: '#0b0d0f',
+  triggerBg: '#101316',
+  triggerColor: '#e6e9ec',
 };
 const DARK_MENU_TOKENS = {
-  darkItemBg: '#15161a',
-  darkSubMenuItemBg: '#1a1b1f',
-  darkPopupBg: '#23252b',
+  darkItemBg: '#0b0d0f',
+  darkSubMenuItemBg: '#0b0d0f',
+  darkPopupBg: '#101316',
 };
 const DARK_CARD_TOKENS = {
-  colorBorderSecondary: 'rgba(255, 255, 255, 0.06)',
+  colorBorderSecondary: '#1a1e22',
+  borderRadiusLG: 9,
 };
 const STATISTIC_TOKENS = {
   contentFontSize: 17,
@@ -66,6 +81,10 @@ const LIGHT_BUTTON_TOKENS = {
   colorPrimary: '#0958d9',
   colorPrimaryHover: '#2468e5',
   colorPrimaryActive: '#073ea8',
+};
+const FONT_TOKENS = {
+  fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+  fontFamilyCode: "'IBM Plex Mono', ui-monospace, monospace",
 };
 
 // hashed:false drops the `:where(.css-<hash>)` wrapper antd puts around every
@@ -87,7 +106,7 @@ export function buildAntdThemeConfig(isDark: boolean): ThemeConfig {
     return {
       ...SHARED_STYLE_CONFIG,
       algorithm: antdTheme.defaultAlgorithm,
-      token: LIGHT_CONTRAST_TOKENS,
+      token: { ...LIGHT_CONTRAST_TOKENS, ...FONT_TOKENS },
       components: {
         Statistic: STATISTIC_TOKENS,
         Button: LIGHT_BUTTON_TOKENS,

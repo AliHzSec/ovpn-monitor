@@ -5,25 +5,19 @@ import { Drawer, Layout, Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   CloseOutlined,
-  DashboardOutlined,
-  GlobalOutlined,
-  LogoutOutlined,
   MenuOutlined,
   MoonOutlined,
   PushpinFilled,
   PushpinOutlined,
-  SafetyCertificateOutlined,
-  SettingOutlined,
-  SlidersOutlined,
   SunOutlined,
-  TeamOutlined,
 } from '@ant-design/icons';
 
+import { useServerStats } from '@/api/queries/useServerStats';
 import { useTheme } from '@/hooks/useTheme';
 import './AppSidebar.css';
 
 const RAIL_WIDTH = 72;
-const SIDER_WIDTH = 220;
+const SIDER_WIDTH = 200;
 const SIDEBAR_PINNED_KEY = 'sidebar-pinned';
 const LOGOUT_PATH = '/panel/logout';
 
@@ -43,28 +37,10 @@ function saveSidebarPinned(pinned: boolean) {
   } catch {}
 }
 
-// ovpn-monitor's existing menu, mirrored from templates/static/sidebar.js.
-const settingsChildren: NonNullable<MenuProps['items']> = [
-  { key: '/settings/general', icon: <SlidersOutlined />, label: 'General' },
-  { key: '/settings/openvpn', icon: <SafetyCertificateOutlined />, label: 'OpenVPN' },
-  { key: '/settings/wireguard', icon: <GlobalOutlined />, label: 'WireGuard' },
-  { key: '/settings/domains', icon: <GlobalOutlined />, label: 'Domain Tracking' },
-];
-
-const navItems: MenuProps['items'] = [
-  { key: '/panel', icon: <DashboardOutlined />, label: 'Overview', title: '' },
-  { key: '/panel/clients', icon: <TeamOutlined />, label: 'Clients', title: '' },
-  {
-    key: '/settings',
-    icon: <SettingOutlined />,
-    label: 'Panel Settings',
-    children: settingsChildren,
-  },
-];
-
-const utilItems: MenuProps['items'] = [
-  { key: LOGOUT_PATH, icon: <LogoutOutlined />, label: 'Log Out', title: '' },
-];
+// Nav marker per the designer's mock: a small dot, blue on the active item.
+function navDot() {
+  return <span className="sb-dot" />;
+}
 
 // Light/dark toggle, mirroring 3x-ui's sidebar theme button: sun in dark mode
 // (switch to light), moon in light mode (switch to dark).
@@ -89,6 +65,8 @@ export default function AppSidebar() {
   const currentTheme = isDark ? ('dark' as const) : ('light' as const);
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { data: stats } = useServerStats();
+  const clientTotal = stats?.client_total ?? 0;
 
   const [hovered, setHovered] = useState(() => hoveredAcrossRemounts);
   const [pinned, setPinned] = useState(readSidebarPinned);
@@ -144,6 +122,40 @@ export default function AppSidebar() {
     [navigate],
   );
 
+  // ovpn-monitor's existing menu, restyled after the designer's mock: dot
+  // markers instead of icons, Clients carries the registered-client count.
+  const settingsChildren: NonNullable<MenuProps['items']> = [
+    { key: '/settings/general', icon: navDot(), label: 'General' },
+    { key: '/settings/openvpn', icon: navDot(), label: 'OpenVPN' },
+    { key: '/settings/wireguard', icon: navDot(), label: 'WireGuard' },
+    { key: '/settings/domains', icon: navDot(), label: 'Domain Tracking' },
+  ];
+
+  const navItems: MenuProps['items'] = [
+    { key: '/panel', icon: navDot(), label: 'Overview', title: '' },
+    {
+      key: '/panel/clients',
+      icon: navDot(),
+      label: (
+        <span className="sb-label">
+          Clients
+          {clientTotal > 0 && <span className="sb-count">{clientTotal}</span>}
+        </span>
+      ),
+      title: '',
+    },
+    {
+      key: '/settings',
+      icon: navDot(),
+      label: 'Panel Settings',
+      children: settingsChildren,
+    },
+  ];
+
+  const utilItems: MenuProps['items'] = [
+    { key: LOGOUT_PATH, icon: navDot(), label: 'Log out', title: '', className: 'sb-logout' },
+  ];
+
   return (
     <div
       ref={rootRef}
@@ -160,7 +172,8 @@ export default function AppSidebar() {
       >
         <div className="sider-brand">
           <div className="brand-block">
-            <span className="brand-text">{railCollapsed ? 'SM' : 'Server Monitor'}</span>
+            <span className="brand-dot" />
+            {!railCollapsed && <span className="brand-text">Server Monitor</span>}
           </div>
           {!railCollapsed && (
             <div className="brand-actions">
@@ -213,6 +226,7 @@ export default function AppSidebar() {
       >
         <div className="drawer-header">
           <div className="brand-block">
+            <span className="brand-dot" />
             <span className="drawer-brand">Server Monitor</span>
           </div>
           <div className="drawer-header-actions">

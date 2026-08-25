@@ -327,7 +327,7 @@ export default function Sparkline(props: SparklineProps) {
     if (hasSeries2) series.push(makeSeries());
     if (hasSeries3) series.push(makeSeries());
 
-    const axisStroke = (u: uPlot) => cssVar(u.root, '--ovpn-color-text-tertiary', '#8c8c8c');
+    const axisStroke = (u: uPlot) => cssVar(u.root, '--text-tertiary', '#8c8c8c');
 
     const axes: uPlot.Axis[] = [
       {
@@ -409,7 +409,7 @@ export default function Sparkline(props: SparklineProps) {
 
       const ex = v.extremaPoints;
       if (p.extrema?.show && ex) {
-        const ringColor = cssVar(u.root, '--ovpn-color-bg-elevated', '#ffffff');
+        const ringColor = cssVar(u.root, '--bg-elevated', '#ffffff');
         const dot = (value: number, idx: number, color: string) => {
           const px = u.valToPos(idx, 'x', true);
           const py = u.valToPos(value, 'y', true);

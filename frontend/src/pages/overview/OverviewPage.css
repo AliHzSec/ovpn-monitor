@@ -1,477 +1,685 @@
-/* OverviewPage.css — a 1:1 port of 3x-ui's pages/index/IndexPage.css, with
-   antd CSS variables referenced through our 'ovpn' cssVar key (see
-   src/hooks/useTheme.tsx). Adds the services row and extends the system strip
-   to four cells; everything else matches the reference values exactly. */
+/* OverviewPage.css — a 1:1 translation of the designer's mock
+   (VPN Monitor.dc.html) inline styles into classes. Dark-mode values are the
+   mock's exact hex colors, consumed through the --dc-* / --ovpn-* variables
+   defined in styles/tokens.css; light mode falls back to approximations. */
 
-.overview-page {
-  --ov-accent: var(--ovpn-color-primary);
-  --ov-line: var(--ovpn-color-border);
-  --ov-label: var(--ovpn-color-text-secondary);
-  --ov-faint: var(--ovpn-color-text-tertiary);
-  --ov-gap: 12px;
-  --ov-pad: 20px;
-}
-
-@media (max-width: 768px) {
-  .overview-page {
-    --ov-gap: 8px;
-    --ov-pad: 14px;
-  }
-}
-
-.ov-page {
+.ovp {
   display: flex;
   flex-direction: column;
-  gap: var(--ov-gap);
+  gap: 12px;
 }
 
-/* — action bar — */
+/* — live clock — */
 
-.ov-bar {
+.ovp-live {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-bottom: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.ovp-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-success);
+  flex: none;
+}
+
+/* — shared card chrome — */
+
+.ovp-card {
+  background: var(--bg-card);
+  border: 1px solid var(--dc-line);
+  border-radius: 9px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ovp-card-head,
+.ovp-card-head-text {
+  font-size: 10.5px;
+  letter-spacing: 0.11em;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.ovp-card-head {
+  padding: 12px 16px 11px;
+  border-bottom: 1px solid var(--dc-line);
+}
+
+.ovp-klabel {
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  color: var(--dc-ghost);
+  text-transform: uppercase;
+}
+
+.ovp-dash {
+  width: 10px;
+  height: 2px;
+  flex: 0 0 auto;
+}
+
+.ovp-vsep {
+  width: 1px;
+  background: var(--dc-line);
+  flex: none;
+}
+
+/* — vitals: arc gauges — */
+
+.ovp-vitals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  .ovp-vitals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .ovp-vitals {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ovp-gauge-body {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
+  padding: 14px 10px 16px;
 }
 
-.ov-state {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
-  border: 1px solid var(--ov-line);
-  border-radius: 999px;
-  font-size: 13px;
-  color: var(--ovpn-color-text);
-}
-
-.ov-state-dot {
+.ovp-gauge {
   position: relative;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  flex: none;
+  width: 100%;
+  max-width: 196px;
+  aspect-ratio: 1;
+  container-type: inline-size;
 }
 
-.ov-state[data-state='running'] .ov-state-dot::after {
-  content: '';
+.ovp-gauge-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.ovp-gauge-fill {
+  transition:
+    stroke-dasharray 700ms ease,
+    stroke 400ms ease;
+}
+
+.ovp-gauge-center {
   position: absolute;
-  inset: -1px;
-  border-radius: 50%;
-  border: 1px solid currentColor;
-  animation: ovPulse 1.6s infinite ease-out;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding-bottom: 10px;
 }
 
-@keyframes ovPulse {
-  0% {
-    transform: scale(0.9);
-    opacity: 0.5;
+.ovp-gauge-value {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.ovp-gauge-num {
+  font-family: var(--font-mono);
+  font-size: min(32px, 19cqw);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  transition: color 400ms ease;
+}
+
+.ovp-gauge-unit {
+  font-family: var(--font-mono);
+  font-size: min(13px, 8cqw);
+  color: var(--dc-faint);
+}
+
+.ovp-gauge-status {
+  font-size: max(10px, min(11px, 7cqw));
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.ovp-gauge-detail {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* — two-column rows — */
+
+.ovp-grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .ovp-grid2 {
+    grid-template-columns: minmax(0, 1fr);
   }
-  100% {
-    transform: scale(2.4);
-    opacity: 0;
-  }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ov-state[data-state='running'] .ov-state-dot::after {
-    animation: none;
-  }
+/* — clients — */
+
+.ovp-clients-body {
+  padding: 20px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
 }
 
-.ov-bar-updated {
-  margin-inline-start: auto;
-  font-size: 12px;
-  color: var(--ov-faint);
+.ovp-clients-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
 }
 
-@media (max-width: 768px) {
-  .ov-bar-updated {
-    margin-inline-start: 0;
-    width: 100%;
-  }
+.ovp-clients-count {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
 }
 
-.ov-health {
+.ovp-clients-num {
+  font-family: var(--font-mono);
+  font-size: 64px;
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  color: var(--text);
+}
+
+.ovp-clients-word {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+
+.ovp-clients-pct {
+  font-family: var(--font-mono);
+  font-size: 21px;
+  color: var(--dc-faint);
+  letter-spacing: -0.02em;
+  padding-bottom: 2px;
+}
+
+.ovp-clients-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ovp-clients-bar {
+  position: relative;
+  height: 7px;
+  background: var(--dc-line);
+  border-radius: 4px;
+}
+
+.ovp-clients-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: var(--color-success);
+  border-radius: 4px;
+  transition: width 600ms ease;
+}
+
+.ovp-clients-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--dc-faint);
+}
+
+/* — traffic — */
+
+.ovp-traffic-body {
+  padding: 16px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.ovp-traffic-total {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ovp-traffic-total-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.ovp-traffic-num {
+  font-family: var(--font-mono);
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.ovp-traffic-unit {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--dc-faint);
+}
+
+.ovp-traffic-split {
+  display: flex;
+  gap: 12px;
+  border-top: 1px solid var(--dc-line);
+  padding-top: 14px;
+}
+
+.ovp-traffic-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ovp-traffic-cell-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
+  gap: 6px;
 }
 
-.ov-health-mark {
-  width: 14px;
-  height: 1px;
-  background: currentColor;
-  flex: none;
+.ovp-traffic-cell-head .ovp-klabel {
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
 }
 
-.ov-rule {
-  height: 1px;
-  border: 0;
-  margin: 0;
-  background: linear-gradient(
-    to right,
-    transparent,
-    var(--ov-line) 48px,
-    var(--ov-line) calc(100% - 48px),
-    transparent
-  );
+.ovp-traffic-val {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--dc-value);
 }
 
-/* — shared type — */
-
-.ov-kicker {
+.ovp-traffic-val-unit {
   font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ov-label);
+  color: var(--dc-faint);
 }
 
-.ov-kicker-icon {
+/* — overall speed — */
+
+.ovp-speed-vals {
+  display: flex;
+  gap: 14px;
+  padding: 14px 16px 8px;
+}
+
+.ovp-speed-cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ovp-speed-cell-head {
   display: flex;
   align-items: center;
   gap: 7px;
 }
 
-.ov-sub {
-  font-size: 12.5px;
-  margin-top: 4px;
-  color: var(--ov-faint);
-}
-
-.ov-mono {
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
-}
-
-/* — vitals tiles — */
-
-.ov-vitals {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--ov-gap);
-}
-
-@media (max-width: 1100px) {
-  .ov-vitals {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .ov-vitals {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.ov-tile {
-  overflow: hidden;
-}
-
-.ov-tile-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px var(--ov-pad) 0;
-  color: var(--ov-accent);
-}
-
-.ov-tile-icon {
-  display: inline-flex;
-  font-size: 15px;
-}
-
-.ov-tile-value {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  padding: 12px var(--ov-pad) 0;
-}
-
-.ov-tile-number {
-  font-size: 34px;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: var(--ovpn-color-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.ov-tile-unit {
-  font-size: 14px;
-  color: var(--ov-label);
-}
-
-.ov-tile-detail {
-  padding: 5px var(--ov-pad) 0;
-  font-size: 12px;
-  color: var(--ov-label);
-}
-
-.ov-tile-foot {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 14px var(--ov-pad) 0;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ov-faint);
-}
-
-.ov-tile-chart {
-  margin-top: 6px;
-}
-
-/* — throughput + connections — */
-
-.ov-mid {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: var(--ov-gap);
-}
-
-@media (max-width: 1100px) {
-  .ov-mid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.ov-wide-head {
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding: var(--ov-pad) var(--ov-pad) 0;
-}
-
-.ov-wide-head-stack {
-  flex-direction: column;
-  gap: 0;
-}
-
-.ov-wide-legend {
-  margin-inline-start: auto;
-  display: flex;
-  gap: 22px;
-  text-align: end;
-}
-
-.ov-legend-label {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
+.ovp-speed-name {
   font-size: 11px;
-  color: var(--ov-label);
-}
-
-.ov-legend-num {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ovpn-color-text);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.ov-conn-total {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin-top: 12px;
-}
-
-.ov-conn-legend {
-  display: flex;
-  gap: 16px;
-  padding: 16px var(--ov-pad) 0;
-}
-
-.ov-conn-legend > div {
-  flex: 1 1 0;
-}
-
-.ov-conn-legend .ov-legend-label {
-  justify-content: flex-start;
-}
-
-.ov-swatch {
-  width: 14px;
-  height: 2px;
-  flex: none;
-}
-
-.ov-wide-chart {
-  padding: 12px 8px 0;
-}
-
-.ov-wide-foot {
-  display: flex;
-  gap: 16px;
-  margin: 12px var(--ov-pad) 0;
-  padding: 14px 0 var(--ov-pad);
-  border-top: 1px solid var(--ov-line);
-}
-
-.ov-wide-foot > div {
-  flex: 1 1 0;
-}
-
-.ov-foot-sep {
-  width: 1px;
-  background: var(--ov-line);
-}
-
-.ov-foot-value {
-  font-size: 18px;
-  font-weight: 600;
-  margin-top: 4px;
-  color: var(--ovpn-color-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.ov-foot-part {
-  display: inline-block;
-  white-space: nowrap;
-}
-
-@media (max-width: 560px) {
-  .ov-wide-foot {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .ov-wide-foot .ov-foot-sep {
-    display: none;
-  }
-}
-
-/* — service control cards — */
-
-.ov-services {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--ov-gap);
-}
-
-@media (max-width: 768px) {
-  .ov-services {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* — system strip —
-
-   tracks follow SystemStrip's cell order:
-   uptime (os | openvpn | wireguard) · clients (total | online | offline) ·
-   system info · ip addresses */
-.ov-strip-grid {
-  display: grid;
-  grid-template-columns:
-    minmax(max-content, 1.3fr) minmax(max-content, 1.1fr)
-    minmax(0, 1.2fr) minmax(0, 1.2fr);
-  gap: 16px;
-  padding: var(--ov-pad);
-}
-
-@media (max-width: 1439px) {
-  .ov-strip-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .ov-strip-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (min-width: 1440px) {
-  .ov-strip-cell + .ov-strip-cell {
-    border-inline-start: 1px solid var(--ov-line);
-    padding-inline-start: 16px;
-  }
-}
-
-.ov-strip-value {
-  font-size: 19px;
-  font-weight: 600;
-  margin-top: 6px;
-  color: var(--ovpn-color-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.ov-strip-online {
-  color: var(--ovpn-color-success);
-}
-
-.ov-strip-offline {
-  color: var(--ov-faint);
-}
-
-.ov-strip-split {
-  display: flex;
-  align-items: stretch;
-  gap: 14px;
-}
-
-.ov-strip-split-sep {
-  width: 1px;
-  background: var(--ov-line);
-  margin-top: 8px;
-}
-
-.ov-strip-sub {
-  font-size: 10px;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-top: 8px;
-  color: var(--ov-faint);
+  color: var(--text-secondary);
 }
 
-.ov-strip-sub + .ov-strip-value {
-  margin-top: 2px;
+.ovp-speed-num {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  white-space: nowrap;
 }
 
-/* system-info cell: three stacked label/value facts */
-.ov-strip-facts {
+.ovp-chart {
+  display: flex;
+  gap: 8px;
+  padding: 20px 16px 16px;
+  margin-top: auto;
+}
+
+.ovp-chart-y {
+  position: relative;
+  height: 86px;
+  width: 46px;
+  flex: 0 0 46px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--dc-ghost);
+}
+
+.ovp-chart-tick {
+  position: absolute;
+  right: 0;
+  transform: translateY(-50%);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ovp-chart-plot {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  height: 86px;
+  border-left: 1px solid var(--dc-axis);
+  border-bottom: 1px solid var(--dc-axis);
+}
+
+.ovp-chart-grid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--dc-grid);
+}
+
+.ovp-chart-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* — connection stats — */
+
+.ovp-socks-body {
+  padding: 18px 18px 18px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
+  gap: 20px;
+  flex: 1;
 }
 
-.ov-strip-fact {
+.ovp-socks-head {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  gap: 3px;
 }
 
-.ov-strip-fact .ov-strip-sub {
-  margin-top: 0;
+.ovp-socks-num {
+  font-family: var(--font-mono);
+  font-size: 38px;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.ovp-socks-word {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.ovp-socks-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ovp-socks-bar {
+  display: flex;
+  height: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--dc-line);
+}
+
+.ovp-socks-seg {
+  transition: width 600ms ease;
+}
+
+.ovp-socks-legend {
+  display: flex;
+  gap: 28px;
+}
+
+.ovp-socks-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ovp-socks-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.ovp-socks-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+}
+
+.ovp-socks-count {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--dc-value);
+}
+
+/* — service cards — */
+
+.ovp-svc-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 16px 11px;
+  border-bottom: 1px solid var(--dc-line);
+  flex-wrap: wrap;
+}
+
+.ovp-svc-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   flex: none;
 }
 
-.ov-strip-fact-value {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ovpn-color-text);
+.ovp-svc-state {
+  margin-left: auto;
+  font-size: 11px;
+}
+
+.ovp-svc-body {
+  padding: 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+.ovp-svc-uptime {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ovp-svc-uptime-val {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--dc-value);
+}
+
+.ovp-svc-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ovp-svc-btn {
+  text-align: center;
+  font-size: 12px;
+  border: 1px solid var(--dc-btn-border);
+  border-radius: 6px;
+  padding: 8px 0;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    border-color 0.2s,
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.ovp-svc-btn-restart {
+  color: var(--dc-value);
+}
+
+.ovp-svc-btn-restart:hover {
+  border-color: var(--dc-btn-hover-border);
+  background: var(--dc-btn-hover-bg);
+}
+
+.ovp-svc-btn-stop {
+  color: var(--text-secondary);
+}
+
+.ovp-svc-btn-stop:hover {
+  border-color: var(--dc-danger-border);
+  color: var(--color-error);
+}
+
+.ovp-svc-btn-start {
+  color: var(--color-success);
+  border-color: var(--dc-start-border);
+  background: var(--dc-start-bg);
+}
+
+.ovp-svc-btn-start:hover {
+  border-color: var(--dc-start-hover-border);
+  background: var(--dc-start-hover-bg);
+}
+
+.ovp-svc-btn-pending {
+  opacity: 0.55;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* — system info — */
+
+.ovp-info-body {
+  padding: 4px 16px 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ovp-info-row {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--dc-hairline);
+}
+
+.ovp-info-k {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.02em;
+}
+
+.ovp-info-v {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--dc-value);
   text-align: right;
   overflow-wrap: anywhere;
 }
 
-.ov-ip {
-  margin-top: 7px;
+/* — ip addresses — */
+
+.ovp-ip-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.ovp-ip-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ovp-ip-val {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  color: var(--dc-value);
+}
+
+.ovp-ip-val-v6 {
   font-size: 13px;
   overflow-wrap: anywhere;
+  line-height: 1.5;
 }
 
-.ov-ip-v6 {
-  margin-top: 3px;
+.ovp-ip-sep {
+  height: 1px;
+  background: var(--dc-hairline);
 }
 
-.ov-ip-none {
-  color: var(--ov-faint);
+/* — loading skeleton — */
+
+.ovp-skel {
+  background: var(--bg-card);
+  border: 1px solid var(--dc-line);
+  border-radius: 9px;
+  animation: ovpPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ovpPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ovp-skel {
+    animation: none;
+  }
 }

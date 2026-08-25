@@ -72,19 +72,77 @@ body.dark {
     /* Tell form controls, scrollbars and the like that this is a dark UI. */
     color-scheme: dark;
 
-    --bg-page: #1a1b1f;
-    --bg-card: #23252b;
+    /* Designer palette ("VPN Monitor.dc.html"): near-black page, flat cards. */
+    --bg-page: #0b0d0f;
+    --bg-card: #101316;
     /* Raised surfaces derived from the card color: inputs, hovers, wells. */
-    --bg-elevated: #2d2f37;
-    --bg-sunken: #15161a;
-    --bg-sidebar: #15161a;
-    --bg-topbar: #15161a;
+    --bg-elevated: #16191d;
+    --bg-sunken: #0b0d0f;
+    --bg-sidebar: #0b0d0f;
+    --bg-topbar: #0b0d0f;
 
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.03);
-    --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px rgba(255, 255, 255, 0.04);
+    --shadow-card: none;
+    --shadow-card-hover: none;
 
-    --ring-track: rgba(255, 255, 255, 0.10);
+    --ring-track: #1c2126;
     --glass-blur: blur(12px);
+
+    /* Design-file colors without an antd counterpart. */
+    --dc-line: #1a1e22;
+    /* card borders, header separators */
+    --dc-hairline: #16191d;
+    /* inner row separators */
+    --dc-hover: #131619;
+    /* nav hover surface */
+    --dc-selected: #16191d;
+    /* nav active surface */
+    --dc-track: #1c2126;
+    /* gauge / progress track */
+    --dc-faint: #57606a;
+    /* units, secondary numerals */
+    --dc-ghost: #4b535b;
+    /* micro labels, axis ticks */
+    --dc-dead: #3a4148;
+    /* decorative separators */
+    --dc-dot-off: #2f353b;
+    /* inactive nav dot */
+    --dc-blue: #7aa2f7;
+    /* upload / TCP accent */
+    --dc-purple: #bc8cff;
+    /* download / UDP accent */
+    --dc-value: #c9d1d9;
+    /* secondary values (between text and secondary) */
+    --dc-axis: #1f242a;
+    /* chart axis lines */
+    --dc-grid: #171b1f;
+    /* chart gridlines */
+    --dc-btn-border: #262c32;
+    /* service action buttons */
+    --dc-btn-hover-border: #39414a;
+    --dc-btn-hover-bg: #161a1f;
+    --dc-danger-border: #5c2b2b;
+    /* stop-button hover */
+    --dc-start-border: #23402c;
+    /* start button */
+    --dc-start-bg: #111a14;
+    --dc-start-hover-border: #2f5c3b;
+    --dc-start-hover-bg: #14231a;
+    --dc-dash-recv: #4d5661;
+    /* received swatch in the traffic card */
+
+    /* Semantic bases (antd v6 no longer exposes its tokens as --ovpn-* vars
+       off-component, so the panel's semantic colors are literal here). */
+    --color-primary: #7aa2f7;
+    --color-primary-hover: #a9c1ff;
+    --color-primary-active: #5f83d6;
+    --color-success: #3fb950;
+    --color-error: #f85149;
+    --color-warning: #d29922;
+    --text: #e6e9ec;
+    --text-secondary: #8b949e;
+    --text-tertiary: #6e7681;
+    --border: #1a1e22;
+    --border-secondary: #16191d;
 }
 
 body.light {
@@ -102,18 +160,52 @@ body.light {
 
     --ring-track: rgba(0, 0, 0, 0.10);
     --glass-blur: blur(12px);
+
+    /* Light-mode approximations of the design tokens above. */
+    --dc-line: rgba(0, 0, 0, 0.09);
+    --dc-hairline: rgba(0, 0, 0, 0.06);
+    --dc-hover: rgba(0, 0, 0, 0.04);
+    --dc-selected: rgba(0, 0, 0, 0.06);
+    --dc-track: rgba(0, 0, 0, 0.08);
+    --dc-faint: #8a8f98;
+    --dc-ghost: #9aa0a8;
+    --dc-dead: #c0c4ca;
+    --dc-dot-off: #d4d8dd;
+    --dc-blue: var(--color-primary);
+    --dc-purple: #722ed1;
+    --dc-value: rgba(0, 0, 0, 0.78);
+    --dc-axis: rgba(0, 0, 0, 0.15);
+    --dc-grid: rgba(0, 0, 0, 0.05);
+    --dc-btn-border: rgba(0, 0, 0, 0.14);
+    --dc-btn-hover-border: rgba(0, 0, 0, 0.24);
+    --dc-btn-hover-bg: rgba(0, 0, 0, 0.04);
+    --dc-danger-border: rgba(207, 19, 34, 0.35);
+    --dc-start-border: rgba(35, 120, 4, 0.3);
+    --dc-start-bg: rgba(35, 120, 4, 0.06);
+    --dc-start-hover-border: rgba(35, 120, 4, 0.45);
+    --dc-start-hover-bg: rgba(35, 120, 4, 0.1);
+    --dc-dash-recv: #b7bcc3;
+
+    /* Semantic bases (antd v6 no longer exposes its tokens as --ovpn-* vars
+       off-component, so the panel's semantic colors are literal here). */
+    --color-primary: #1677ff;
+    --color-primary-hover: #4096ff;
+    --color-primary-active: #0958d9;
+    --color-success: #52c41a;
+    --color-error: #cf1322;
+    --color-warning: #faad14;
+    --text: rgba(0, 0, 0, 0.88);
+    --text-secondary: rgba(0, 0, 0, 0.65);
+    --text-tertiary: rgba(0, 0, 0, 0.58);
+    --border: #d9d9d9;
+    --border-secondary: #f0f0f0;
 }
 
 /* ── SEMANTIC COLORS ─────────────────────────────────────────────────────
-   Mapped onto antd's css vars so they flip with the theme algorithm. */
+   Derived tints and compatibility aliases; bases live in the per-theme
+   blocks above. */
 body.dark,
 body.light {
-    --color-primary: var(--ovpn-color-primary);
-    --color-primary-hover: var(--ovpn-color-primary-hover);
-    --color-primary-active: var(--ovpn-color-primary-active);
-    --color-success: var(--ovpn-color-success);
-    --color-error: var(--ovpn-color-error);
-    --color-warning: var(--ovpn-color-warning);
     --color-purple: #722ed1;
 
     /* Translucent accent washes. Percentages match the reference's selected /
@@ -127,15 +219,6 @@ body.light {
     --error-soft: color-mix(in srgb, var(--color-error) 14%, transparent);
     --warning-soft: color-mix(in srgb, var(--color-warning) 14%, transparent);
     --purple-soft: color-mix(in srgb, var(--color-purple) 18%, transparent);
-
-    /* ── TEXT ──────────────────────────────────────────────────────────── */
-    --text: var(--ovpn-color-text);
-    --text-secondary: var(--ovpn-color-text-secondary);
-    --text-tertiary: var(--ovpn-color-text-tertiary);
-
-    /* ── BORDERS ───────────────────────────────────────────────────────── */
-    --border: var(--ovpn-color-border);
-    --border-secondary: var(--ovpn-color-border-secondary);
 
     /* ── COMPATIBILITY ALIASES ───────────────────────────────────────────
        Older rule names remapped onto the palette above, kept for parity with

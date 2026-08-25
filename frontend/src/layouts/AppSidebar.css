@@ -1,5 +1,8 @@
-/* AppSidebar.css — adapted from 3x-ui's AppSidebar.css, light + dark.
-   antd CSS variables use the 'ovpn' cssVar key (see src/hooks/useTheme.tsx). */
+/* AppSidebar.css — reskinned after the designer's mock (VPN Monitor.dc.html):
+   200px rail on the page background with a hairline right border, dot markers
+   instead of icons, flat hover/active surfaces and a plain-text logout at the
+   bottom. Collapse/pin, theme toggle and the mobile drawer are kept. antd CSS
+   variables use the 'ovpn' cssVar key (see src/hooks/useTheme.tsx). */
 
 .ant-sidebar {
   flex: 0 0 var(--sider-rail, 72px);
@@ -13,44 +16,54 @@
   top: 0;
   height: 100vh;
   align-self: flex-start;
+  border-inline-end: 1px solid var(--dc-line);
 }
 
 .ant-sidebar:not(.sidebar-pinned) > .ant-layout-sider:not(.ant-layout-sider-collapsed) {
   box-shadow: 0 0 32px rgba(0, 0, 0, 0.22);
 }
 
-.sider-nav .ant-menu-item .anticon,
-.sider-nav .ant-menu-submenu-title .anticon,
-.sider-utility .ant-menu-item .anticon {
-  font-size: 16px;
-}
-
-.sider-brand,
-.drawer-brand {
-  font-weight: 600;
-  font-size: 18px;
-  letter-spacing: 0.5px;
-  color: var(--ovpn-color-text);
-}
+/* — brand — */
 
 .sider-brand {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  height: 58px;
-  padding: 0 16px 0 24px;
-  border-bottom: 1px solid var(--ovpn-color-border-secondary);
+  height: 54px;
+  padding: 0 10px 0 20px;
   user-select: none;
   white-space: nowrap;
   overflow: hidden;
 }
 
+.ant-layout-sider-collapsed .sider-brand {
+  justify-content: center;
+  padding: 0;
+}
+
 .brand-block {
   display: inline-flex;
   align-items: center;
+  gap: 9px;
   min-width: 0;
   line-height: 1.1;
+}
+
+.brand-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-success);
+  flex: none;
+}
+
+.sider-brand .brand-text,
+.drawer-brand {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
 }
 
 .brand-actions {
@@ -66,11 +79,215 @@
   height: 26px;
 }
 
-.drawer-header-actions {
+/* — nav —
+
+   Mock values: item padding 7px 10px, radius 6px, font 13px, inactive text
+   #8b949e with a #2f353b dot, hover #131619 / #e6e9ec, active #16191d with a
+   #7aa2f7 dot and weight 500. Items sit 1px apart, inset 12px from the rail
+   edge (ant's inline-menu margin handles the 1px rhythm). */
+
+.ant-sidebar .ant-menu {
+  border-inline-end: none;
+}
+
+/* Specificity is deliberately two classes deep on the rail: antd injects its
+   menu styles at runtime after the static sheets, so (0,2,0) selectors could
+   lose the cascade on equal specificity. */
+.ant-sidebar .sider-nav,
+.ant-sidebar .sider-utility,
+.ant-drawer .drawer-menu {
+  padding: 0 12px;
+}
+
+.ant-sidebar .sider-nav .ant-menu-item,
+.ant-sidebar .sider-nav .ant-menu-submenu-title,
+.ant-sidebar .sider-utility .ant-menu-item,
+.ant-drawer .drawer-menu .ant-menu-item,
+.ant-drawer .drawer-menu .ant-menu-submenu-title {
+  height: auto;
+  line-height: 1.45;
+  margin: 1px 0;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ant-sidebar .ant-menu-inline-collapsed .ant-menu-item,
+.ant-sidebar .ant-menu-inline-collapsed .ant-menu-submenu-title {
+  padding: 10px 0;
+  justify-content: center;
+}
+
+.sb-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--dc-dot-off);
+  flex: none;
+}
+
+/* antd wraps the icon in .ant-menu-item-icon / keeps it inline-flex. */
+.ant-sidebar .sider-nav .ant-menu-item-icon,
+.ant-sidebar .sider-nav .ant-menu-submenu-title .ant-menu-item-icon,
+.ant-drawer .drawer-menu .ant-menu-item-icon,
+.ant-drawer .drawer-menu .ant-menu-submenu-title .ant-menu-item-icon {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  min-width: 4px;
+  font-size: 0;
 }
+
+.sb-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+}
+
+.sb-count {
+  margin-inline-start: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.ant-sidebar .ant-menu-title-content,
+.ant-drawer .ant-menu-title-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ant-sidebar .sider-nav .ant-menu-item-selected,
+.ant-sidebar .sider-nav .ant-menu-sub .ant-menu-item-selected,
+.ant-drawer .drawer-menu .ant-menu-item-selected,
+.ant-drawer .drawer-menu .ant-menu-sub .ant-menu-item-selected {
+  background-color: var(--dc-selected) !important;
+  color: var(--text) !important;
+  font-weight: 500;
+}
+
+.sider-nav .ant-menu-item-selected .sb-dot,
+.drawer-menu .ant-menu-item-selected .sb-dot,
+.sider-nav .ant-menu-submenu-selected > .ant-menu-submenu-title .sb-dot,
+.drawer-menu .ant-menu-submenu-selected > .ant-menu-submenu-title .sb-dot {
+  background: var(--dc-blue);
+}
+
+.sider-nav .ant-menu-item-active:not(.ant-menu-item-selected),
+.sider-utility .ant-menu-item-active:not(.ant-menu-item-selected),
+.drawer-menu .ant-menu-item-active:not(.ant-menu-item-selected),
+.sider-nav .ant-menu-submenu-title:active,
+.sider-nav .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover,
+.sider-nav .ant-menu-submenu-title:hover,
+.sider-utility .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover,
+.drawer-menu .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover,
+.drawer-menu .ant-menu-submenu-title:hover {
+  background-color: var(--dc-hover) !important;
+  color: var(--text) !important;
+}
+
+.sider-nav .ant-menu-sub {
+  background: transparent !important;
+}
+
+/* Sub-items (settings sections) keep a small indent past the parent dot. */
+.ant-sidebar .sider-nav .ant-menu-sub .ant-menu-item,
+.ant-drawer .drawer-menu .ant-menu-sub .ant-menu-item {
+  padding-inline-start: 24px;
+}
+
+/* — utility / logout —
+
+   Mock: bottom block separated by a hairline, plain 12.5px text that turns
+   red on hover. */
+
+.sider-utility {
+  flex: 0 0 auto;
+  border-top: none;
+  position: relative;
+  padding-bottom: 12px;
+}
+
+.sider-utility::before,
+.drawer-utility::before {
+  content: '';
+  display: block;
+  height: 1px;
+  background: var(--dc-line);
+  margin: 4px 10px 9px;
+}
+
+.ant-sidebar .sider-utility .ant-menu-item,
+.ant-drawer .drawer-utility .ant-menu-item {
+  font-size: 12.5px;
+}
+
+/* The mock's logout has no marker; the dot only keeps collapsed-rail layout. */
+.sider-utility .sb-dot,
+.drawer-utility .sb-dot {
+  visibility: hidden;
+}
+
+.ant-sidebar .sider-utility .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover,
+.ant-drawer .drawer-utility .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover {
+  background-color: transparent !important;
+  color: var(--color-error) !important;
+}
+
+/* — rail layout — */
+
+.ant-sidebar > .ant-layout-sider .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sider-nav {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+/* — pin / theme buttons — */
+
+.sidebar-pin,
+.sidebar-theme-cycle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color 0.2s,
+    transform 0.15s,
+    color 0.2s;
+}
+
+.sidebar-pin:hover,
+.sidebar-pin:focus-visible,
+.sidebar-theme-cycle:hover,
+.sidebar-theme-cycle:focus-visible {
+  background-color: var(--dc-hover);
+  color: var(--text);
+  transform: scale(1.08);
+  outline: none;
+}
+
+.sidebar-pin .anticon,
+.sidebar-theme-cycle .anticon {
+  font-size: 15px;
+}
+
+/* — mobile drawer — */
 
 .drawer-handle {
   position: fixed;
@@ -96,7 +313,17 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--ovpn-color-border-secondary);
+  border-bottom: 1px solid var(--dc-line);
+}
+
+.drawer-header .brand-block {
+  gap: 9px;
+}
+
+.drawer-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .drawer-close {
@@ -110,108 +337,12 @@
   justify-content: center;
   cursor: pointer;
   font-size: 16px;
-  color: var(--ovpn-color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .drawer-close:hover,
 .drawer-close:focus-visible {
-  background: var(--ovpn-color-fill-tertiary);
-}
-
-.drawer-menu .ant-menu-item {
-  height: 48px;
-  line-height: 48px;
-  margin: 0;
-  border-radius: 0;
-}
-
-.drawer-menu .ant-menu-item .anticon {
-  font-size: 16px;
-}
-
-.drawer-utility {
-  margin-top: auto;
-  border-top: 1px solid var(--ovpn-color-border-secondary);
-}
-
-.ant-sidebar > .ant-layout-sider .ant-layout-sider-children {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.sider-nav {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  overflow-x: hidden;
-  min-height: 0;
-}
-
-.sider-utility {
-  flex: 0 0 auto;
-  border-top: 1px solid var(--ovpn-color-border-secondary);
-}
-
-.sidebar-pin {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--ovpn-color-text-secondary);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition:
-    background-color 0.2s,
-    transform 0.15s,
-    color 0.2s;
-}
-
-.sidebar-pin:hover,
-.sidebar-pin:focus-visible {
-  background-color: color-mix(in srgb, var(--ovpn-color-primary) 10%, transparent);
-  color: var(--ovpn-color-primary);
-  transform: scale(1.08);
-  outline: none;
-}
-
-.sidebar-pin .anticon {
-  font-size: 16px;
-}
-
-.sidebar-theme-cycle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--ovpn-color-text-secondary);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition:
-    background-color 0.2s,
-    transform 0.15s,
-    color 0.2s;
-}
-
-.sidebar-theme-cycle:hover,
-.sidebar-theme-cycle:focus-visible {
-  background-color: color-mix(in srgb, var(--ovpn-color-primary) 12%, transparent);
-  color: var(--ovpn-color-primary);
-  transform: scale(1.08);
-  outline: none;
-}
-
-.sidebar-theme-cycle .anticon {
-  font-size: 16px;
+  background: var(--dc-hover);
 }
 
 @media (max-width: 768px) {
@@ -249,19 +380,6 @@
   background-color: transparent;
 }
 
-.sider-nav .ant-menu-item-selected,
-.sider-utility .ant-menu-item-selected,
-.drawer-menu .ant-menu-item-selected {
-  background-color: color-mix(in srgb, var(--ovpn-color-primary) 20%, transparent) !important;
-  color: var(--ovpn-color-primary) !important;
-}
-
-.sider-nav .ant-menu-item-active:not(.ant-menu-item-selected),
-.sider-utility .ant-menu-item-active:not(.ant-menu-item-selected),
-.drawer-menu .ant-menu-item-active:not(.ant-menu-item-selected),
-.sider-nav .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover,
-.sider-utility .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover,
-.drawer-menu .ant-menu-item:not(.ant-menu-item-selected):not(.ant-menu-item-disabled):hover {
-  background-color: color-mix(in srgb, var(--ovpn-color-primary) 10%, transparent) !important;
-  color: var(--ovpn-color-primary) !important;
+.drawer-utility {
+  margin-top: auto;
 }
